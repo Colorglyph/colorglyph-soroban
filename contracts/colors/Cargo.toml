@@ -1,0 +1,19 @@
+[package]
+name = "soroban-colors-contract"
+version = "0.0.0"
+authors = ["Tyler van der Hoeven <tyler@tinyanvil.com>"]
+publish = false
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+testutils = ["soroban-sdk/testutils", "soroban-auth/testutils"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+soroban-auth = { workspace = true }
+
+[dev_dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
