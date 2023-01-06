@@ -15,8 +15,8 @@ extern crate std;
 // - Memory Bytes: 1,242,093
 
 // burning
-// - CPU Instructions: 48206590
-// - Memory Bytes: 9,091,362
+// - CPU Instructions: 48262190
+// - Memory Bytes: 9,091,662
 
 #[test]
 fn test() {
@@ -56,7 +56,7 @@ fn test() {
     //     1
     // );
 
-    let palette = client
+    let hash = client
     .with_source_account(&u1)
     .mint(
         &Glyph{
@@ -77,6 +77,7 @@ fn test() {
     // );
 
     println!("{}", env.budget());
+    println!("{:?}", hash);
 
     // println!("{:?}", palette);
     // println!("{:?}", b_palette);

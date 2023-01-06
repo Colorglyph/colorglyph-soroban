@@ -1,11 +1,14 @@
-use soroban_sdk::{symbol, Env, Symbol, Map, Bytes};
+use soroban_sdk::{symbol, Env, Symbol, Map, Bytes, BytesN};
 
-use crate::{types::{Glyph, Color}, colors::burn};
+use crate::{
+    types::{Glyph, Color}, 
+    colors::burn
+};
 
 const HASH_GLYPH: Symbol = symbol!("HASH_GLYPH");
 const GLYPHS: Symbol = symbol!("GLYPHS");
 
-pub fn mint(env: &Env, glyph: Glyph) -> Map<Color, u32> {
+pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Map<Color, u32> = Map::new(&env);
 
@@ -43,10 +46,10 @@ pub fn mint(env: &Env, glyph: Glyph) -> Map<Color, u32> {
 
     burn(&env, &m_palette);
 
-    // env.crypto().sha256(&palette);
+    env.crypto().sha256(&b_palette)
 
     // b_palette
-    m_palette
+    // m_palette
 
     // to build out the miner map we need a color array of color:miner
     // the whole point of tracking color miners is to enable them to claim royalties

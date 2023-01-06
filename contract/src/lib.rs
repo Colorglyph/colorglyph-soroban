@@ -2,7 +2,7 @@
 
 use colors::{mine, xfer, get_color};
 use glyphs::mint;
-use soroban_sdk::{contractimpl, Env, Map, AccountId};
+use soroban_sdk::{contractimpl, Env, Map, AccountId, BytesN};
 use types::{SourceAccount, Color, Glyph};
 
 mod colors;
@@ -28,7 +28,7 @@ impl ColorGlyph {
     }
 
     // Glyphs
-    pub fn mint(env: Env, glyph: Glyph) -> Map<Color, u32> {
+    pub fn mint(env: Env, glyph: Glyph) -> BytesN<32> {
         mint(&env, glyph)
     }
 
