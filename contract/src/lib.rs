@@ -2,8 +2,8 @@
 
 use colors::{mine, xfer, get_color};
 use glyphs::mint;
-use soroban_sdk::{contractimpl, Env, Map, AccountId, BytesN};
-use types::{SourceAccount, Color, Glyph};
+use soroban_sdk::{contractimpl, Env, Vec, AccountId, Bytes, BytesN};
+use types::{SourceAccount, ColorAmount, Glyph};
 
 mod colors;
 mod glyphs;
@@ -17,10 +17,10 @@ pub struct ColorGlyph;
 #[contractimpl]
 impl ColorGlyph {
     // Colors
-    pub fn mine(env: Env, colors: Map<u32, u32>, to: SourceAccount) {
+    pub fn mine(env: Env, colors: Vec<(u32, u32)>, to: SourceAccount) {
         mine(&env, colors, to);
     }
-    pub fn xfer(env: Env, colors: Map<Color, u32>, to: SourceAccount) {
+    pub fn xfer(env: Env, colors: Vec<ColorAmount>, to: SourceAccount) {
         xfer(&env, colors, to);
     }
     pub fn get_color(env: Env, hex: u32, miner: AccountId) -> u32 {
@@ -28,7 +28,10 @@ impl ColorGlyph {
     }
 
     // Glyphs
-    pub fn mint(env: Env, glyph: Glyph) -> BytesN<32> {
+    pub fn mint(env: Env, glyph: Glyph) ->
+        // Bytes
+        BytesN<32>
+    {
         mint(&env, glyph)
     }
 

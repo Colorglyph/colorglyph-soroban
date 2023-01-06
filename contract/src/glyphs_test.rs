@@ -2,21 +2,14 @@
 
 use super::*;
 use std::println;
-use soroban_sdk::{Env, testutils::Accounts, map, Map, Vec, Bytes, BytesN};
+use soroban_sdk::{Env, testutils::Accounts, map, Map, vec, Vec, bytes, Bytes, bytesn, BytesN};
 
 extern crate std;
 
-// Bytes
-// - CPU Instructions: 8456590
-// - Memory Bytes: 1,142,057
+// - CPU Instructions: 41799360
+// - Memory Bytes: 5747038
 
-// u32
-// - CPU Instructions: 9673250
-// - Memory Bytes: 1,242,093
-
-// burning
-// - CPU Instructions: 48262190
-// - Memory Bytes: 9,091,662
+const ITER: u32 = 255;
 
 #[test]
 fn test() {
@@ -26,26 +19,23 @@ fn test() {
     let client = ColorGlyphClient::new(&env, contract_id);
 
     let mut b_palette = Bytes::new(&env);
-    let mut v_palette: Vec<(u32, u32)> = Vec::new(&env);
-    let mut m_palette: Map<u32, u32> = Map::new(&env);
+    let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
 
-    for hex in 0..=255 {
-        b_palette.insert_from_array(hex * 4, &hex.to_le_bytes());
-        v_palette.push_back((hex, hex));
+    for i in 0..=ITER {
+        let hex = 16777215 / ITER * i; // 0 - 16777215 (black to white)
 
-        let current_m_palette_amount = m_palette
-            .get(hex)
-            .unwrap_or(Ok(0))
-            .unwrap();
+        colors_indexes.push_back((hex, vec![&env, i]));
+        color_amount.push_back((hex, 1));
 
-        m_palette.set(hex, current_m_palette_amount + 1);
+        b_palette.insert_from_array(i * 4, &hex.to_le_bytes());
     }
 
     env.budget().reset();
 
     client
     .with_source_account(&u1)
-    .mine(&m_palette, &SourceAccount::None);
+    .mine(&color_amount, &SourceAccount::None);
 
     // let color = client
     //     .with_source_account(&u1)
@@ -56,13 +46,16 @@ fn test() {
     //     1
     // );
 
-    let hash = client
+    let
+        // _palette
+        _hash
+    = client
     .with_source_account(&u1)
     .mint(
         &Glyph{
             width: 16,
-            colors: map![&env, 
-                (1, v_palette)
+            colors: vec![&env,
+                (1, colors_indexes)
             ]
         }
     );
@@ -77,15 +70,15 @@ fn test() {
     // );
 
     println!("{}", env.budget());
-    println!("{:?}", hash);
-
-    // println!("{:?}", palette);
+    // println!("{:?}", 16777215u32.to_le_bytes());
+    println!("{:?}", _hash);
+    // println!("{:?}", _palette);
     // println!("{:?}", b_palette);
 
     // assert_eq!(
-    //     palette,
+    //     _palette,
     //     b_palette
-    // )
+    // );
 
     // assert_eq!(
     //     hash,

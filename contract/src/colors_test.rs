@@ -1,7 +1,9 @@
 #![cfg(test)]
 
+use crate::types::Color;
+
 use super::*;
-use soroban_sdk::{Env, testutils::Accounts, map};
+use soroban_sdk::{Env, testutils::Accounts, vec};
 
 extern crate std;
 
@@ -15,10 +17,10 @@ fn mine_test() {
     let user_2 = env.accounts().generate();
     let user_3 = env.accounts().generate();
 
-    let mut colors: Map<u32, u32> = Map::new(&env);
+    let mut colors: Vec<(u32, u32)> = Vec::new(&env);
 
     for i in 0..10 {
-        colors.set(i, 1);
+        colors.push_back((i, 1));
     }
 
     // env.budget().reset();
@@ -51,9 +53,9 @@ fn mine_test() {
     client
         .with_source_account(&user_1)
         .xfer(
-            &map![&env, 
-                (Color(0, 1), 1), 
-                (Color(0, 2), 1)
+            &vec![&env, 
+                ColorAmount(Color(0, 1), 1), 
+                ColorAmount(Color(0, 2), 1)
             ], 
             &SourceAccount::AccountId(user_3.clone())
         );

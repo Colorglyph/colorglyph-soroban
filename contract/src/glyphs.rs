@@ -1,52 +1,60 @@
-use soroban_sdk::{symbol, Env, Symbol, Map, Bytes, BytesN};
+use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN};
 
 use crate::{
-    types::{Glyph, Color}, 
+    types::{Glyph, Color, ColorAmount}, 
     colors::burn
 };
 
 const HASH_GLYPH: Symbol = symbol!("HASH_GLYPH");
 const GLYPHS: Symbol = symbol!("GLYPHS");
 
-pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
+pub fn mint(env: &Env, glyph: Glyph) ->
+    // Bytes
+    BytesN<32>
+{
     let mut b_palette = Bytes::new(&env);
-    let mut m_palette: Map<Color, u32> = Map::new(&env);
+    let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [color, amount]
 
-    for (miner_idx, indexes_colors) in glyph.colors.iter_unchecked() {
-        for (index, hex) in indexes_colors.iter_unchecked() {
-            let color = Color(hex, miner_idx);
+    for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
+        for (hex, indexes) in colors_indexes.iter_unchecked() {
+            m_palette.push_back(ColorAmount(Color(hex, miner_idx), indexes.len()));
 
-            let current_m_palette_amount = m_palette
-                .get(color.clone())
-                .unwrap_or(Ok(0))
-                .unwrap();
+            for index in indexes.iter_unchecked() {
+                // We need to extend the length of the palette
+                if b_palette.len() <= index {
+                    for i in (b_palette.len() / 3)..(index + 1) {
+                        // If this is the section we're interested in filling, just fill
+                        if i == index {
+                            let rga = hex_to_rgb(hex);
 
-            m_palette.set(color.clone(), current_m_palette_amount + 1);
-
-            // We need to extend the length of the palette
-            if b_palette.len() <= index {
-                for i in (b_palette.len() / 4)..(index + 1) {
-                    // If this is the section we're interested in filling, just fill
-                    if i == index {
-                        b_palette.insert_from_array(index * 4, &hex.to_le_bytes());
-                    } 
-                    // Push empty white pixels
-                    // TODO: this is a "free" way to use white pixels atm
-                    else {
-                        b_palette.extend_from_array(&16777215u32.to_le_bytes());
+                            b_palette.insert_from_array(index * 3, &rga);
+                        } 
+                        // Push empty white pixels
+                        // NOTE: this is a "free" way to use white pixels atm
+                        else {
+                            b_palette.extend_from_array(&[255; 3]);
+                        }
                     }
+                } 
+                // If the bytes already exist just fill them in
+                else {
+                    let rga = hex_to_rgb(hex);
+
+                    b_palette.insert_from_array(index * 3, &rga);
                 }
-            } 
-            // If the bytes already exist just fill them in
-            else {
-                b_palette.insert_from_array(index * 4, &hex.to_le_bytes());
             }
         }
     }
 
     burn(&env, &m_palette);
 
-    env.crypto().sha256(&b_palette)
+    // TODO save glyph
+
+    // (
+        // b_palette
+        env.crypto().sha256(&b_palette)
+    // )
+    // 
 
     // b_palette
     // m_palette
@@ -112,3 +120,12 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
 //         .unwrap()
 //     ]
 // }
+
+fn hex_to_rgb(hex: u32) -> [u8; 3] {
+    let a: [u8; 4] = hex.to_le_bytes();
+    let mut b = [0; 3];
+    
+    b.copy_from_slice(&a[..3]);
+
+    b
+}

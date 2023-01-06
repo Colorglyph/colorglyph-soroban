@@ -1,7 +1,7 @@
-use soroban_sdk::{contracttype, AccountId, Map, Vec};
+use soroban_sdk::{contracttype, AccountId, Vec};
 
 #[contracttype]
-#[derive(Clone, Default, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub enum SourceAccount {
     #[default]
     None,
@@ -10,7 +10,7 @@ pub enum SourceAccount {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Copy)]
-pub struct OwnedColor (
+pub struct ColorOwned (
     pub u32, // owner
     pub u32, // color hex
     pub u32 // miner
@@ -24,8 +24,15 @@ pub struct Color (
 );
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq, Copy)]
+pub struct ColorAmount (
+    pub Color,
+    pub u32 // amount
+);
+
+#[contracttype]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Glyph {
     pub width: u32,
-    pub colors: Map<u32, Vec<(u32, u32)>>, // miner: <index, color> // TODO should this Vec be a Map? <index: color>
+    pub colors: Vec<(u32, Vec<(u32, Vec<u32>)>)>, // [[miner, [color, [index]]]
 }
