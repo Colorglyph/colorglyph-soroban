@@ -6,8 +6,8 @@ use soroban_sdk::{Env, testutils::Accounts, map, Map, vec, Vec, bytes, Bytes, by
 
 extern crate std;
 
-// - CPU Instructions: 41799360
-// - Memory Bytes: 5747038
+// - CPU Instructions: 42076990
+// - Memory Bytes: 5921593
 
 const ITER: u32 = 255;
 

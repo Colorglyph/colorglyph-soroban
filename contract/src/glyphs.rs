@@ -1,7 +1,7 @@
 use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN};
 
 use crate::{
-    types::{Glyph, Color, ColorAmount}, 
+    types::{Glyph, Color, ColorAmount, DataKey}, 
     colors::burn
 };
 
@@ -13,7 +13,7 @@ pub fn mint(env: &Env, glyph: Glyph) ->
     BytesN<32>
 {
     let mut b_palette = Bytes::new(&env);
-    let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [color, amount]
+    let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
@@ -46,18 +46,29 @@ pub fn mint(env: &Env, glyph: Glyph) ->
         }
     }
 
+    // Remove the colors from the owner
     burn(&env, &m_palette);
 
+    let hash = env.crypto().sha256(&b_palette);
+
+    // Save the glyph to storage {glyph hash: Glyph}
+    env
+        .storage()
+        .set(DataKey::Glyph(hash.clone()), glyph);
+
+    // Save the glyph owner to storage {glyph hash: Address}
+    env
+        .storage()
+        .set(DataKey::GlyOwner(hash.clone()), env.invoker());
+
+    // Save the glyph minter to storage {glyph hash: Address}
+    env
+        .storage()
+        .set(DataKey::GlyMinter(hash.clone()), env.invoker());
+
+    hash
+
     // TODO save glyph
-
-    // (
-        // b_palette
-        env.crypto().sha256(&b_palette)
-    // )
-    // 
-
-    // b_palette
-    // m_palette
 
     // to build out the miner map we need a color array of color:miner
     // the whole point of tracking color miners is to enable them to claim royalties
