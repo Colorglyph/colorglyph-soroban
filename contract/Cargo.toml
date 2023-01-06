@@ -1,9 +1,10 @@
 [package]
-name = "soroban-glyphs-contract"
+name = "soroban-colors-contract"
 version = "0.0.0"
+license = "Apache-2.0"
 authors = ["Tyler van der Hoeven <tyler@tinyanvil.com>"]
-publish = false
 edition = "2021"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
@@ -17,3 +18,4 @@ soroban-auth = { workspace = true }
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+soroban-auth = { workspace = true, features = ["testutils"] }

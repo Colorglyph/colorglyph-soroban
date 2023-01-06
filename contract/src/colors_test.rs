@@ -8,8 +8,8 @@ extern crate std;
 #[test]
 fn mine_test() {
     let env = Env::default();
-    let contract_id = env.register_contract(None, ColorsContract);
-    let client = ColorsContractClient::new(&env, &contract_id);
+    let contract_id = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_id);
 
     let user_1 = env.accounts().generate();
     let user_2 = env.accounts().generate();
@@ -66,4 +66,21 @@ fn mine_test() {
         .get_color(&0, &user_2);
 
     assert_eq!(color1 + color2, 2);
+
+    // client
+    //     .with_source_account(&user_3)
+    //     .burn(&map![&env, (Color(0, 1), 1)]);
+
+    // client
+    //     .with_source_account(&user_3)
+    //     .burn(&map![&env, (Color(0, 2), 1)]);
+
+    // let color1 = client
+    //     .with_source_account(&user_3)
+    //     .get_color(&0, &user_1);
+    // let color2 = client
+    //     .with_source_account(&user_3)
+    //     .get_color(&0, &user_2);
+
+    // assert_eq!(color1 + color2, 0);
 }

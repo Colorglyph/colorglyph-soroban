@@ -2,9 +2,7 @@
 resolver = "2"
 
 members = [
-    "contracts/colors",
-    "contracts/glyphs",
-    # "contracts/trades",
+    "contract"
 ]
 
 [profile.release-with-logs]

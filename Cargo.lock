@@ -909,14 +909,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "soroban-glyphs-contract"
-version = "0.0.0"
-dependencies = [
- "soroban-auth",
- "soroban-sdk",
-]
-
-[[package]]
 name = "soroban-ledger-snapshot"
 version = "0.3.2"
 source = "git+https://github.com/stellar/rs-soroban-sdk?rev=e2ecbee#e2ecbeed3e57cb10a18ae77ec9b8946d29b9a247"
