@@ -1,16 +1,21 @@
-use soroban_sdk::{symbol, Env, Symbol, Vec, AccountId, Address};
+use soroban_sdk::{symbol, Env, Symbol, Vec, AccountId, Address, BytesN};
 
-use crate::types::{SourceAccount, Color, ColorOwned, ColorAmount};
+use crate::{
+    types::{SourceAccount, Color, ColorOwned, ColorAmount, DataKey}, 
+    token::{Signature, Identifier, self}
+};
 
-const IDX_ACCOUNT: Symbol = symbol!("IDX_ACC");
+const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
-pub fn mine(env: &Env, colors: Vec<(u32, u32)>, to: SourceAccount) {
+pub fn mine(env: &Env, auth: Signature, colors: Vec<(u32, u32)>, to: SourceAccount) {
     let miner_address = env.invoker();
-    let miner_idx = get_account_idx(&env, &miner_address);
+    let miner_idx = get_account_idx(env, &miner_address);
 
-    let to_address = get_source_account(&env, to);
-    let to_idx = get_account_idx(&env, &to_address);
+    let to_address = get_source_account(env, to);
+    let to_idx = get_account_idx(env, &to_address);
+
+    let mut pay_amount: i128 = 0;
 
     for (hex, amount) in colors.iter_unchecked() {
         let color = ColorOwned(to_idx, hex, miner_idx);
@@ -23,20 +28,36 @@ pub fn mine(env: &Env, colors: Vec<(u32, u32)>, to: SourceAccount) {
             .unwrap_or(Ok(0))
             .unwrap();
 
+        pay_amount += amount as i128;
+
         env
             .storage()
             .set(color, current_amount + amount);
     }
+
+    // TODO: pay platform per amount
+    let token_id: BytesN<32> = env.storage().get(DataKey::TokenId).unwrap().unwrap();
+    let fee_identifier: Identifier = env.storage().get(DataKey::FeeIden).unwrap().unwrap();
+
+    let token = token::Client::new(env, token_id);
+
+    token
+    .xfer(
+        &auth,
+        &token.nonce(&auth.identifier(env)),
+        &fee_identifier,
+        &pay_amount,
+    );
 }
 
 pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: SourceAccount) {
     let self_address = env.invoker();
-    let self_idx = get_account_idx(&env, &self_address);
+    let self_idx = get_account_idx(env, &self_address);
 
-    let to_address = get_source_account(&env, to);
-    let to_idx = get_account_idx(&env, &to_address);
+    let to_address = get_source_account(env, to);
+    let to_idx = get_account_idx(env, &to_address);
 
-    // TODO probably need an event here to help track what colors and account has
+    // TODO: event
 
     for color in colors.iter_unchecked() {
         let ColorAmount(Color(hex, miner_idx), amount) = color;
@@ -64,13 +85,11 @@ pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: SourceAccount) {
     }
 }
 
-pub fn burn(env: &Env, colors: &Vec<ColorAmount>) {
-    // TODO need to prov that sig if for the invoker
-
+pub fn adjust(env: &Env, colors: &Vec<ColorAmount>, add: bool) {
     let self_address = env.invoker();
-    let self_idx = get_account_idx(&env, &self_address);
+    let self_idx = get_account_idx(env, &self_address);
 
-    // TODO probably need an event here
+    // TODO: event
 
     for color in colors.iter_unchecked() {
         let ColorAmount(Color(hex, miner_idx), amount) = color;
@@ -83,16 +102,16 @@ pub fn burn(env: &Env, colors: &Vec<ColorAmount>) {
 
         env
             .storage()
-            .set(from_color, current_from_amount - amount);
+            .set(from_color,  if add { current_from_amount + amount } else { current_from_amount - amount });
     }
 }
 
 pub fn get_color(env: &Env, hex: u32, miner: AccountId) -> u32 {
     let self_address = env.invoker();
-    let self_idx = get_account_idx(&env, &self_address);
+    let self_idx = get_account_idx(env, &self_address);
 
     let miner_address = Address::Account(miner);
-    let miner_idx = get_account_idx(&env, &miner_address);
+    let miner_idx = get_account_idx(env, &miner_address);
 
     env
         .storage()
@@ -122,7 +141,7 @@ fn get_account_idx(env: &Env, source_account: &Address) -> u32 {
     if account_idx == 0 {
         account_idx = env
             .storage()
-            .get(IDX_ACCOUNT)
+            .get(ACC_IDX_I)
             .unwrap_or(Ok(0))
             .unwrap();
 
@@ -130,7 +149,7 @@ fn get_account_idx(env: &Env, source_account: &Address) -> u32 {
 
         env
             .storage()
-            .set(IDX_ACCOUNT, account_idx);
+            .set(ACC_IDX_I, account_idx);
 
         env
             .storage()

@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, AccountId, Vec, BytesN, Address};
+use soroban_sdk::{contracttype, AccountId, Vec, BytesN};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -13,7 +13,9 @@ pub enum SourceAccount {
 pub enum DataKey {
     Glyph(BytesN<32>),
     GlyOwner(BytesN<32>),
-    GlyMinter(BytesN<32>)
+    GlyMinter(BytesN<32>),
+    TokenId,
+    FeeIden
 }
 
 #[contracttype]

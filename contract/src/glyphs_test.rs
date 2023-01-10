@@ -6,15 +6,13 @@ use soroban_sdk::{Env, testutils::Accounts, map, Map, vec, Vec, bytes, Bytes, by
 
 extern crate std;
 
-// - CPU Instructions: 42076990
-// - Memory Bytes: 5921593
-
 const ITER: u32 = 255;
 
 #[test]
 fn test() {
     let env = Env::default();
     let u1 = env.accounts().generate();
+    let u2 = env.accounts().generate();
     let contract_id = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, contract_id);
 
@@ -31,74 +29,83 @@ fn test() {
         b_palette.insert_from_array(i * 4, &hex.to_le_bytes());
     }
 
+    client
+        .with_source_account(&u1)
+        .mine(&color_amount, &SourceAccount::None);
+
+    let color = client
+        .with_source_account(&u1)
+        .get_color(&0, &u1);
+
+    assert_eq!(color, 1);
+
+    ////
+
+    env.budget().reset();
+
+    let hash = client
+        .with_source_account(&u1)
+        .mint(
+            &Glyph{
+                width: 16,
+                colors: vec![&env,
+                    (1, colors_indexes.clone())
+                ]
+            }
+        );
+
+    // - CPU Instructions: 23284840
+    // - Memory Bytes: 3433113
+    // println!("{}", env.budget());
+
+    let color = client
+        .with_source_account(&u1)
+        .get_color(&0, &u1);
+
+    assert_eq!(color, 0);
+
+    env.budget().reset();
+
+    let glyph = client
+        .with_source_account(&u1)
+        .get_glyph(&hash);
+
+    // - CPU Instructions: 1826840
+    // - Memory Bytes: 224319
+    // println!("{}", env.budget());
+
+    // println!("{:?}", glyph);
+
     env.budget().reset();
 
     client
-    .with_source_account(&u1)
-    .mine(&color_amount, &SourceAccount::None);
+        .with_source_account(&u1)
+        .scrape(&hash);
+
+    // - CPU Instructions: 17019100
+    // - Memory Bytes: 2454954
+    // println!("{}", env.budget());
+
+    // let hash = client
+    //     .with_source_account(&u1)
+    //     .mint(
+    //         &Glyph{
+    //             width: 16,
+    //             colors: vec![&env,
+    //                 (1, colors_indexes.clone())
+    //             ]
+    //         }
+    //     );
+
+    // let glyph = client
+    //     .with_source_account(&u1)
+    //     .get_glyph(&hash);
+
+    // assert_eq!(glyph.scraped, true);
 
     // let color = client
     //     .with_source_account(&u1)
     //     .get_color(&0, &u1);
 
-    // assert_eq!(
-    //     color,
-    //     1
-    // );
-
-    let
-        // _palette
-        _hash
-    = client
-    .with_source_account(&u1)
-    .mint(
-        &Glyph{
-            width: 16,
-            colors: vec![&env,
-                (1, colors_indexes)
-            ]
-        }
-    );
-
-    // let color = client
-    //     .with_source_account(&u1)
-    //     .get_color(&0, &u1);
-
-    // assert_eq!(
-    //     color,
-    //     0
-    // );
-
-    println!("{}", env.budget());
-    // println!("{:?}", 16777215u32.to_le_bytes());
-    println!("{:?}", _hash);
-    // println!("{:?}", _palette);
-    // println!("{:?}", b_palette);
-
-    // assert_eq!(
-    //     _palette,
-    //     b_palette
-    // );
-
-    // assert_eq!(
-    //     hash,
-    //     bytesn!(&env, 0xd545fce7b4ecb775d8dd3f1eebbb607c26d39699468cf12a973c00924f724be1)
-    // );
-
-    // let count: u128 = 1;
-    // let glyph = &Glyph{width: 3, colors: bytes!(&env, 0x010001000100010001)};
-    // let invoker = &Address::Account(u1.clone());
-    // let miners = &map!(&env, (Address::Account(u1.clone()), 9));
-
-    // assert_eq!(
-    //     client.get(&1),
-    //     vec![
-    //         &env,
-    //         count.into_val(&env),
-    //         glyph.into_val(&env),
-    //         invoker.into_val(&env),
-    //         invoker.into_val(&env),
-    //         miners.to_raw(),
-    //     ]
-    // );
+    // assert_eq!(color, 1);
 }

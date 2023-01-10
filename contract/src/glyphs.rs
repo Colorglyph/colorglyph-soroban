@@ -1,33 +1,37 @@
-use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN};
+use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN, Address};
 
 use crate::{
     types::{Glyph, Color, ColorAmount, DataKey}, 
-    colors::burn
+    colors::{adjust}
 };
 
-const HASH_GLYPH: Symbol = symbol!("HASH_GLYPH");
 const GLYPHS: Symbol = symbol!("GLYPHS");
 
-pub fn mint(env: &Env, glyph: Glyph) ->
-    // Bytes
-    BytesN<32>
-{
+pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
+
+    // TODO:
+        // event
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
             m_palette.push_back(ColorAmount(Color(hex, miner_idx), indexes.len()));
 
+            // TODO: 
+                // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves. 
+                    // RawVal maybe?
+                    // Ordering is important so you can't just hash the arg directly
+                // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
+
             for index in indexes.iter_unchecked() {
                 // We need to extend the length of the palette
                 if b_palette.len() <= index {
+                    // Start wherever we have data .. wherever we need data
                     for i in (b_palette.len() / 3)..(index + 1) {
                         // If this is the section we're interested in filling, just fill
                         if i == index {
-                            let rga = hex_to_rgb(hex);
-
-                            b_palette.insert_from_array(index * 3, &rga);
+                            b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
                         } 
                         // Push empty white pixels
                         // NOTE: this is a "free" way to use white pixels atm
@@ -38,99 +42,107 @@ pub fn mint(env: &Env, glyph: Glyph) ->
                 } 
                 // If the bytes already exist just fill them in
                 else {
-                    let rga = hex_to_rgb(hex);
-
-                    b_palette.insert_from_array(index * 3, &rga);
+                    b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
                 }
             }
         }
     }
 
-    // Remove the colors from the owner
-    burn(&env, &m_palette);
-
     let hash = env.crypto().sha256(&b_palette);
 
-    // Save the glyph to storage {glyph hash: Glyph}
-    env
-        .storage()
-        .set(DataKey::Glyph(hash.clone()), glyph);
+    // minted
+        // owner
+        // minter
+        // exists
+    // scraped
+        // no owner
+        // minter
+        // not exists
+    // new
+        // no owner
+        // no minter
+        // not exists
 
-    // Save the glyph owner to storage {glyph hash: Address}
-    env
+    let is_owned = env
         .storage()
-        .set(DataKey::GlyOwner(hash.clone()), env.invoker());
+        .has(DataKey::GlyOwner(hash.clone()));
 
-    // Save the glyph minter to storage {glyph hash: Address}
-    env
+    if is_owned {
+        panic!("Not Empty");
+    } else {
+        // Save the glyph to storage {glyph hash: Glyph}
+        env
+            .storage()
+            .set(DataKey::Glyph(hash.clone()), glyph);
+
+        // Save the glyph owner to storage {glyph hash: Address}
+        env
+            .storage()
+            .set(DataKey::GlyOwner(hash.clone()), env.invoker());
+    }
+
+    let is_minted = env
         .storage()
-        .set(DataKey::GlyMinter(hash.clone()), env.invoker());
+        .has(DataKey::GlyMinter(hash.clone()));
+
+    if !is_minted {
+        // Save the glyph minter to storage {glyph hash: Address}
+        env
+            .storage()
+            .set(DataKey::GlyMinter(hash.clone()), env.invoker());
+    }
+
+    // Remove the colors from the owner
+    adjust(&env, &m_palette, false);
 
     hash
-
-    // TODO save glyph
-
-    // to build out the miner map we need a color array of color:miner
-    // the whole point of tracking color miners is to enable them to claim royalties
-        // glyph minters will also claim royalties
-    // track scraped state
-    // take from user palette when minting
-    // create a mining function
-    // refill a user palette when scraping
-    // special mint case when minting a scraped glyph
-    // ensure mint uniqueness (no two identical `colors` Bytes arrays)
-    
-    // let glyph_key = DataKey(symbol!("Glyphs"), count);
-    // let glyph_owner_key = DataKey(symbol!("Gl_Owners"), count);
-    // let glyph_minter_key = DataKey(symbol!("Gl_Minters"), count);
-    // let glyph_miner_key = DataKey(symbol!("Gl_Miners"), count);
-
-    // env.storage().set(glyph_key, glyph);
-    // env.storage().set(glyph_owner_key, env.invoker());
-    // env.storage().set(glyph_minter_key, env.invoker());
-    // env.storage().set(glyph_miner_key, map!(&env, (env.invoker(), 9)));
 }
 
-// pub fn get(env: Env, count: u128) -> Vec<RawVal> {
-//     let glyph_key = DataKey(symbol!("Glyphs"), count);
-//     let glyph_owner_key = DataKey(symbol!("Gl_Owners"), count);
-//     let glyph_minter_key = DataKey(symbol!("Gl_Minters"), count);
-//     let glyph_miner_key = DataKey(symbol!("Gl_Miners"), count);
+pub fn get_glyph(env: &Env, hash: &BytesN<32>) -> Glyph {
+    env
+        .storage()
+        .get(DataKey::Glyph(hash.clone()))
+        .unwrap_or_else(|| panic!("Not Found"))
+        .unwrap()
+}
 
-//     vec![
-//         &env, 
+pub fn scrape(env: &Env, hash: BytesN<32>) {
 
-//         env
-//         .storage()
-//         .get(COUNTER)
-//         .unwrap_or_else(|| panic!("noop"))
-//         .unwrap(),
+    // TODO: 
+        // event
 
-//         env
-//         .storage()
-//         .get(glyph_key)
-//         .unwrap_or_else(|| panic!("noop"))
-//         .unwrap(),
+    let owner: Address = env
+        .storage()
+        .get(DataKey::GlyOwner(hash.clone()))
+        .unwrap_or_else(|| panic!("Not Found"))
+        .unwrap();
 
-//         env
-//         .storage()
-//         .get(glyph_owner_key)
-//         .unwrap_or_else(|| panic!("noop"))
-//         .unwrap(),
+    if owner != env.invoker() {
+        panic!("Unauthorized");
+    }
 
-//         env
-//         .storage()
-//         .get(glyph_minter_key)
-//         .unwrap_or_else(|| panic!("noop"))
-//         .unwrap(),
+    let glyph = get_glyph(&env, &hash);
+    let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
-//         env
-//         .storage()
-//         .get(glyph_miner_key)
-//         .unwrap_or_else(|| panic!("noop"))
-//         .unwrap()
-//     ]
-// }
+    for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
+        for (hex, indexes) in colors_indexes.iter_unchecked() {
+            m_palette.push_back(ColorAmount(Color(hex, miner_idx), indexes.len()));
+        }
+    }
+
+    // Add the colors to the owner
+    adjust(&env, &m_palette, true);
+
+    // Remove glyph
+    env
+        .storage()
+        .remove(DataKey::Glyph(hash.clone()));
+
+    // Remove glyph owner
+    env
+        .storage()
+        .remove(DataKey::GlyOwner(hash.clone()));
+}
 
 fn hex_to_rgb(hex: u32) -> [u8; 3] {
     let a: [u8; 4] = hex.to_le_bytes();
