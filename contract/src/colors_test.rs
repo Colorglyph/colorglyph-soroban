@@ -4,33 +4,12 @@ use super::*;
 use std::println;
 use ed25519_dalek::Keypair;
 use rand::thread_rng;
-use soroban_sdk::{BytesN, Env, testutils::Accounts, AccountId, vec, IntoVal, TryIntoVal, symbol, map, testutils::ed25519::Sign};
-use crate::{types::Color};
+use soroban_auth::{Ed25519Signature, SignaturePayload, SignaturePayloadV0};
+use soroban_sdk::{BytesN, Env, testutils::Accounts, AccountId, vec, IntoVal, TryIntoVal, symbol, map, testutils::ed25519::Sign, xdr::Asset};
+use stellar_xdr::{AlphaNum4, AssetCode4};
+use crate::{types::Color, token::Client};
 
 extern crate std;
-
-soroban_sdk::contractimport!(
-    file = "./soroban_token_contract.wasm"
-);
-
-type TokenClient = Client;
-
-fn create_token_contract(e: &Env, admin: &AccountId) -> (BytesN<32>, TokenClient) {
-    e.install_contract_wasm(WASM);
-
-    let id = e.register_contract_wasm(None, WASM);
-    let token = TokenClient::new(e, &id);
-
-    // decimals, name, symbol don't matter in tests
-    token.initialize(
-        &Identifier::Account(admin.clone()),
-        &7u32,
-        &"name".into_val(e),
-        &"symbol".into_val(e),
-    );
-
-    (id, token)
-}
 
 fn generate_keypair() -> Keypair {
     Keypair::generate(&mut thread_rng())
@@ -40,6 +19,7 @@ fn to_ed25519(e: &Env, kp: &Keypair) -> Identifier {
     Identifier::Ed25519(kp.public.to_bytes().into_val(e))
 }
 
+// TODO: can we simplify this with tdep's sign testutil?
 fn get_auth(
     env: &Env, 
     token_id: &BytesN<32>, 
@@ -75,7 +55,7 @@ fn mine_test() {
     let contract_id = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, &contract_id);
 
-    let u1_keypair = generate_keypair(); // Keypair::from_bytes(&u1_bytes).unwrap();
+    let u1_keypair = generate_keypair();
     let u1_account_id = stellar_xdr::AccountId(
         stellar_xdr::PublicKey::PublicKeyTypeEd25519(
             stellar_xdr::Uint256(
@@ -87,7 +67,7 @@ fn mine_test() {
     .unwrap();
     let u1_identifier = to_ed25519(&env, &u1_keypair);
 
-    let u2_keypair = generate_keypair(); // Keypair::from_bytes(&u1_bytes).unwrap();
+    let u2_keypair = generate_keypair();
     let u2_account_id = stellar_xdr::AccountId(
         stellar_xdr::PublicKey::PublicKeyTypeEd25519(
             stellar_xdr::Uint256(
@@ -101,14 +81,30 @@ fn mine_test() {
     
     let u3 = env.accounts().generate();
 
-    let token_admin = env.accounts().generate();
+    // let token_admin = env.accounts().generate();
+
+    let issuer_keypair = generate_keypair();
+    let issuer_xdr_account_id = stellar_xdr::AccountId(
+        stellar_xdr::PublicKey::PublicKeyTypeEd25519(
+            stellar_xdr::Uint256(
+                *issuer_keypair.public.as_bytes()
+            )
+        )
+    );
+    let issuer_account_id = issuer_xdr_account_id.clone().try_into_val(&env).unwrap();
+
     let fee_keypair = generate_keypair();
     let fee_identifier = to_ed25519(&env, &fee_keypair);
-
-    let (token_id, token) = create_token_contract(&env, &token_admin);
     
+    let asset4 = Asset::CreditAlphanum4(AlphaNum4 {
+        asset_code: AssetCode4([66u8; 4]),
+        issuer: issuer_xdr_account_id.clone()
+    });
+    let token_id = env.register_stellar_asset_contract(asset4);
+    let token = token::Client::new(&env, &token_id);
+
     token
-    .with_source_account(&token_admin)
+    .with_source_account(&issuer_account_id)
     .mint(
         &Signature::Invoker,
         &0,
@@ -151,7 +147,7 @@ fn mine_test() {
     assert_eq!(color, 1);
 
     token
-    .with_source_account(&token_admin)
+    .with_source_account(&issuer_account_id)
     .mint(
         &Signature::Invoker,
         &0,
@@ -168,16 +164,6 @@ fn mine_test() {
         &Identifier::Contract(contract_id.clone()),
         &pay_amount
     );
-
-    // let auth = get_auth(
-    //     &env, 
-    //     &token_id, 
-    //     &u2_keypair,
-    //     &u2_identifier, 
-    //     &token,
-    //     &fee_identifier, 
-    //     &pay_amount
-    // );
 
     client
         .with_source_account(&u2_account_id)
