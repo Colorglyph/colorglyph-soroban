@@ -50,7 +50,7 @@ fn get_auth(
     amount: &i128
 ) -> Signature {
     let msg = SignaturePayload::V0(SignaturePayloadV0 {
-        name: symbol!("xfer"),
+        name: symbol!("incr_allow"),
         contract: token_id.clone(),
         network: env.ledger().network_passphrase(),
         args: (
@@ -132,7 +132,7 @@ fn mine_test() {
         &u1_keypair,
         &u1_identifier, 
         &token,
-        &fee_identifier,
+        &Identifier::Contract(contract_id.clone()),
         &pay_amount
     );
 
@@ -165,9 +165,19 @@ fn mine_test() {
         &u2_keypair,
         &u2_identifier, 
         &token,
-        &fee_identifier, 
+        &Identifier::Contract(contract_id.clone()),
         &pay_amount
     );
+
+    // let auth = get_auth(
+    //     &env, 
+    //     &token_id, 
+    //     &u2_keypair,
+    //     &u2_identifier, 
+    //     &token,
+    //     &fee_identifier, 
+    //     &pay_amount
+    // );
 
     client
         .with_source_account(&u2_account_id)
