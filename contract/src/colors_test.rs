@@ -201,20 +201,7 @@ fn mine_test() {
 
     assert_eq!(color1 + color2, 2);
 
-    // client
-    //     .with_source_account(&u3)
-    //     .burn(&map![&env, (Color(0, 1), 1)]);
-
-    // client
-    //     .with_source_account(&u3)
-    //     .burn(&map![&env, (Color(0, 2), 1)]);
-
-    // let color1 = client
-    //     .with_source_account(&u3)
-    //     .get_color(&0, &u1);
-    // let color2 = client
-    //     .with_source_account(&u3)
-    //     .get_color(&0, &u2);
-
-    // assert_eq!(color1 + color2, 0);
+    assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
+    assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
+    assert_eq!(token.balance(&fee_identifier), 20);
 }

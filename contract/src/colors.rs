@@ -8,6 +8,9 @@ use crate::{
 const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
+// TODO:
+// This implements xfer signature forwarding which apparently is unsafe (https://discord.com/channels/897514728459468821/1062430097216372766/1062432325725585428)
+
 pub fn mine(env: &Env, auth: Signature, colors: Vec<(u32, u32)>, to: SourceAccount) {
     let miner_address = env.invoker();
     let miner_idx = get_account_idx(env, &miner_address);
@@ -42,12 +45,12 @@ pub fn mine(env: &Env, auth: Signature, colors: Vec<(u32, u32)>, to: SourceAccou
     let token = token::Client::new(env, token_id);
 
     token
-    .xfer(
-        &auth,
-        &token.nonce(&auth.identifier(env)),
-        &fee_identifier,
-        &pay_amount,
-    );
+        .xfer(
+            &auth,
+            &token.nonce(&auth.identifier(env)),
+            &fee_identifier,
+            &pay_amount,
+        );
 }
 
 pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: SourceAccount) {
