@@ -1,7 +1,7 @@
-use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN, Address};
+use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN, Address, panic_with_error};
 
 use crate::{
-    types::{Glyph, Color, ColorAmount, DataKey}, 
+    types::{Glyph, Color, ColorAmount, DataKey, Error}, 
     colors::{adjust}
 };
 
@@ -68,7 +68,7 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
         .has(DataKey::GlyOwner(hash.clone()));
 
     if is_owned {
-        panic!("Not Empty");
+        panic_with_error!(env, Error::NotEmpty);
     } else {
         // Save the glyph to storage {glyph hash: Glyph}
         env
@@ -98,11 +98,14 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
     hash
 }
 
-pub fn get_glyph(env: &Env, hash: &BytesN<32>) -> Glyph {
+pub fn get_glyph(env: &Env, hash: &BytesN<32>) -> Result<Glyph, Error> {
     env
         .storage()
         .get(DataKey::Glyph(hash.clone()))
-        .unwrap_or_else(|| panic!("Not Found"))
+        // .unwrap_or_else(|| Ok(Err(Error::NotEmpty)))
+        // .unwrap_or(Ok(Err(Error::NotEmpty)))
+        // .ok_or(Error::NotEmpty)?
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap()
 }
 
@@ -114,14 +117,14 @@ pub fn scrape(env: &Env, hash: BytesN<32>) {
     let owner: Address = env
         .storage()
         .get(DataKey::GlyOwner(hash.clone()))
-        .unwrap_or_else(|| panic!("Not Found"))
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
     if owner != env.invoker() {
-        panic!("Unauthorized");
+        panic_with_error!(env, Error::NotAuthorized);
     }
 
-    let glyph = get_glyph(&env, &hash);
+    let glyph = get_glyph(&env, &hash).unwrap();
     let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {

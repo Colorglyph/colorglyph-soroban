@@ -8,10 +8,7 @@ use crate::{
 const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
-// TODO:
-// This implements xfer signature forwarding which apparently is unsafe (https://discord.com/channels/897514728459468821/1062430097216372766/1062432325725585428)
-
-pub fn mine(env: &Env, auth: Signature, colors: Vec<(u32, u32)>, to: SourceAccount) {
+pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: SourceAccount) {
     let miner_address = env.invoker();
     let miner_idx = get_account_idx(env, &miner_address);
 
@@ -38,54 +35,27 @@ pub fn mine(env: &Env, auth: Signature, colors: Vec<(u32, u32)>, to: SourceAccou
             .set(color, current_amount + amount);
     }
 
-    // TODO: pay platform per amount
-    let sig_id = auth.identifier(env);
-    let token_id: BytesN<32> = env.storage().get(DataKey::TokenId).unwrap().unwrap();
-    let fee_identifier: Identifier = env.storage().get(DataKey::FeeIden).unwrap().unwrap();
     let contract_id = Identifier::Contract(env.get_current_contract().into());
-
+    let sig_id = signature.identifier(env);
+    let token_id: BytesN<32> = env.storage().get(DataKey::TokenId).unwrap().unwrap();
     let token = token::Client::new(env, token_id);
+    let fee_identifier: Identifier = env.storage().get(DataKey::FeeIden).unwrap().unwrap();
+    let sender_nonce = token.nonce(&sig_id);
 
-    // run the approval
-    let sender_nonce = token.nonce(&auth.identifier(env));
     token.incr_allow(
-        &auth,
+        &signature,
         &sender_nonce, 
         &contract_id, 
         &pay_amount
     );
 
-    // token_client.approve(
-    //     &token_approval_sig, 
-    //     &sender_nonce, 
-    //     &get_contract_id(&e), 
-    //     &amount_bi
-    // );
-
-     // now the pool has the appropriate permissions to run `transfer_from`
-     token.xfer_from(
+    token.xfer_from(
         &Signature::Invoker,
         &0,
         &sig_id,
         &fee_identifier,
         &pay_amount
     );
-
-    // token_client.xfer_from(
-    //     &Signature::Invoker,
-    //     &BigInt::zero(&e),
-    //     &sig_id,
-    //     &get_contract_id(&e),
-    //     &BigInt::from_i64(&e, amount)
-    // );
-
-    // token
-    //     .xfer(
-    //         &auth,
-    //         &token.nonce(&auth.identifier(env)),
-    //         &fee_identifier,
-    //         &pay_amount,
-    //     );
 }
 
 pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: SourceAccount) {

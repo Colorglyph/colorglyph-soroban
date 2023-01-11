@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, AccountId, Vec, BytesN};
+use soroban_sdk::{contracttype, AccountId, Vec, BytesN, contracterror};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -18,8 +18,17 @@ pub enum DataKey {
     FeeIden
 }
 
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[repr(u32)]
+pub enum Error {
+    NotFound = 1,
+    NotEmpty = 2,
+    NotAuthorized = 3,
+}
+
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Copy)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ColorOwned (
     pub u32, // owner
     pub u32, // color hex
@@ -27,21 +36,21 @@ pub struct ColorOwned (
 );
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Copy)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Color (
     pub u32, // color hex
     pub u32 // miner
 );
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Copy)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ColorAmount (
     pub Color,
     pub u32 // amount
 );
 
 #[contracttype]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Glyph {
     pub width: u32,
     pub colors: Vec<(u32, Vec<(u32, Vec<u32>)>)>, // [[miner, [color, [index]]]

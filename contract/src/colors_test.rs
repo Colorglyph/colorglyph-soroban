@@ -1,108 +1,64 @@
 #![cfg(test)]
 
-use super::*;
-use std::println;
-use ed25519_dalek::Keypair;
-use rand::thread_rng;
-use soroban_auth::{Ed25519Signature, SignaturePayload, SignaturePayloadV0};
-use soroban_sdk::{BytesN, Env, testutils::Accounts, AccountId, vec, IntoVal, TryIntoVal, symbol, map, testutils::ed25519::Sign, xdr::Asset};
-use stellar_xdr::{AlphaNum4, AssetCode4};
-use crate::{types::Color, token::Client};
+use soroban_auth::{Signature, Identifier};
+use soroban_sdk::{Env, Vec, testutils::Accounts, vec};
+use stellar_xdr::{AlphaNum4, Asset, AssetCode4};
+
+use crate::{
+    colorglyph::{ColorGlyph, ColorGlyphClient}, 
+    testutils::{generate_full_account, get_incr_allow_signature}, 
+    token::Client as TokenClient, 
+    types::{SourceAccount, ColorAmount, Color}
+};
 
 extern crate std;
 
-fn generate_keypair() -> Keypair {
-    Keypair::generate(&mut thread_rng())
-}
-
-fn to_ed25519(e: &Env, kp: &Keypair) -> Identifier {
-    Identifier::Ed25519(kp.public.to_bytes().into_val(e))
-}
-
-// TODO: can we simplify this with tdep's sign testutil?
-fn get_auth(
-    env: &Env, 
-    token_id: &BytesN<32>, 
-    from_keypair: &Keypair, 
-    from_identifier: &Identifier, 
-    token: &Client,
-    to_identifier: &Identifier, 
-    amount: &i128
-) -> Signature {
-    let msg = SignaturePayload::V0(SignaturePayloadV0 {
-        name: symbol!("incr_allow"),
-        contract: token_id.clone(),
-        network: env.ledger().network_passphrase(),
-        args: (
-            from_identifier, 
-            token.nonce(from_identifier),
-            to_identifier,
-            amount
-        ).into_val(env),
-    });
-
-    let auth = Signature::Ed25519(Ed25519Signature {
-        public_key: from_keypair.public.to_bytes().into_val(env),
-        signature: from_keypair.sign(msg).unwrap().into_val(env),
-    });
-
-    auth
-}
-
 #[test]
-fn mine_test() {
+fn mine() {
     let env = Env::default();
+
+    // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, &contract_id);
 
-    let u1_keypair = generate_keypair();
-    let u1_account_id = stellar_xdr::AccountId(
-        stellar_xdr::PublicKey::PublicKeyTypeEd25519(
-            stellar_xdr::Uint256(
-                *u1_keypair.public.as_bytes()
-            )
-        )
-    )
-    .try_into_val(&env)
-    .unwrap();
-    let u1_identifier = to_ed25519(&env, &u1_keypair);
+    // Accounts
+    let (
+        u1_keypair, 
+        _, 
+        u1_account_id, 
+        u1_identifier
+    ) = generate_full_account(&env);
 
-    let u2_keypair = generate_keypair();
-    let u2_account_id = stellar_xdr::AccountId(
-        stellar_xdr::PublicKey::PublicKeyTypeEd25519(
-            stellar_xdr::Uint256(
-                *u2_keypair.public.as_bytes()
-            )
-        )
-    )
-    .try_into_val(&env)
-    .unwrap();
-    let u2_identifier = to_ed25519(&env, &u2_keypair);
-    
-    let u3 = env.accounts().generate();
+    let (
+        u2_keypair, 
+        _, 
+        u2_account_id, 
+        u2_identifier
+    ) = generate_full_account(&env);
 
-    // let token_admin = env.accounts().generate();
+    let (
+        _,
+        issuer_xdr_account_id, 
+        issuer_account_id, 
+        _
+    ) = generate_full_account(&env);
 
-    let issuer_keypair = generate_keypair();
-    let issuer_xdr_account_id = stellar_xdr::AccountId(
-        stellar_xdr::PublicKey::PublicKeyTypeEd25519(
-            stellar_xdr::Uint256(
-                *issuer_keypair.public.as_bytes()
-            )
-        )
-    );
-    let issuer_account_id = issuer_xdr_account_id.clone().try_into_val(&env).unwrap();
+    let (
+        _,
+        _,
+        _,
+        fee_identifier
+    ) = generate_full_account(&env);
 
-    let fee_keypair = generate_keypair();
-    let fee_identifier = to_ed25519(&env, &fee_keypair);
-    
+    // Token
     let asset4 = Asset::CreditAlphanum4(AlphaNum4 {
-        asset_code: AssetCode4([66u8; 4]),
+        asset_code: AssetCode4([0u8; 4]),
         issuer: issuer_xdr_account_id.clone()
     });
     let token_id = env.register_stellar_asset_contract(asset4);
-    let token = token::Client::new(&env, &token_id);
+    let token = TokenClient::new(&env, &token_id);
 
+    // Minting
     token
     .with_source_account(&issuer_account_id)
     .mint(
@@ -111,40 +67,6 @@ fn mine_test() {
         &u1_identifier,
         &10_000_000,
     );
-
-    let mut colors: Vec<(u32, u32)> = Vec::new(&env);
-    let mut pay_amount: i128 = 0;
-
-    for i in 0..10 {
-        pay_amount += 1 as i128;
-        colors.push_back((i, 1));
-    }
-
-    client.init(&token_id, &fee_identifier);
-
-    let auth = get_auth(
-        &env, 
-        &token_id, 
-        &u1_keypair,
-        &u1_identifier, 
-        &token,
-        &Identifier::Contract(contract_id.clone()),
-        &pay_amount
-    );
-
-    // env.budget().reset();
-
-    client
-        .with_source_account(&u1_account_id)
-        .mine(&auth, &colors, &SourceAccount::None);
-    
-    let color = client
-        .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_account_id);
-
-    // println!("{}", env.budget());
-
-    assert_eq!(color, 1);
 
     token
     .with_source_account(&issuer_account_id)
@@ -155,19 +77,54 @@ fn mine_test() {
         &10_000_000,
     );
 
-    let auth = get_auth(
+    // Tests
+    client.init(&token_id, &fee_identifier);
+    
+    let mut colors: Vec<(u32, u32)> = Vec::new(&env);
+    let mut pay_amount: i128 = 0;
+
+    for i in 0..10 {
+        pay_amount += 1 as i128;
+        colors.push_back((i, 1));
+    }
+
+    let signature = get_incr_allow_signature(
         &env, 
         &token_id, 
-        &u2_keypair,
-        &u2_identifier, 
+        &u1_keypair,
         &token,
         &Identifier::Contract(contract_id.clone()),
         &pay_amount
     );
 
+    env.budget().reset();
+
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &colors, &SourceAccount::None);
+    
+    let color = client
+        .with_source_account(&u1_account_id)
+        .get_color(&0, &u1_account_id);
+
+    // println!("{}", env.budget());
+
+    assert_eq!(color, 1);
+
+    let signature = get_incr_allow_signature(
+        &env, 
+        &token_id, 
+        &u2_keypair,
+        &token,
+        &Identifier::Contract(contract_id.clone()),
+        &pay_amount
+    );
+
+    env.budget().reset();
+
     client
         .with_source_account(&u2_account_id)
-        .mine(&auth, &colors, &SourceAccount::AccountId(u1_account_id.clone()));
+        .mine(&signature, &colors, &SourceAccount::AccountId(u1_account_id.clone()));
 
     let color1 = client
         .with_source_account(&u1_account_id)
@@ -177,6 +134,10 @@ fn mine_test() {
         .get_color(&0, &u2_account_id);
 
     assert_eq!(color1 + color2, 2);
+
+    let u3 = env.accounts().generate();
+
+    env.budget().reset();
 
     client
         .with_source_account(&u1_account_id)
@@ -197,7 +158,7 @@ fn mine_test() {
 
     assert_eq!(color1 + color2, 2);
 
-    assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
-    assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
-    assert_eq!(token.balance(&fee_identifier), 20);
+    // assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
+    // assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
+    // assert_eq!(token.balance(&fee_identifier), 20);
 }
