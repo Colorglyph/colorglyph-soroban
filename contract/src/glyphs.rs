@@ -65,7 +65,7 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
 
     let is_owned = env
         .storage()
-        .has(DataKey::GlyOwner(hash.clone()));
+        .has(DataKey::GlyphOwner(hash.clone()));
 
     if is_owned {
         panic_with_error!(env, Error::NotEmpty);
@@ -78,18 +78,18 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
         // Save the glyph owner to storage {glyph hash: Address}
         env
             .storage()
-            .set(DataKey::GlyOwner(hash.clone()), env.invoker());
+            .set(DataKey::GlyphOwner(hash.clone()), env.invoker());
     }
 
     let is_minted = env
         .storage()
-        .has(DataKey::GlyMinter(hash.clone()));
+        .has(DataKey::GlyphMaker(hash.clone()));
 
     if !is_minted {
         // Save the glyph minter to storage {glyph hash: Address}
         env
             .storage()
-            .set(DataKey::GlyMinter(hash.clone()), env.invoker());
+            .set(DataKey::GlyphMaker(hash.clone()), env.invoker());
     }
 
     // Remove the colors from the owner
@@ -98,13 +98,13 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
     hash
 }
 
-pub fn get_glyph(env: &Env, hash: &BytesN<32>) -> Result<Glyph, Error> {
+pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
     env
         .storage()
         .get(DataKey::Glyph(hash.clone()))
-        // .unwrap_or_else(|| Ok(Err(Error::NotEmpty)))
-        // .unwrap_or(Ok(Err(Error::NotEmpty)))
-        // .ok_or(Error::NotEmpty)?
+        // .unwrap_or_else(|| Ok(Err(Error::NotFound)))
+        // .unwrap_or(Ok(Err(Error::NotFound)))
+        // .ok_or(Error::NotFound)?
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap()
 }
@@ -116,7 +116,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) {
 
     let owner: Address = env
         .storage()
-        .get(DataKey::GlyOwner(hash.clone()))
+        .get(DataKey::GlyphOwner(hash.clone()))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
@@ -124,7 +124,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) {
         panic_with_error!(env, Error::NotAuthorized);
     }
 
-    let glyph = get_glyph(&env, &hash).unwrap();
+    let glyph = get_glyph(&env, hash.clone()).unwrap();
     let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
@@ -144,7 +144,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) {
     // Remove glyph owner
     env
         .storage()
-        .remove(DataKey::GlyOwner(hash.clone()));
+        .remove(DataKey::GlyphOwner(hash.clone()));
 }
 
 fn hex_to_rgb(hex: u32) -> [u8; 3] {

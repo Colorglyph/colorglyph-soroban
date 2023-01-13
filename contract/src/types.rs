@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, AccountId, Vec, BytesN, contracterror};
+use soroban_sdk::{contracttype, AccountId, Vec, BytesN, contracterror, Address};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
@@ -10,12 +10,31 @@ pub enum SourceAccount {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TradeOwner {
+    Address(Address),
+    GlyphOwner(GlyphOwner)
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlyphOwner (
+    pub Address, 
+    pub Vec<AssetAmount>, 
+    pub u32
+);
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub enum DataKey {
-    Glyph(BytesN<32>),
-    GlyOwner(BytesN<32>),
-    GlyMinter(BytesN<32>),
-    TokenId,
-    FeeIden
+    #[default]
+    None,
+    Glyph(BytesN<32>), // glyph hash
+    GlyphOwner(BytesN<32>), // glyph hash
+    GlyphMaker(BytesN<32>), // glyph hash
+    SideBuy,
+    SideSell,
+    InitToken,
+    InitFeeId
 }
 
 #[contracterror]
@@ -25,7 +44,22 @@ pub enum Error {
     NotFound = 1,
     NotEmpty = 2,
     NotAuthorized = 3,
+    NotPermitted = 4,
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AssetType {
+    Glyph(BytesN<32>), // Glyph hash
+    Asset(AssetAmount), // Token contract id, amount
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AssetAmount (
+    pub BytesN<32>, // Token contract id
+    pub i128 // amount
+);
 
 #[contracttype]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -54,4 +88,12 @@ pub struct ColorAmount (
 pub struct Glyph {
     pub width: u32,
     pub colors: Vec<(u32, Vec<(u32, Vec<u32>)>)>, // [[miner, [color, [index]]]
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Trade {
+    pub buy: BytesN<32>,
+    pub sell: BytesN<32>,
+    pub amount: i128,
 }

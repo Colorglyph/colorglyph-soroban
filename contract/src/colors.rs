@@ -37,9 +37,9 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: Source
 
     let contract_id = Identifier::Contract(env.get_current_contract().into());
     let sig_id = signature.identifier(env);
-    let token_id: BytesN<32> = env.storage().get(DataKey::TokenId).unwrap().unwrap();
+    let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
     let token = token::Client::new(env, token_id);
-    let fee_identifier: Identifier = env.storage().get(DataKey::FeeIden).unwrap().unwrap();
+    let fee_identifier: Identifier = env.storage().get(DataKey::InitFeeId).unwrap().unwrap();
     let sender_nonce = token.nonce(&sig_id);
 
     token.incr_allow(

@@ -14,7 +14,7 @@ use crate::{
 extern crate std;
 
 #[test]
-fn mine() {
+fn test() {
     let env = Env::default();
 
     // Contract

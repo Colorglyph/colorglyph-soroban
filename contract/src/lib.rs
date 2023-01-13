@@ -13,3 +13,4 @@ pub mod types;
 mod testutils;
 mod colors_test;
 mod glyphs_test;
+mod trades_test;
