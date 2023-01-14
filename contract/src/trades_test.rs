@@ -2,13 +2,14 @@
 
 use std::println;
 
-use soroban_auth::{Signature, Identifier};
+use soroban_auth::{Identifier};
 use soroban_sdk::{Env, Bytes, Vec, vec, symbol, Symbol};
-use stellar_xdr::{AlphaNum4, Asset, AssetCode4};
+use stellar_xdr::{Asset};
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
-    types::{AssetType, SourceAccount, Glyph, AssetAmount, DataKey, Error}, testutils::{generate_full_account, get_incr_allow_signature},
+    types::{AssetType, SourceAccount, Glyph, AssetAmount, DataKey, Error}, 
+    testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient, 
 };
 
@@ -22,6 +23,7 @@ fn test() {
 
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
+    let contract_identifier = Identifier::Contract(contract_id.clone());
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
@@ -41,44 +43,26 @@ fn test() {
 
     let (
         _,
-        issuer_xdr_account_id, 
-        issuer_account_id,
-        _,
-    ) = generate_full_account(&env);
-
-    let (
-        _,
         _,
         _,
         fee_identifier
     ) = generate_full_account(&env);
 
     // Token
-    let asset4 = Asset::CreditAlphanum4(AlphaNum4 {
-        asset_code: AssetCode4([0u8; 4]),
-        issuer: issuer_xdr_account_id.clone()
-    });
-    let token_id = env.register_stellar_asset_contract(asset4);
+    let token_id = env.register_stellar_asset_contract(Asset::Native);
     let token = TokenClient::new(&env, &token_id);
 
-    // Minting
-    token
-    .with_source_account(&issuer_account_id)
-    .mint(
-        &Signature::Invoker,
-        &0,
-        &u1_identifier,
-        &10_000_000,
-    );
-
     client.init(&token_id, &fee_identifier);
+
+    // Tests
+    env.budget().reset();
 
     let mut b_palette = Bytes::new(&env);
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
-    for i in 0..=ITER {
+    for i in 0..ITER {
         let hex = 16777215 / ITER * i; // 0 - 16777215 (black to white)
 
         colors_indexes.push_back((hex, vec![&env, i]));
@@ -93,11 +77,9 @@ fn test() {
         &token_id, 
         &u1_keypair,
         &token,
-        &Identifier::Contract(contract_id.clone()),
+        &contract_identifier,
         &pay_amount
     );
-
-    env.budget().reset();
 
     client
         .with_source_account(&u1_account_id)
@@ -109,20 +91,42 @@ fn test() {
             &Glyph{
                 width: 16,
                 colors: vec![&env,
-                    (1, colors_indexes.clone())
+                    (1, colors_indexes)
                 ]
             }
         );
 
-    // Tests
+    env.budget().reset();
+
+    // Real Tests
     let asset_1 = AssetType::Asset(AssetAmount(token_id.clone(), 1i128));
     let asset_2 = AssetType::Glyph(hash.clone());
+    let amount: i128 = 1;
+
+    let signature = get_incr_allow_signature(
+        &env, 
+        &token_id, 
+        &u1_keypair,
+        &token,
+        &contract_identifier,
+        &amount
+    );
 
     client
         .with_source_account(&u1_account_id)
-        .trade(&asset_2, &asset_1);
+        .trade(&signature, &asset_2, &asset_1);
 
-    // println!("{:?}", hash);
+    assert_eq!(
+        token
+            .balance(&contract_identifier), 
+        1i128
+    );
+
+    assert_eq!(
+        token
+            .balance(&u1_identifier), 
+        9_989i128
+    );
 
     let buy_hash = hash;
     let sell_hash = token_id;
@@ -140,10 +144,24 @@ fn test() {
         res,
         Err(Ok(Error::NotFound.into()))
     );
+
+    assert_eq!(
+        token
+            .balance(&contract_identifier), 
+        0i128
+    );
+
+    assert_eq!(
+        token
+            .balance(&u1_identifier), 
+        9990i128
+    );
 }
 
 #[test]
 fn test_2() {
+    // TODO: test this again https://github.com/stellar/rs-soroban-sdk/pull/827
+
     let env = Env::default();
 
     let unsorted = vec!(&env, 

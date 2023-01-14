@@ -45,8 +45,8 @@ impl ColorGlyph {
     }
 
     // Trades
-    pub fn trade(env: Env, buy: AssetType, sell: AssetType) {
-        trade(&env, buy, sell);
+    pub fn trade(env: Env, signature: Signature, buy: AssetType, sell: AssetType) {
+        trade(&env, signature, buy, sell);
     }
     pub fn get_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) -> TradeOwner {
         get_trade(&env, buy_hash, sell_hash, amount, side)

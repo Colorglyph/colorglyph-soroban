@@ -2,7 +2,7 @@ use soroban_sdk::{symbol, Env, Symbol, Vec, AccountId, Address, BytesN};
 
 use crate::{
     types::{SourceAccount, Color, ColorOwned, ColorAmount, DataKey}, 
-    token::{Signature, Identifier, self}
+    token::{Signature, Identifier, Client as TokenClient}
 };
 
 const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
@@ -35,16 +35,16 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: Source
             .set(color, current_amount + amount);
     }
 
-    let contract_id = Identifier::Contract(env.get_current_contract().into());
+    let contract_id = Identifier::Contract(env.get_current_contract());
     let sig_id = signature.identifier(env);
     let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
-    let token = token::Client::new(env, token_id);
+    let token = TokenClient::new(env, token_id);
     let fee_identifier: Identifier = env.storage().get(DataKey::InitFeeId).unwrap().unwrap();
     let sender_nonce = token.nonce(&sig_id);
 
     token.incr_allow(
         &signature,
-        &sender_nonce, 
+        &sender_nonce,
         &contract_id, 
         &pay_amount
     );

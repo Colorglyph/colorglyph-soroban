@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use soroban_auth::{Signature, Identifier};
+use soroban_auth::{Identifier};
 use soroban_sdk::{Env, Bytes, Vec, vec};
-use stellar_xdr::{AlphaNum4, Asset, AssetCode4};
+use stellar_xdr::{Asset};
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient}, 
@@ -13,7 +13,7 @@ use crate::{
 
 extern crate std;
 
-const ITER: u32 = 255;
+const ITER: u32 = 256;
 
 #[test]
 fn test() {
@@ -21,6 +21,7 @@ fn test() {
 
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
+    let contract_identifier = Identifier::Contract(contract_id.clone());
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
@@ -28,7 +29,7 @@ fn test() {
         u1_keypair, 
         _, 
         u1_account_id, 
-        u1_identifier,
+        _,
     ) = generate_full_account(&env);
 
     let (
@@ -40,47 +41,26 @@ fn test() {
 
     let (
         _,
-        issuer_xdr_account_id, 
-        issuer_account_id,
-        _,
-    ) = generate_full_account(&env);
-
-    let (
-        _,
         _,
         _,
         fee_identifier
     ) = generate_full_account(&env);
 
     // Token
-    let asset4 = Asset::CreditAlphanum4(AlphaNum4 {
-        asset_code: AssetCode4([0u8; 4]),
-        issuer: issuer_xdr_account_id.clone()
-    });
-    let token_id = env.register_stellar_asset_contract(asset4);
+    let token_id = env.register_stellar_asset_contract(Asset::Native);
     let token = TokenClient::new(&env, &token_id);
 
-    // Minting
-    token
-    .with_source_account(&issuer_account_id)
-    .mint(
-        &Signature::Invoker,
-        &0,
-        &u1_identifier,
-        &10_000_000,
-    );
+    client.init(&token_id, &fee_identifier);
 
     // Tests
-    client.init(&token_id, &fee_identifier);
+    env.budget().reset();
 
     let mut b_palette = Bytes::new(&env);
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
-    env.budget().reset();
-
-    for i in 0..=ITER {
+    for i in 0..ITER {
         let hex = 16777215 / ITER * i; // 0 - 16777215 (black to white)
 
         colors_indexes.push_back((hex, vec![&env, i]));
@@ -95,11 +75,9 @@ fn test() {
         &token_id, 
         &u1_keypair,
         &token,
-        &Identifier::Contract(contract_id.clone()),
+        &contract_identifier,
         &pay_amount
     );
-
-    env.budget().reset();
 
     client
         .with_source_account(&u1_account_id)
@@ -113,6 +91,7 @@ fn test() {
 
     env.budget().reset();
 
+    // Real Test
     let hash = client
         .with_source_account(&u1_account_id)
         .mint(
@@ -124,37 +103,19 @@ fn test() {
             }
         );
 
-    // - CPU Instructions: 23284840
-    // - Memory Bytes: 3433113
-    // println!("{}", env.budget());
-
     let color = client
         .with_source_account(&u1_account_id)
         .get_color(&0, &u1_account_id);
 
     assert_eq!(color, 0);
 
-    env.budget().reset();
-
     client
         .with_source_account(&u1_account_id)
         .get_glyph(&hash);
 
-    // - CPU Instructions: 1826840
-    // - Memory Bytes: 224319
-    // println!("{}", env.budget());
-
-    env.budget().reset();
-
     client
         .with_source_account(&u1_account_id)
         .scrape(&hash);
-
-    // - CPU Instructions: 17019100
-    // - Memory Bytes: 2454954
-    // println!("{}", env.budget());
-
-    env.budget().reset();
 
     let res = client.try_get_glyph(&hash);
 
@@ -174,11 +135,9 @@ fn test() {
         &token_id, 
         &u1_keypair,
         &token,
-        &Identifier::Contract(contract_id.clone()),
+        &contract_identifier,
         &pay_amount
     );
-
-    env.budget().reset();
 
     client
         .with_source_account(&u1_account_id)
@@ -198,8 +157,6 @@ fn test() {
     client
         .with_source_account(&u2_account_id)
         .get_glyph(&hash);
-
-    env.budget().reset();
 
     let res = client
         .with_source_account(&u1_account_id)

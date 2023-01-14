@@ -1,8 +1,10 @@
 #![cfg(test)]
 
-use soroban_auth::{Signature, Identifier};
+use std::{println};
+
+use soroban_auth::{Identifier};
 use soroban_sdk::{Env, Vec, testutils::Accounts, vec};
-use stellar_xdr::{AlphaNum4, Asset, AssetCode4};
+use stellar_xdr::{Asset};
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient}, 
@@ -19,6 +21,7 @@ fn test() {
 
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
+    let contract_identifier = Identifier::Contract(contract_id.clone());
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
@@ -33,14 +36,7 @@ fn test() {
         u2_keypair, 
         _, 
         u2_account_id, 
-        u2_identifier
-    ) = generate_full_account(&env);
-
-    let (
         _,
-        issuer_xdr_account_id, 
-        issuer_account_id, 
-        _
     ) = generate_full_account(&env);
 
     let (
@@ -51,35 +47,14 @@ fn test() {
     ) = generate_full_account(&env);
 
     // Token
-    let asset4 = Asset::CreditAlphanum4(AlphaNum4 {
-        asset_code: AssetCode4([0u8; 4]),
-        issuer: issuer_xdr_account_id.clone()
-    });
-    let token_id = env.register_stellar_asset_contract(asset4);
+    let token_id = env.register_stellar_asset_contract(Asset::Native);
     let token = TokenClient::new(&env, &token_id);
 
-    // Minting
-    token
-    .with_source_account(&issuer_account_id)
-    .mint(
-        &Signature::Invoker,
-        &0,
-        &u1_identifier,
-        &10_000_000,
-    );
-
-    token
-    .with_source_account(&issuer_account_id)
-    .mint(
-        &Signature::Invoker,
-        &0,
-        &u2_identifier,
-        &10_000_000,
-    );
+    client.init(&token_id, &fee_identifier);
 
     // Tests
-    client.init(&token_id, &fee_identifier);
-    
+    env.budget().reset();
+
     let mut colors: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
@@ -93,21 +68,17 @@ fn test() {
         &token_id, 
         &u1_keypair,
         &token,
-        &Identifier::Contract(contract_id.clone()),
+        &contract_identifier,
         &pay_amount
     );
-
-    env.budget().reset();
 
     client
         .with_source_account(&u1_account_id)
         .mine(&signature, &colors, &SourceAccount::None);
-    
+
     let color = client
         .with_source_account(&u1_account_id)
         .get_color(&0, &u1_account_id);
-
-    // println!("{}", env.budget());
 
     assert_eq!(color, 1);
 
@@ -116,11 +87,9 @@ fn test() {
         &token_id, 
         &u2_keypair,
         &token,
-        &Identifier::Contract(contract_id.clone()),
+        &contract_identifier,
         &pay_amount
     );
-
-    env.budget().reset();
 
     client
         .with_source_account(&u2_account_id)
@@ -136,8 +105,6 @@ fn test() {
     assert_eq!(color1 + color2, 2);
 
     let u3 = env.accounts().generate();
-
-    env.budget().reset();
 
     client
         .with_source_account(&u1_account_id)
@@ -158,7 +125,7 @@ fn test() {
 
     assert_eq!(color1 + color2, 2);
 
-    // assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
-    // assert_eq!(token.balance(&u1_identifier), 10_000_000 - 10);
-    // assert_eq!(token.balance(&fee_identifier), 20);
+    assert_eq!(token.balance(&u1_identifier), 10_000 - 10);
+    assert_eq!(token.balance(&u1_identifier), 10_000 - 10);
+    assert_eq!(token.balance(&fee_identifier), 10_020);
 }

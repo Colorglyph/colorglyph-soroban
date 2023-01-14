@@ -1,31 +1,28 @@
+use soroban_auth::{Identifier, Signature};
 use soroban_sdk::{panic_with_error, Address, BytesN, Env, Vec};
 
-use crate::types::{AssetType, DataKey, Error, Trade, AssetAmount, TradeOwner, GlyphOwner};
+use crate::{types::{AssetType, DataKey, Error, Trade, AssetAmount, TradeOwner, GlyphOwner}, token::Client as TokenClient};
 
 // NOPE:
     // Should we disable folks from offering to buy their own glyph?
 
-pub fn trade(env: &Env, buy: AssetType, sell: AssetType) {
+pub fn trade(env: &Env, signature: Signature, buy: AssetType, sell: AssetType) {
     let buy_hash: BytesN<32>;
     let sell_hash: BytesN<32>;
     let mut amount = 0i128;
     let mut side = DataKey::None;
 
     // TODO:
-        // Take ::Asset hostage
         // Check for a buy/sell now opportunity
         // If actually performing a transfer deal with royalty payments
-        // If transferring close all current owner's open sell offers
+        // If transferring close all current glyph owner's open sell offers
 
     // Q:
         // Is someone selling this glyph?
             // Is someone selling this glyph for this counter asset?
                 // If so take that trade
 
-    // Array of base glyphs
-    // Array of quote glyphs
-
-    // Glyph gives (the thing we need to track to make it easy to clear)
+    // Glyph sells by owner (the thing we need to track to make it easy to clear)
 
     match buy {
         AssetType::Asset(hash_amount) => { // Selling a glyph
@@ -85,6 +82,28 @@ pub fn trade(env: &Env, buy: AssetType, sell: AssetType) {
             // This would mean however you could have trades that _could_ match but we don't automatically do any dynamic matching
 
             // Alternatively there can only be one trade per amount
+
+
+            let contract_id = Identifier::Contract(env.get_current_contract());
+            let sig_id = signature.identifier(env);
+            let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
+            let token = TokenClient::new(env, token_id);
+            let sender_nonce = token.nonce(&sig_id);
+
+            token.incr_allow(
+                &signature,
+                &sender_nonce, 
+                &contract_id,
+                &amount
+            );
+        
+            token.xfer_from(
+                &Signature::Invoker,
+                &0,
+                &sig_id,
+                &contract_id,
+                &amount
+            );
 
             let trade = Trade{
                 buy: buy_hash,
@@ -172,10 +191,21 @@ pub fn rm_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: 
     let trade_owner = get_trade(env, buy_hash.clone(), sell_hash.clone(), amount.clone(), side.clone());
 
     match trade_owner {
-        TradeOwner::Address(address) => {
+        TradeOwner::Address(address) => { // Buying glyph
             if address != env.invoker() {
                 panic_with_error!(env, Error::NotAuthorized);
             }
+
+            let invoker_id = Identifier::from(address);
+            let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
+            let token = TokenClient::new(env, token_id);
+
+            token.xfer(
+                &Signature::Invoker,
+                &0,
+                &invoker_id,
+                &amount
+            );
 
             env
                 .storage()
@@ -185,7 +215,7 @@ pub fn rm_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: 
                     amount
                 });
         },
-        TradeOwner::GlyphOwner(GlyphOwner(address, mut trades, trade_index)) => {
+        TradeOwner::GlyphOwner(GlyphOwner(address, mut trades, trade_index)) => { // Selling glyph
             if address != env.invoker() {
                 panic_with_error!(env, Error::NotAuthorized);
             }
