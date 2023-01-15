@@ -1,27 +1,14 @@
 use soroban_auth::Signature;
 use soroban_sdk::{contracttype, AccountId, Vec, BytesN, contracterror, Address};
 
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub enum MaybeAccountId {
-    #[default]
-    None,
-    AccountId(AccountId)
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub enum MaybeSignature {
-    #[default]
-    None,
-    Signature(Signature)
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TradeOwner {
-    Address(Address),
-    GlyphOwner(GlyphOwner)
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[repr(u32)]
+pub enum Error {
+    NotFound = 1,
+    NotEmpty = 2,
+    NotAuthorized = 3,
+    NotPermitted = 4,
 }
 
 #[contracttype]
@@ -45,15 +32,37 @@ pub enum Side {
     Sell,
 }
 
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-#[repr(u32)]
-pub enum Error {
-    NotFound = 1,
-    NotEmpty = 2,
-    NotAuthorized = 3,
-    NotPermitted = 4,
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub enum MaybeAccountId {
+    #[default]
+    None,
+    AccountId(AccountId)
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub enum MaybeSignature {
+    #[default]
+    None,
+    Signature(Signature)
+}
+
+#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct ColorOwner (
+    pub u32, // color hex
+    pub u32, // miner
+    pub u32, // owner
+);
+
+#[contracttype]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct ColorAmount (
+    pub u32, // color hex
+    pub u32, // miner
+    pub i128, // amount
+);
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,39 +73,24 @@ pub enum AssetType {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GlyphOwner (
-    pub Address, 
-    pub Vec<AssetAmount>, // TODO: maybe Vec<(BytesN<32>, i128)>
-    pub u32
-);
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetAmount (
     pub BytesN<32>, // Token contract id
     pub i128 // amount
 );
 
 #[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ColorOwned (
-    pub u32, // owner
-    pub u32, // color hex
-    pub u32 // miner
-);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OfferOwner {
+    Address(Address),
+    Glyph(GlyphOffer)
+}
 
 #[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Color (
-    pub u32, // color hex
-    pub u32 // miner
-);
-
-#[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ColorAmount (
-    pub Color, // TODO: maybe break this into (color hex, miner)
-    pub u32 // amount
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlyphOffer (
+    pub Address, // offer owner // TODO: not sure I need to track this as glyph offers will always be owned by the current glyph owner
+    pub u32, // offer index
+    pub Vec<AssetAmount>, // all glyph sell offers
 );
 
 #[contracttype]
@@ -108,7 +102,7 @@ pub struct Glyph {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Trade {
+pub struct Offer {
     pub buy: BytesN<32>,
     pub sell: BytesN<32>,
     pub amount: i128,

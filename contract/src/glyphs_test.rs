@@ -57,7 +57,7 @@ fn test() {
 
     let mut b_palette = Bytes::new(&env);
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITER {
@@ -65,7 +65,7 @@ fn test() {
 
         colors_indexes.push_back((hex, vec![&env, i]));
         color_amount.push_back((hex, 1));
-        pay_amount += 1 as i128;
+        pay_amount += 1;
 
         b_palette.insert_from_array(i * 4, &hex.to_le_bytes());
     }
@@ -94,7 +94,7 @@ fn test() {
     // Real Test
     let hash = client
         .with_source_account(&u1_account_id)
-        .mint(
+        .make(
             &Glyph{
                 width: 16,
                 colors: vec![&env,
@@ -145,7 +145,7 @@ fn test() {
 
     let hash = client
         .with_source_account(&u2_account_id)
-        .mint(
+        .make(
             &Glyph{
                 width: 16,
                 colors: vec![&env,

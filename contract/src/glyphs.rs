@@ -1,22 +1,22 @@
 use soroban_sdk::{Env, Vec, Bytes, BytesN, Address, panic_with_error};
 
 use crate::{
-    types::{Glyph, Color, ColorAmount, StorageKey, Error}, 
+    types::{Glyph, ColorAmount, StorageKey, Error}, 
     colors::{adjust}
 };
 
 // const GLYPHS: Symbol = symbol!("GLYPHS");
 
-pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
+pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
-    let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
+    let mut m_palette: Vec<ColorAmount> = Vec::new(&env);
 
     // TODO:
         // event
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(ColorAmount(Color(hex, miner_idx), indexes.len()));
+            m_palette.push_back(ColorAmount(hex, miner_idx, i128::from(indexes.len())));
 
             // TODO: 
                 // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves. 
@@ -50,17 +50,17 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
 
     let hash = env.crypto().sha256(&b_palette);
 
-    // minted
+    // made
         // owner
-        // minter
+        // maker
         // exists
     // scraped
         // no owner
-        // minter
+        // maker
         // not exists
     // new
         // no owner
-        // no minter
+        // no maker
         // not exists
 
     let is_owned = env
@@ -81,12 +81,12 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
             .set(StorageKey::GlyphOwner(hash.clone()), env.invoker());
     }
 
-    let is_minted = env
+    let is_made = env
         .storage()
         .has(StorageKey::GlyphMaker(hash.clone()));
 
-    if !is_minted {
-        // Save the glyph minter to storage {glyph hash: Address}
+    if !is_made {
+        // Save the glyph maker to storage {glyph hash: Address}
         env
             .storage()
             .set(StorageKey::GlyphMaker(hash.clone()), env.invoker());
@@ -105,6 +105,8 @@ pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         .ok_or(Error::NotFound)?
         .unwrap()
 }
+
+// TODO: transfer glyph fn
 
 pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
 
@@ -126,7 +128,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(ColorAmount(Color(hex, miner_idx), indexes.len()));
+            m_palette.push_back(ColorAmount(hex, miner_idx, i128::from(indexes.len())));
         }
     }
 

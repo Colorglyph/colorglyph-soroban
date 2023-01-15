@@ -7,10 +7,10 @@ mod token {
 pub mod colorglyph;
 mod colors;
 mod glyphs;
-mod trades;
+mod offers;
 pub mod types;
 
 mod testutils;
 mod colors_test;
 mod glyphs_test;
-mod trades_test;
+mod offers_test;

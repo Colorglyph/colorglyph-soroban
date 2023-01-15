@@ -18,7 +18,7 @@ extern crate std;
 const ITER: u32 = 10;
 
 #[test]
-fn test_trade_buy_glyph() {
+fn test_offer_buy_glyph() {
     let env = Env::default();
 
     // Contract
@@ -59,7 +59,7 @@ fn test_trade_buy_glyph() {
 
     let mut b_palette = Bytes::new(&env);
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITER {
@@ -67,7 +67,7 @@ fn test_trade_buy_glyph() {
 
         colors_indexes.push_back((hex, vec![&env, i]));
         color_amount.push_back((hex, 1));
-        pay_amount += 1 as i128;
+        pay_amount += 1;
 
         b_palette.insert_from_array(i * 4, &hex.to_le_bytes());
     }
@@ -87,7 +87,7 @@ fn test_trade_buy_glyph() {
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .mint(
+        .make(
             &Glyph{
                 width: 16,
                 colors: vec![&env,
@@ -99,13 +99,13 @@ fn test_trade_buy_glyph() {
     env.budget().reset();
 
     // Real Tests
-    let asset_1 = AssetType::Glyph(hash.clone());
-    let asset_2 = AssetType::Asset(AssetAmount(token_id.clone(), 1i128));
     let amount: i128 = 1;
+    let asset_1 = AssetType::Glyph(hash.clone());
+    let asset_2 = AssetType::Asset(AssetAmount(token_id.clone(), amount.clone()));
 
     client
         .with_source_account(&u1_account_id)
-        .trade(&MaybeSignature::None, &asset_2, &asset_1);
+        .offer(&MaybeSignature::None, &asset_2, &asset_1);
 
     let signature = get_incr_allow_signature(
         &env, 
@@ -118,11 +118,11 @@ fn test_trade_buy_glyph() {
 
     client
         .with_source_account(&u2_account_id)
-        .trade(&MaybeSignature::Signature(signature), &asset_1, &asset_2);
+        .offer(&MaybeSignature::Signature(signature), &asset_1, &asset_2);
 }
 
 #[test]
-fn test_trade_sell_glyph() {
+fn test_offer_sell_glyph() {
     let env = Env::default();
 
     // Contract
@@ -163,7 +163,7 @@ fn test_trade_sell_glyph() {
 
     let mut b_palette = Bytes::new(&env);
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITER {
@@ -171,7 +171,7 @@ fn test_trade_sell_glyph() {
 
         colors_indexes.push_back((hex, vec![&env, i]));
         color_amount.push_back((hex, 1));
-        pay_amount += 1 as i128;
+        pay_amount += 1;
 
         b_palette.insert_from_array(i * 4, &hex.to_le_bytes());
     }
@@ -191,7 +191,7 @@ fn test_trade_sell_glyph() {
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .mint(
+        .make(
             &Glyph{
                 width: 16,
                 colors: vec![&env,
@@ -218,15 +218,15 @@ fn test_trade_sell_glyph() {
 
     client
         .with_source_account(&u2_account_id)
-        .trade(&MaybeSignature::Signature(signature), &asset_1, &asset_2);
+        .offer(&MaybeSignature::Signature(signature), &asset_1, &asset_2);
 
     client
     .with_source_account(&u1_account_id)
-    .trade(&MaybeSignature::None, &asset_2, &asset_1);
+    .offer(&MaybeSignature::None, &asset_2, &asset_1);
 }
 
 #[test]
-fn test_trade_rm() {
+fn test_offer_rm() {
     let env = Env::default();
 
     // Contract
@@ -260,7 +260,7 @@ fn test_trade_rm() {
 
     let mut b_palette = Bytes::new(&env);
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITER {
@@ -268,7 +268,7 @@ fn test_trade_rm() {
 
         colors_indexes.push_back((hex, vec![&env, i]));
         color_amount.push_back((hex, 1));
-        pay_amount += 1 as i128;
+        pay_amount += 1;
 
         b_palette.insert_from_array(i * 4, &hex.to_le_bytes());
     }
@@ -288,7 +288,7 @@ fn test_trade_rm() {
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .mint(
+        .make(
             &Glyph{
                 width: 16,
                 colors: vec![&env,
@@ -315,7 +315,7 @@ fn test_trade_rm() {
 
     client
         .with_source_account(&u1_account_id)
-        .trade(&MaybeSignature::Signature(signature), &asset_1, &asset_2);
+        .offer(&MaybeSignature::Signature(signature), &asset_1, &asset_2);
 
     assert_eq!(
         token
@@ -333,13 +333,13 @@ fn test_trade_rm() {
     let sell_hash = token_id;
     let side = Side::Buy;
 
-    client.get_trade(&buy_hash, &sell_hash, &1i128, &side);
+    client.get_offer(&buy_hash, &sell_hash, &1i128, &side);
 
     client
         .with_source_account(&u1_account_id)
-        .rm_trade(&buy_hash, &sell_hash, &1i128, &side);
+        .rm_offer(&buy_hash, &sell_hash, &1i128, &side);
 
-    let res = client.try_get_trade(&buy_hash, &sell_hash, &1i128, &side);
+    let res = client.try_get_offer(&buy_hash, &sell_hash, &1i128, &side);
 
     assert_eq!(
         res,
@@ -369,7 +369,7 @@ fn test_binary_vs_index() {
     let mut index_sorted: Vec<AssetAmount> = Vec::new(&env);
 
     for i in 0..10 {
-        unsorted.push_back(AssetAmount(BytesN::random(&env), i as i128));
+        unsorted.push_back(AssetAmount(BytesN::random(&env), i));
     }
 
     unsorted.push_back(item.clone());

@@ -10,7 +10,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient}, 
     testutils::{generate_full_account, get_incr_allow_signature}, 
     token::Client as TokenClient, 
-    types::{MaybeAccountId, ColorAmount, Color}
+    types::{MaybeAccountId, ColorAmount}
 };
 
 extern crate std;
@@ -55,12 +55,12 @@ fn test() {
     // Tests
     env.budget().reset();
 
-    let mut colors: Vec<(u32, u32)> = Vec::new(&env);
+    let mut colors: Vec<(u32, i128)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..10 {
-        pay_amount += 1 as i128;
-        colors.push_back((i, 1));
+        pay_amount += 1;
+        colors.push_back((i, 1));   
     }
 
     let signature = get_incr_allow_signature(
@@ -110,8 +110,8 @@ fn test() {
         .with_source_account(&u1_account_id)
         .xfer(
             &vec![&env, 
-                ColorAmount(Color(0, 1), 1), 
-                ColorAmount(Color(0, 2), 1)
+                ColorAmount(0, 1, 1), 
+                ColorAmount(0, 2, 1)
             ], 
             &MaybeAccountId::AccountId(u3.clone())
         );

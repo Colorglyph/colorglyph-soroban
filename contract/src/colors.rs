@@ -1,14 +1,14 @@
 use soroban_sdk::{symbol, Env, Symbol, Vec, AccountId, Address, BytesN};
 
 use crate::{
-    types::{MaybeAccountId, Color, ColorOwned, ColorAmount, StorageKey}, 
+    types::{MaybeAccountId, ColorOwner, ColorAmount, StorageKey}, 
     token::{Signature, Identifier, Client as TokenClient}
 };
 
 const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
-pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
+pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, i128)>, to: MaybeAccountId) {
     let miner_address = env.invoker();
     let miner_idx = get_account_idx(env, &miner_address);
 
@@ -18,17 +18,17 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeA
     let mut pay_amount: i128 = 0;
 
     for (hex, amount) in colors.iter_unchecked() {
-        let color = ColorOwned(to_idx, hex, miner_idx);
+        let color = ColorOwner(hex, miner_idx, to_idx);
 
         env.events().publish((COLORS, symbol!("mine")), (&to_address, hex, &miner_address));
 
-        let current_amount: u32 = env
+        let current_amount: i128 = env
             .storage()
             .get(color)
             .unwrap_or(Ok(0))
             .unwrap();
 
-        pay_amount += amount as i128;
+        pay_amount += amount;
 
         env
             .storage()
@@ -68,9 +68,9 @@ pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: MaybeAccountId) {
     // TODO: event
 
     for color in colors.iter_unchecked() {
-        let ColorAmount(Color(hex, miner_idx), amount) = color;
-        let from_color = ColorOwned(self_idx, hex, miner_idx);
-        let current_from_amount: u32 = env
+        let ColorAmount(hex, miner_idx, amount) = color;
+        let from_color = ColorOwner(hex, miner_idx, self_idx);
+        let current_from_amount: i128 = env
             .storage()
             .get(from_color)
             .unwrap_or(Ok(0))
@@ -80,8 +80,8 @@ pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: MaybeAccountId) {
             .storage()
             .set(from_color, current_from_amount - amount);
 
-        let to_color = ColorOwned(to_idx, hex, miner_idx);
-        let current_to_amount: u32 = env
+        let to_color = ColorOwner(hex, miner_idx, to_idx);
+        let current_to_amount: i128 = env
             .storage()
             .get(to_color)
             .unwrap_or(Ok(0))
@@ -100,8 +100,8 @@ pub fn adjust(env: &Env, colors: &Vec<ColorAmount>, add: bool) {
     // TODO: event
 
     for color in colors.iter_unchecked() {
-        let ColorAmount(Color(hex, miner_idx), amount) = color;
-        let from_color = ColorOwned(self_idx, hex, miner_idx);
+        let ColorAmount(hex, miner_idx, amount) = color;
+        let from_color = ColorOwner(hex, miner_idx, self_idx);
         let current_from_amount = env
             .storage()
             .get(from_color)
@@ -110,11 +110,11 @@ pub fn adjust(env: &Env, colors: &Vec<ColorAmount>, add: bool) {
 
         env
             .storage()
-            .set(from_color,  if add { current_from_amount + amount } else { current_from_amount - amount });
+            .set(from_color, if add { current_from_amount + amount } else { current_from_amount - amount });
     }
 }
 
-pub fn get_color(env: &Env, hex: u32, miner: AccountId) -> u32 {
+pub fn get_color(env: &Env, hex: u32, miner: AccountId) -> i128 {
     let self_address = env.invoker();
     let self_idx = get_account_idx(env, &self_address);
 
@@ -123,7 +123,7 @@ pub fn get_color(env: &Env, hex: u32, miner: AccountId) -> u32 {
 
     env
         .storage()
-        .get(ColorOwned(self_idx, hex, miner_idx))
+        .get(ColorOwner(hex, miner_idx, self_idx))
         .unwrap_or(Ok(0))
         .unwrap()
 }
