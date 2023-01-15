@@ -8,7 +8,7 @@ use stellar_xdr::{Asset};
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
-    types::{AssetType, MaybeAccountId, Glyph, AssetAmount, DataKey, Error, MaybeSignature}, 
+    types::{AssetType, MaybeAccountId, Glyph, AssetAmount, Error, MaybeSignature, Side}, 
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient, 
 };
@@ -331,7 +331,7 @@ fn test_trade_rm() {
 
     let buy_hash = hash;
     let sell_hash = token_id;
-    let side = DataKey::SideBuy;
+    let side = Side::Buy;
 
     client.get_trade(&buy_hash, &sell_hash, &1i128, &side);
 

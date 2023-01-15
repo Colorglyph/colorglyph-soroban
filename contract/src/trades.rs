@@ -2,7 +2,7 @@ use soroban_auth::{Identifier, Signature};
 use soroban_sdk::{panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::{
-    types::{AssetType, DataKey, Error, Trade, AssetAmount, TradeOwner, GlyphOwner, MaybeSignature}, 
+    types::{AssetType, StorageKey, Error, Trade, AssetAmount, TradeOwner, GlyphOwner, MaybeSignature, Side}, 
     token::Client as TokenClient
 };
 
@@ -13,19 +13,11 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
     let buy_hash: BytesN<32>;
     let sell_hash: BytesN<32>;
     let mut amount = 0i128;
-    let mut side = DataKey::None;
+    let mut side = Side::default();
 
     // TODO:
-        // Check for a buy/sell now opportunity
         // If transferring close all current glyph owner's open sell offers
         // If actually performing a transfer deal with royalty payments
-
-    // Q:
-        // Is someone selling this glyph?
-            // Is someone selling this glyph for this counter asset?
-                // If so take that trade
-
-    // Glyph sells by owner (the thing we need to track to make it easy to clear)
 
     match buy {
         AssetType::Asset(hash_amount) => { // Selling a glyph
@@ -33,7 +25,7 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
             amount = hash_amount.1;
         },
         AssetType::Glyph(hash) => {
-            side = DataKey::SideBuy; // we're buying a glyph
+            side = Side::Buy; // we're buying a glyph
             buy_hash = hash;
         }
     }
@@ -41,7 +33,7 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
     match sell {
         AssetType::Asset(hash_amount) => {
             // Don't allow trades where no Glyph is involved
-            if side == DataKey::None {
+            if side == Side::None {
                 panic_with_error!(env, Error::NotPermitted);
             }
 
@@ -51,7 +43,7 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
         AssetType::Glyph(hash) => {
             let owner: Address = env
                 .storage()
-                .get(DataKey::GlyphOwner(hash.clone()))
+                .get(StorageKey::GlyphOwner(hash.clone()))
                 .ok_or(Error::NotFound)?
                 .unwrap();
 
@@ -60,7 +52,7 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
                 panic_with_error!(env, Error::NotAuthorized);
             }
 
-            side = DataKey::SideSell; // We're selling a glyph
+            side = Side::Sell; // We're selling a glyph
             sell_hash = hash;
         },
     }
@@ -71,11 +63,11 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
         sell_hash.clone(),
         buy_hash.clone(),
         amount.clone(),
-        if side == DataKey::SideBuy {DataKey::SideSell} else {DataKey::SideBuy}
+        if side == Side::Buy {Side::Sell} else {Side::Buy}
     );
 
     match side {
-        DataKey::SideBuy => { // Buying a glyph
+        Side::Buy => { // Buying a glyph
             match existing_trade_owner {
                 Ok(_) => {
                     // TODO: someone is selling this Glyph for this AssetAmount
@@ -104,7 +96,7 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
                         MaybeSignature::Signature(signature) => {
                             let contract_id = Identifier::Contract(env.get_current_contract());
                             let sig_id = signature.identifier(env);
-                            let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
+                            let token_id: BytesN<32> = env.storage().get(StorageKey::InitToken).unwrap().unwrap();
                             let token = TokenClient::new(env, token_id);
                             let sender_nonce = token.nonce(&sig_id);
 
@@ -146,7 +138,7 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
                 },
             }
         },
-        DataKey::SideSell => { // Selling a glyph
+        Side::Sell => { // Selling a glyph
             match existing_trade_owner {
                 Ok(_) => {
                     // TODO: someone is buying this Glyph for this AssetAmount
@@ -178,9 +170,9 @@ pub fn trade(env: &Env, signature: MaybeSignature, buy: AssetType, sell: AssetTy
     Ok(())
 }
 
-pub fn get_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) -> Result<TradeOwner, Error> {
+pub fn get_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: Side) -> Result<TradeOwner, Error> {
     match side {
-        DataKey::SideSell => {
+        Side::Sell => {
             let trades: Vec<AssetAmount> = env
                 .storage()
                 .get(&sell_hash)
@@ -192,7 +184,7 @@ pub fn get_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount:
                 Ok(trade_index) => {
                     let glyph_owner = env
                         .storage()
-                        .get(DataKey::GlyphOwner(sell_hash.clone()))
+                        .get(StorageKey::GlyphOwner(sell_hash.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
@@ -204,7 +196,7 @@ pub fn get_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount:
                 },   
             }
         },
-        DataKey::SideBuy => {
+        Side::Buy => {
             let trade_owner = env
                 .storage()
                 .get(Trade{
@@ -221,7 +213,7 @@ pub fn get_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount:
     }
 }
 
-pub fn rm_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) {
+pub fn rm_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: Side) {
     let trade_owner = get_trade(env, buy_hash.clone(), sell_hash.clone(), amount.clone(), side.clone());
 
     match trade_owner.unwrap() {
@@ -231,7 +223,7 @@ pub fn rm_trade(env: &Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: 
             }
 
             let invoker_id = Identifier::from(address);
-            let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
+            let token_id: BytesN<32> = env.storage().get(StorageKey::InitToken).unwrap().unwrap();
             let token = TokenClient::new(env, token_id);
 
             token.xfer(

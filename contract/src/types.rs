@@ -25,27 +25,24 @@ pub enum TradeOwner {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GlyphOwner (
-    pub Address, 
-    pub Vec<AssetAmount>, 
-    pub u32
-);
-
-#[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub enum DataKey {
+pub enum StorageKey {
     #[default]
     None,
     Glyph(BytesN<32>), // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
     GlyphMaker(BytesN<32>), // glyph hash
-
-    // TODO only use DataKeys here, some of these are never used as storage keys (also rename from DataKey to StorageKey)
-    SideBuy,
-    SideSell,
     InitToken,
     InitFeeId
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub enum Side {
+    #[default]
+    None,
+    Buy,
+    Sell,
 }
 
 #[contracterror]
@@ -64,6 +61,14 @@ pub enum AssetType {
     Glyph(BytesN<32>), // Glyph hash
     Asset(AssetAmount), // Token contract id, amount
 }
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlyphOwner (
+    pub Address, 
+    pub Vec<AssetAmount>, // TODO: maybe Vec<(BytesN<32>, i128)>
+    pub u32
+);
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,7 +95,7 @@ pub struct Color (
 #[contracttype]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ColorAmount (
-    pub Color,
+    pub Color, // TODO: maybe break this into (color hex, miner)
     pub u32 // amount
 );
 

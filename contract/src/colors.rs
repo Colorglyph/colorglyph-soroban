@@ -1,7 +1,7 @@
 use soroban_sdk::{symbol, Env, Symbol, Vec, AccountId, Address, BytesN};
 
 use crate::{
-    types::{MaybeAccountId, Color, ColorOwned, ColorAmount, DataKey}, 
+    types::{MaybeAccountId, Color, ColorOwned, ColorAmount, StorageKey}, 
     token::{Signature, Identifier, Client as TokenClient}
 };
 
@@ -37,9 +37,9 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeA
 
     let contract_id = Identifier::Contract(env.get_current_contract());
     let sig_id = signature.identifier(env);
-    let token_id: BytesN<32> = env.storage().get(DataKey::InitToken).unwrap().unwrap();
+    let token_id: BytesN<32> = env.storage().get(StorageKey::InitToken).unwrap().unwrap();
     let token = TokenClient::new(env, token_id);
-    let fee_identifier: Identifier = env.storage().get(DataKey::InitFeeId).unwrap().unwrap();
+    let fee_identifier: Identifier = env.storage().get(StorageKey::InitFeeId).unwrap().unwrap();
     let sender_nonce = token.nonce(&sig_id);
 
     token.incr_allow(

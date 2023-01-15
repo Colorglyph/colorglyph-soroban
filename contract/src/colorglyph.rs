@@ -2,7 +2,7 @@ use soroban_auth::{Signature, Identifier};
 use soroban_sdk::{contractimpl, Env, Vec, AccountId, BytesN};
 
 use crate::{
-    types::{DataKey, MaybeAccountId, ColorAmount, Glyph, Error, AssetType, TradeOwner, MaybeSignature}, 
+    types::{StorageKey, MaybeAccountId, ColorAmount, Glyph, Error, AssetType, TradeOwner, MaybeSignature, Side}, 
     colors::{mine, xfer, get_color}, 
     glyphs::{mint, get_glyph, scrape}, 
     trades::{trade, get_trade, rm_trade}
@@ -15,11 +15,11 @@ impl ColorGlyph {
     pub fn init(env: Env, token_id: BytesN<32>, fee_identity: Identifier) {
         env
             .storage()
-            .set(DataKey::InitToken, token_id);
+            .set(StorageKey::InitToken, token_id);
 
         env
             .storage()
-            .set(DataKey::InitFeeId, fee_identity);
+            .set(StorageKey::InitFeeId, fee_identity);
     }
 
     // Colors
@@ -48,10 +48,10 @@ impl ColorGlyph {
     pub fn trade(env: Env, signature: MaybeSignature, buy: AssetType, sell: AssetType) -> Result<(), Error> {
         trade(&env, signature, buy, sell)
     }
-    pub fn get_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) -> Result<TradeOwner, Error> {
+    pub fn get_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: Side) -> Result<TradeOwner, Error> {
         get_trade(&env, buy_hash, sell_hash, amount, side)
     }
-    pub fn rm_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) {
+    pub fn rm_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: Side) {
         rm_trade(&env, buy_hash, sell_hash, amount, side);
     }
 }

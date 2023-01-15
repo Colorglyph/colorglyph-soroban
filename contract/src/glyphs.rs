@@ -1,11 +1,11 @@
-use soroban_sdk::{symbol, Env, Symbol, Vec, Bytes, BytesN, Address, panic_with_error};
+use soroban_sdk::{Env, Vec, Bytes, BytesN, Address, panic_with_error};
 
 use crate::{
-    types::{Glyph, Color, ColorAmount, DataKey, Error}, 
+    types::{Glyph, Color, ColorAmount, StorageKey, Error}, 
     colors::{adjust}
 };
 
-const GLYPHS: Symbol = symbol!("GLYPHS");
+// const GLYPHS: Symbol = symbol!("GLYPHS");
 
 pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
@@ -65,7 +65,7 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
 
     let is_owned = env
         .storage()
-        .has(DataKey::GlyphOwner(hash.clone()));
+        .has(StorageKey::GlyphOwner(hash.clone()));
 
     if is_owned {
         panic_with_error!(env, Error::NotEmpty);
@@ -73,23 +73,23 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
         // Save the glyph to storage {glyph hash: Glyph}
         env
             .storage()
-            .set(DataKey::Glyph(hash.clone()), glyph);
+            .set(StorageKey::Glyph(hash.clone()), glyph);
 
         // Save the glyph owner to storage {glyph hash: Address}
         env
             .storage()
-            .set(DataKey::GlyphOwner(hash.clone()), env.invoker());
+            .set(StorageKey::GlyphOwner(hash.clone()), env.invoker());
     }
 
     let is_minted = env
         .storage()
-        .has(DataKey::GlyphMaker(hash.clone()));
+        .has(StorageKey::GlyphMaker(hash.clone()));
 
     if !is_minted {
         // Save the glyph minter to storage {glyph hash: Address}
         env
             .storage()
-            .set(DataKey::GlyphMaker(hash.clone()), env.invoker());
+            .set(StorageKey::GlyphMaker(hash.clone()), env.invoker());
     }
 
     // Remove the colors from the owner
@@ -101,7 +101,7 @@ pub fn mint(env: &Env, glyph: Glyph) -> BytesN<32> {
 pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
     env
         .storage()
-        .get(DataKey::Glyph(hash.clone()))
+        .get(StorageKey::Glyph(hash.clone()))
         .ok_or(Error::NotFound)?
         .unwrap()
 }
@@ -113,7 +113,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
 
     let owner: Address = env
         .storage()
-        .get(DataKey::GlyphOwner(hash.clone()))
+        .get(StorageKey::GlyphOwner(hash.clone()))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
@@ -136,12 +136,12 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
     // Remove glyph
     env
         .storage()
-        .remove(DataKey::Glyph(hash.clone()));
+        .remove(StorageKey::Glyph(hash.clone()));
 
     // Remove glyph owner
     env
         .storage()
-        .remove(DataKey::GlyphOwner(hash.clone()));
+        .remove(StorageKey::GlyphOwner(hash.clone()));
 
     Ok(())
 }
