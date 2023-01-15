@@ -26,7 +26,10 @@ pub fn get_incr_allow_signature(
   let from_id = from_xdr_id.clone().try_into_val(env).unwrap();
   let from_identifier = Identifier::Account(from_id.clone());
 
-  let (_, from_signer) = signer(env, &from_secret);
+  let (
+    _, 
+    from_signer
+  ) = signer(env, &from_secret);
 
   let signature = sign(
       env,
@@ -48,7 +51,7 @@ pub fn get_incr_allow_signature(
         signatures: vec!(env, s),
       })
     },
-    _ => panic!("i am groot")
+    _ => panic!("unexpected signature type"),
   }
 }
 

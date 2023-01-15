@@ -1,14 +1,14 @@
 use soroban_sdk::{symbol, Env, Symbol, Vec, AccountId, Address, BytesN};
 
 use crate::{
-    types::{SourceAccount, Color, ColorOwned, ColorAmount, DataKey}, 
+    types::{MaybeAccountId, Color, ColorOwned, ColorAmount, DataKey}, 
     token::{Signature, Identifier, Client as TokenClient}
 };
 
 const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
-pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: SourceAccount) {
+pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
     let miner_address = env.invoker();
     let miner_idx = get_account_idx(env, &miner_address);
 
@@ -58,7 +58,7 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: Source
     );
 }
 
-pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: SourceAccount) {
+pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: MaybeAccountId) {
     let self_address = env.invoker();
     let self_idx = get_account_idx(env, &self_address);
 
@@ -128,12 +128,12 @@ pub fn get_color(env: &Env, hex: u32, miner: AccountId) -> u32 {
         .unwrap()
 }
 
-fn get_source_account(env: &Env, to: SourceAccount) -> Address {
+fn get_source_account(env: &Env, to: MaybeAccountId) -> Address {
     let source_account: Address;
 
     match to {
-        SourceAccount::None => source_account = env.invoker(),
-        SourceAccount::AccountId(account_id) => source_account = Address::Account(account_id),
+        MaybeAccountId::None => source_account = env.invoker(),
+        MaybeAccountId::AccountId(account_id) => source_account = Address::Account(account_id),
     }
 
     source_account

@@ -102,14 +102,11 @@ pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
     env
         .storage()
         .get(DataKey::Glyph(hash.clone()))
-        // .unwrap_or_else(|| Ok(Err(Error::NotFound)))
-        // .unwrap_or(Ok(Err(Error::NotFound)))
-        // .ok_or(Error::NotFound)?
-        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+        .ok_or(Error::NotFound)?
         .unwrap()
 }
 
-pub fn scrape(env: &Env, hash: BytesN<32>) {
+pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
 
     // TODO: 
         // event
@@ -145,6 +142,8 @@ pub fn scrape(env: &Env, hash: BytesN<32>) {
     env
         .storage()
         .remove(DataKey::GlyphOwner(hash.clone()));
+
+    Ok(())
 }
 
 fn hex_to_rgb(hex: u32) -> [u8; 3] {

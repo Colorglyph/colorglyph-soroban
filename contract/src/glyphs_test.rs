@@ -8,7 +8,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient}, 
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient, 
-    types::{SourceAccount, Glyph, Error},
+    types::{MaybeAccountId, Glyph, Error},
 };
 
 extern crate std;
@@ -81,7 +81,7 @@ fn test() {
 
     client
         .with_source_account(&u1_account_id)
-        .mine(&signature, &color_amount, &SourceAccount::None);
+        .mine(&signature, &color_amount, &MaybeAccountId::None);
 
     let color = client
         .with_source_account(&u1_account_id)
@@ -141,7 +141,7 @@ fn test() {
 
     client
         .with_source_account(&u1_account_id)
-        .mine(&signature, &color_amount, &SourceAccount::AccountId(u2_account_id.clone()));
+        .mine(&signature, &color_amount, &MaybeAccountId::AccountId(u2_account_id.clone()));
 
     let hash = client
         .with_source_account(&u2_account_id)

@@ -1,11 +1,20 @@
+use soroban_auth::Signature;
 use soroban_sdk::{contracttype, AccountId, Vec, BytesN, contracterror, Address};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub enum SourceAccount {
+pub enum MaybeAccountId {
     #[default]
     None,
     AccountId(AccountId)
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub enum MaybeSignature {
+    #[default]
+    None,
+    Signature(Signature)
 }
 
 #[contracttype]
@@ -31,6 +40,8 @@ pub enum DataKey {
     Glyph(BytesN<32>), // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
     GlyphMaker(BytesN<32>), // glyph hash
+
+    // TODO only use DataKeys here, some of these are never used as storage keys (also rename from DataKey to StorageKey)
     SideBuy,
     SideSell,
     InitToken,

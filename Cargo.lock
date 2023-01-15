@@ -794,7 +794,7 @@ checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
 [[package]]
 name = "soroban-auth"
 version = "0.4.3"
-source = "git+https://github.com/stellar/rs-soroban-sdk?rev=649798756ca58c670d6fd246f33c860315717b50#649798756ca58c670d6fd246f33c860315717b50"
+source = "git+https://github.com/stellar/rs-soroban-sdk?rev=a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5#a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
 dependencies = [
  "ed25519-dalek",
  "rand 0.7.3",
@@ -875,7 +875,7 @@ dependencies = [
 [[package]]
 name = "soroban-ledger-snapshot"
 version = "0.4.3"
-source = "git+https://github.com/stellar/rs-soroban-sdk?rev=649798756ca58c670d6fd246f33c860315717b50#649798756ca58c670d6fd246f33c860315717b50"
+source = "git+https://github.com/stellar/rs-soroban-sdk?rev=a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5#a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
 dependencies = [
  "serde",
  "serde_json",
@@ -897,7 +897,7 @@ dependencies = [
 [[package]]
 name = "soroban-sdk"
 version = "0.4.3"
-source = "git+https://github.com/stellar/rs-soroban-sdk?rev=649798756ca58c670d6fd246f33c860315717b50#649798756ca58c670d6fd246f33c860315717b50"
+source = "git+https://github.com/stellar/rs-soroban-sdk?rev=a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5#a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
 dependencies = [
  "bytes-lit",
  "ed25519-dalek",
@@ -912,7 +912,7 @@ dependencies = [
 [[package]]
 name = "soroban-sdk-macros"
 version = "0.4.3"
-source = "git+https://github.com/stellar/rs-soroban-sdk?rev=649798756ca58c670d6fd246f33c860315717b50#649798756ca58c670d6fd246f33c860315717b50"
+source = "git+https://github.com/stellar/rs-soroban-sdk?rev=a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5#a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
 dependencies = [
  "darling",
  "itertools",
@@ -928,7 +928,7 @@ dependencies = [
 [[package]]
 name = "soroban-spec"
 version = "0.4.3"
-source = "git+https://github.com/stellar/rs-soroban-sdk?rev=649798756ca58c670d6fd246f33c860315717b50#649798756ca58c670d6fd246f33c860315717b50"
+source = "git+https://github.com/stellar/rs-soroban-sdk?rev=a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5#a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
 dependencies = [
  "base64",
  "darling",

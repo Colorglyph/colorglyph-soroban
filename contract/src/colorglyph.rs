@@ -1,8 +1,8 @@
 use soroban_auth::{Signature, Identifier};
-use soroban_sdk::{contractimpl, Env, Vec, AccountId, BytesN, Address};
+use soroban_sdk::{contractimpl, Env, Vec, AccountId, BytesN};
 
 use crate::{
-    types::{DataKey, SourceAccount, ColorAmount, Glyph, Error, AssetType, AssetAmount, TradeOwner}, 
+    types::{DataKey, MaybeAccountId, ColorAmount, Glyph, Error, AssetType, TradeOwner, MaybeSignature}, 
     colors::{mine, xfer, get_color}, 
     glyphs::{mint, get_glyph, scrape}, 
     trades::{trade, get_trade, rm_trade}
@@ -23,10 +23,10 @@ impl ColorGlyph {
     }
 
     // Colors
-    pub fn mine(env: Env, signature: Signature, colors: Vec<(u32, u32)>, to: SourceAccount) {
+    pub fn mine(env: Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
         mine(&env, signature, colors, to);
     }
-    pub fn xfer(env: Env, colors: Vec<ColorAmount>, to: SourceAccount) {
+    pub fn xfer(env: Env, colors: Vec<ColorAmount>, to: MaybeAccountId) {
         xfer(&env, colors, to);
     }
     pub fn get_color(env: Env, hex: u32, miner: AccountId) -> u32 {
@@ -40,15 +40,15 @@ impl ColorGlyph {
     pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         get_glyph(&env, hash)
     }
-    pub fn scrape(env: Env, hash: BytesN<32>) {
-        scrape(&env, hash);
+    pub fn scrape(env: Env, hash: BytesN<32>) -> Result<(), Error> {
+        scrape(&env, hash)
     }
 
     // Trades
-    pub fn trade(env: Env, signature: Signature, buy: AssetType, sell: AssetType) {
-        trade(&env, signature, buy, sell);
+    pub fn trade(env: Env, signature: MaybeSignature, buy: AssetType, sell: AssetType) -> Result<(), Error> {
+        trade(&env, signature, buy, sell)
     }
-    pub fn get_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) -> TradeOwner {
+    pub fn get_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) -> Result<TradeOwner, Error> {
         get_trade(&env, buy_hash, sell_hash, amount, side)
     }
     pub fn rm_trade(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: DataKey) {
