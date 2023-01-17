@@ -11,8 +11,7 @@ pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<ColorAmount> = Vec::new(&env);
 
-    // TODO:
-    // event
+    // TODO: event
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
@@ -97,19 +96,10 @@ pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         .unwrap()
 }
 
-// pub fn get_owner(env: &Env, hash: BytesN<32>) -> Address {
-//     env
-//         .storage()
-//         .get(StorageKey::GlyphOwner(hash.clone()))
-//         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-//         .unwrap()
-// }
-
 // TODO: transfer glyph fn
 
 pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
-    // TODO:
-    // event
+    // TODO: event
 
     let owner: Address = env
         .storage()

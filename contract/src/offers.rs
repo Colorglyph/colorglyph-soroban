@@ -22,6 +22,13 @@ use crate::{
 // This would mean however you could have offers that _could_ match but we don't automatically do any dynamic matching
 // Alternatively there can only be one offer per amount (what we're doing currently)
 
+// TODO:
+// Fine tooth comb everything
+// Document everything clearly
+// Break it up into individual functions to improve legibility
+// I'm not convinced it's terribly efficient or that we aren't over doing the types and match nesting hell
+// Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
+
 pub fn offer(
     env: &Env,
     signature: &MaybeSignature,
@@ -29,7 +36,7 @@ pub fn offer(
     sell: &OfferType,
 ) -> Result<(), Error> {
     // TODO:
-    // If actually performing a transfer deal with royalty payments
+    // If actually performing a transfer, deal with royalty payments
 
     // existing counter offer
     // yes
@@ -51,19 +58,14 @@ pub fn offer(
         Ok(existing_offer) => {
             match existing_offer {
                 // Found someone buying your sale with a Glyph (meaning sell is either a Glyph or Asset)
-                Offer::Glyph(GlyphSellOffer(
-                    buy_offer_owner,
-                    buy_glyph_hash,
-                    _, // buy_glyph_offers,
-                    _, // buy_offer_index,
-                )) => {
+                Offer::Glyph(GlyphSellOffer(buy_glyph_owner, buy_glyph_hash, _, _)) => {
                     match sell {
                         // sell glyph now for glyph
                         OfferType::Glyph(sell_glyph_hash) => {
                             // transfer ownership from seller to buyer
                             env.storage().set(
                                 StorageKey::GlyphOwner(sell_glyph_hash.clone()),
-                                buy_offer_owner,
+                                buy_glyph_owner,
                             );
 
                             // remove all glyph seller offers
@@ -103,7 +105,7 @@ pub fn offer(
                                         &Signature::Invoker,
                                         &0,
                                         &signature_identifier,
-                                        &Identifier::from(buy_offer_owner),
+                                        &Identifier::from(buy_glyph_owner),
                                         &amount,
                                     );
 
@@ -182,9 +184,9 @@ pub fn offer(
                             // Buying a Glyph
                             let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
 
-                            // TODO: Add support for storing a Vec of AssetOffer owners vs just one Address
-
+                            // TODO: Add support for storing a Vec of AssetOffer owners vs just one Address so we can remove this check
                             if env.storage().has(StorageKey::AssetOffer(offer.clone())) {
+                                // offer already exists
                                 panic_with_error!(env, Error::NotEmpty)
                             }
 
@@ -230,7 +232,6 @@ pub fn offer(
 }
 
 // TODO: this might should be a private function
-
 pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, Error> {
     match sell {
         OfferType::Glyph(glyph_hash) => {
@@ -285,6 +286,8 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
         }
     }
 }
+
+// TODO: fn for removing all a glyph owners open sell offers
 
 pub fn rm_offer(env: &Env, buy: &OfferType, sell: &OfferType) {
     match get_offer(env, buy, sell) {

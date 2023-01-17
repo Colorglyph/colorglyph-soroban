@@ -16,12 +16,12 @@ pub enum Error {
 pub enum StorageKey {
     #[default]
     None,
+    InitToken,
+    InitFeeId,
     Glyph(BytesN<32>),      // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
     GlyphMaker(BytesN<32>), // glyph hash
-    InitToken,
-    InitFeeId,
-    GlyphOffer(BytesN<32>),
+    GlyphOffer(BytesN<32>), // glyph owner
     AssetOffer(AssetOffer),
 }
 
@@ -67,8 +67,8 @@ pub struct Glyph {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OfferType {
-    Glyph(BytesN<32>),  // Glyph hash
-    Asset(AssetAmount), // Asset amount
+    Glyph(BytesN<32>), // glyph hash
+    Asset(AssetAmount),
 }
 
 #[contracttype]
@@ -81,6 +81,7 @@ pub enum Offer {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GlyphSellOffer(
+    // TODO: I think including the Sell keyword here is confusing
     pub Address,        // offer (and glyph) owner
     pub BytesN<32>,     // glyph hash
     pub Vec<OfferType>, // all glyph sell offers
@@ -90,16 +91,17 @@ pub struct GlyphSellOffer(
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetSellOffer(
+    // TODO: I think including the Sell keyword here is confusing
     pub Address,    // offer owner
-    pub BytesN<32>, // buy_hash
-    pub BytesN<32>, // sell_hash
+    pub BytesN<32>, // glyph hash // TODO: I don't think I need this value as you can derive it from the counter offer
+    pub BytesN<32>, // asset hash
     pub i128,       // amount
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetOffer(
-    pub BytesN<32>, // glyph hash
+    pub BytesN<32>, // glyph hash // TODO: Do I definitely need this or can it be derived as needed in a counter offer? If it's not needed we can likely drop this struct and use AssetAmount instead
     pub BytesN<32>, // asset hash
     pub i128,       // amount
 );
@@ -107,6 +109,6 @@ pub struct AssetOffer(
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetAmount(
-    pub BytesN<32>, // Asset hash
+    pub BytesN<32>, // asset hash
     pub i128,       // amount
 );

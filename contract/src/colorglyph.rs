@@ -38,9 +38,6 @@ impl ColorGlyph {
     pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         get_glyph(&env, hash)
     }
-    // pub fn get_owner(env: Env, hash: BytesN<32>) -> Address {
-    //     get_owner(&env, hash)
-    // }
     pub fn scrape(env: Env, hash: BytesN<32>) -> Result<(), Error> {
         scrape(&env, hash)
     }
