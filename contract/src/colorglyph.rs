@@ -19,7 +19,6 @@ pub struct ColorGlyph;
 impl ColorGlyph {
     pub fn init(env: Env, token_id: BytesN<32>, fee_identity: Identifier) {
         env.storage().set(StorageKey::InitToken, token_id);
-
         env.storage().set(StorageKey::InitFeeId, fee_identity);
     }
 

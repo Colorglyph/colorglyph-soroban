@@ -1,6 +1,6 @@
-use crate::token::Client as TokenClient;
+use crate::{token::Client as TokenClient, types::{StorageKey, Error}};
 use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{BytesN, Env};
+use soroban_sdk::{BytesN, Env, Address, panic_with_error};
 
 pub fn get_token_bits(
     env: &Env,
@@ -18,4 +18,16 @@ pub fn get_token_bits(
         token,
         sender_nonce,
     )
+}
+
+pub fn verify_glyph_ownership(env: &Env, glyph_hash: BytesN<32>) {
+    let glyph_owner: Address = env
+        .storage()
+        .get(StorageKey::GlyphOwner(glyph_hash))
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized))
+        .unwrap();
+
+    if glyph_owner != env.invoker() {
+        panic_with_error!(env, Error::NotAuthorized);
+    }
 }

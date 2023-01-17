@@ -21,8 +21,8 @@ pub enum StorageKey {
     Glyph(BytesN<32>),      // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
     GlyphMaker(BytesN<32>), // glyph hash
-    GlyphSell(BytesN<32>),  // glyph owner
-    AssetSell(AssetSell),
+    GlyphOffer(BytesN<32>), // glyph owner
+    AssetOffer(AssetOffer),
 }
 
 #[contracttype]
@@ -91,13 +91,12 @@ pub struct GlyphOfferArg(
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetOfferArg(
     pub Vec<Address>, // all asset sell offers
-    // pub Address,      // offer owner
-    pub AssetSell,
+    pub AssetOffer,
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssetSell(
+pub struct AssetOffer(
     // This first arg is needed as we store asset sell offers off the whole buy and sell side of the offer
     pub BytesN<32>, // glyph hash
     pub BytesN<32>, // asset hash
