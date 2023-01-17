@@ -21,8 +21,8 @@ pub enum StorageKey {
     Glyph(BytesN<32>),      // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
     GlyphMaker(BytesN<32>), // glyph hash
-    GlyphOffer(BytesN<32>), // glyph owner
-    AssetOffer(AssetOffer),
+    GlyphSell(BytesN<32>),  // glyph owner
+    AssetSell(AssetSell),
 }
 
 #[contracttype]
@@ -74,34 +74,32 @@ pub enum OfferType {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Offer {
-    Glyph(GlyphSellOffer),
-    Asset(AssetSellOffer),
+    Glyph(GlyphOfferArg),
+    Asset(AssetOfferArg),
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GlyphSellOffer(
-    // TODO: I think including the Sell keyword here is confusing
+pub struct GlyphOfferArg(
+    pub u32,            // offer index
+    pub Vec<OfferType>, // all glyph sell offers
     pub Address,        // offer (and glyph) owner
     pub BytesN<32>,     // glyph hash
-    pub Vec<OfferType>, // all glyph sell offers
-    pub u32,            // offer index
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssetSellOffer(
-    // TODO: I think including the Sell keyword here is confusing
-    pub Address,    // offer owner
-    pub BytesN<32>, // glyph hash // TODO: I don't think I need this value as you can derive it from the counter offer
-    pub BytesN<32>, // asset hash
-    pub i128,       // amount
+pub struct AssetOfferArg(
+    pub Vec<Address>, // all asset sell offers
+    // pub Address,      // offer owner
+    pub AssetSell,
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssetOffer(
-    pub BytesN<32>, // glyph hash // TODO: Do I definitely need this or can it be derived as needed in a counter offer? If it's not needed we can likely drop this struct and use AssetAmount instead
+pub struct AssetSell(
+    // This first arg is needed as we store asset sell offers off the whole buy and sell side of the offer
+    pub BytesN<32>, // glyph hash
     pub BytesN<32>, // asset hash
     pub i128,       // amount
 );

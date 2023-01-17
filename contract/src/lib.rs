@@ -13,5 +13,6 @@ pub mod utils;
 
 mod colors_test;
 mod glyphs_test;
+mod misc_test;
 mod offers_test;
 mod testutils;

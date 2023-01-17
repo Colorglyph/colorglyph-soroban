@@ -12,6 +12,9 @@ use crate::{
 
 pub struct ColorGlyph;
 
+// TODO:
+// Fine tooth comb what functions actually need to be public
+
 #[contractimpl]
 impl ColorGlyph {
     pub fn init(env: Env, token_id: BytesN<32>, fee_identity: Identifier) {
