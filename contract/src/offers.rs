@@ -11,11 +11,11 @@ use crate::{
 };
 
 // TODO:
-// Fine tooth comb everything
+// ✅ Fine tooth comb everything
 // Document everything clearly
 // Break it up into individual functions to improve legibility
 // I'm not convinced it's terribly efficient or that we aren't over doing the types and match nesting hell
-// Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
+// ✅ Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 
 pub fn offer(
@@ -163,7 +163,7 @@ pub fn offer(
 
                     match offers.binary_search(buy) {
                         Result::Err(i) => offers.insert(i, buy.clone()), // buy can be an Asset or a Glyph
-                        _ => panic_with_error!(&env, Error::NotEmpty),         // dupe
+                        _ => panic_with_error!(&env, Error::NotEmpty),   // dupe
                     }
 
                     env.storage()
@@ -208,8 +208,7 @@ pub fn offer(
 
                                     offers.push_back(env.invoker());
 
-                                    env.storage()
-                                        .set(StorageKey::AssetOffer(offer), offers);
+                                    env.storage().set(StorageKey::AssetOffer(offer), offers);
                                 }
                                 _ => panic_with_error!(env, Error::NotPermitted), // You cannot sell an Asset without a signature
                             }
@@ -279,12 +278,7 @@ pub fn rm_offer(env: &Env, buy: &OfferType, sell: &OfferType) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Selling a Glyph
-                Offer::Glyph(GlyphOfferArg(
-                    offer_index,
-                    mut offers,
-                    offer_owner,
-                    offer_hash,
-                )) => {
+                Offer::Glyph(GlyphOfferArg(offer_index, mut offers, offer_owner, offer_hash)) => {
                     // You cannot delete an offer for a glyph you are not the owner of
                     if offer_owner != env.invoker() {
                         panic_with_error!(env, Error::NotAuthorized);
@@ -315,8 +309,7 @@ pub fn rm_offer(env: &Env, buy: &OfferType, sell: &OfferType) {
                             if offers.is_empty() {
                                 env.storage().remove(StorageKey::AssetOffer(offer));
                             } else {
-                                env.storage()
-                                    .set(StorageKey::AssetOffer(offer), offers);
+                                env.storage().set(StorageKey::AssetOffer(offer), offers);
                             }
                         }
                         None => panic_with_error!(env, Error::NotFound),

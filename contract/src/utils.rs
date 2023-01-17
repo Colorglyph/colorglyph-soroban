@@ -1,6 +1,9 @@
-use crate::{token::Client as TokenClient, types::{StorageKey, Error}};
+use crate::{
+    token::Client as TokenClient,
+    types::{Error, StorageKey},
+};
 use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{BytesN, Env, Address, panic_with_error};
+use soroban_sdk::{panic_with_error, Address, BytesN, Env};
 
 pub fn get_token_bits(
     env: &Env,
