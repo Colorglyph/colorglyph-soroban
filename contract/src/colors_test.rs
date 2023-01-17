@@ -1,16 +1,16 @@
 #![cfg(test)]
 
-use std::{println};
+use std::println;
 
-use soroban_auth::{Identifier};
-use soroban_sdk::{Env, Vec, testutils::Accounts, vec};
-use stellar_xdr::{Asset};
+use soroban_auth::Identifier;
+use soroban_sdk::{testutils::Accounts, vec, Env, Vec};
+use stellar_xdr::Asset;
 
 use crate::{
-    colorglyph::{ColorGlyph, ColorGlyphClient}, 
-    testutils::{generate_full_account, get_incr_allow_signature}, 
-    token::Client as TokenClient, 
-    types::{MaybeAccountId, ColorAmount}
+    colorglyph::{ColorGlyph, ColorGlyphClient},
+    testutils::{generate_full_account, get_incr_allow_signature},
+    token::Client as TokenClient,
+    types::{ColorAmount, MaybeAccountId},
 };
 
 extern crate std;
@@ -25,26 +25,11 @@ fn test() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (
-        u1_keypair, 
-        _, 
-        u1_account_id, 
-        u1_identifier
-    ) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
 
-    let (
-        u2_keypair, 
-        _, 
-        u2_account_id, 
-        _,
-    ) = generate_full_account(&env);
+    let (u2_keypair, _, u2_account_id, _) = generate_full_account(&env);
 
-    let (
-        _,
-        _,
-        _,
-        fee_identifier
-    ) = generate_full_account(&env);
+    let (_, _, _, fee_identifier) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -60,16 +45,16 @@ fn test() {
 
     for i in 0..10 {
         pay_amount += 1;
-        colors.push_back((i, 1));   
+        colors.push_back((i, 1));
     }
 
     let signature = get_incr_allow_signature(
-        &env, 
-        &token_id, 
+        &env,
+        &token_id,
         &u1_keypair,
         &token,
         &contract_identifier,
-        &pay_amount
+        &pay_amount,
     );
 
     client
@@ -83,17 +68,19 @@ fn test() {
     assert_eq!(color, 1);
 
     let signature = get_incr_allow_signature(
-        &env, 
-        &token_id, 
+        &env,
+        &token_id,
         &u2_keypair,
         &token,
         &contract_identifier,
-        &pay_amount
+        &pay_amount,
     );
 
-    client
-        .with_source_account(&u2_account_id)
-        .mine(&signature, &colors, &MaybeAccountId::AccountId(u1_account_id.clone()));
+    client.with_source_account(&u2_account_id).mine(
+        &signature,
+        &colors,
+        &MaybeAccountId::AccountId(u1_account_id.clone()),
+    );
 
     let color1 = client
         .with_source_account(&u1_account_id)
@@ -106,16 +93,11 @@ fn test() {
 
     let u3 = env.accounts().generate();
 
-    client
-        .with_source_account(&u1_account_id)
-        .xfer(
-            &vec![&env, 
-                ColorAmount(0, 1, 1), 
-                ColorAmount(0, 2, 1)
-            ], 
-            &MaybeAccountId::AccountId(u3.clone())
-        );
-        
+    client.with_source_account(&u1_account_id).xfer(
+        &vec![&env, ColorAmount(0, 1, 1), ColorAmount(0, 2, 1)],
+        &MaybeAccountId::AccountId(u3.clone()),
+    );
+
     let color1 = client
         .with_source_account(&u3)
         .get_color(&0, &u1_account_id);

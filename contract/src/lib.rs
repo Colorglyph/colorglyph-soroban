@@ -9,8 +9,9 @@ mod colors;
 mod glyphs;
 mod offers;
 pub mod types;
+pub mod utils;
 
-mod testutils;
 mod colors_test;
 mod glyphs_test;
 mod offers_test;
+mod testutils;

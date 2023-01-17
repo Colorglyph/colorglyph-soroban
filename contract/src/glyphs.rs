@@ -1,8 +1,8 @@
-use soroban_sdk::{Env, Vec, Bytes, BytesN, Address, panic_with_error};
+use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
-    types::{Glyph, ColorAmount, StorageKey, Error}, 
-    colors::{adjust}
+    colors::adjust,
+    types::{ColorAmount, Error, Glyph, StorageKey},
 };
 
 // const GLYPHS: Symbol = symbol!("GLYPHS");
@@ -12,17 +12,17 @@ pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
     let mut m_palette: Vec<ColorAmount> = Vec::new(&env);
 
     // TODO:
-        // event
+    // event
 
     for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
             m_palette.push_back(ColorAmount(hex, miner_idx, i128::from(indexes.len())));
 
-            // TODO: 
-                // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves. 
-                    // RawVal maybe?
-                    // Ordering is important so you can't just hash the arg directly
-                // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
+            // TODO:
+            // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
+            // RawVal maybe?
+            // Ordering is important so you can't just hash the arg directly
+            // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
 
             for index in indexes.iter_unchecked() {
                 // We need to extend the length of the palette
@@ -32,14 +32,14 @@ pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
                         // If this is the section we're interested in filling, just fill
                         if i == index {
                             b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
-                        } 
+                        }
                         // Push empty white pixels
                         // NOTE: this is a "free" way to use white pixels atm
                         else {
                             b_palette.extend_from_array(&[255; 3]);
                         }
                     }
-                } 
+                }
                 // If the bytes already exist just fill them in
                 else {
                     b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
@@ -51,44 +51,36 @@ pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
     let hash = env.crypto().sha256(&b_palette);
 
     // made
-        // owner
-        // maker
-        // exists
+    // owner
+    // maker
+    // exists
     // scraped
-        // no owner
-        // maker
-        // not exists
+    // no owner
+    // maker
+    // not exists
     // new
-        // no owner
-        // no maker
-        // not exists
+    // no owner
+    // no maker
+    // not exists
 
-    let is_owned = env
-        .storage()
-        .has(StorageKey::GlyphOwner(hash.clone()));
+    let is_owned = env.storage().has(StorageKey::GlyphOwner(hash.clone()));
 
     if is_owned {
         panic_with_error!(env, Error::NotEmpty);
     } else {
         // Save the glyph to storage {glyph hash: Glyph}
-        env
-            .storage()
-            .set(StorageKey::Glyph(hash.clone()), glyph);
+        env.storage().set(StorageKey::Glyph(hash.clone()), glyph);
 
         // Save the glyph owner to storage {glyph hash: Address}
-        env
-            .storage()
+        env.storage()
             .set(StorageKey::GlyphOwner(hash.clone()), env.invoker());
     }
 
-    let is_made = env
-        .storage()
-        .has(StorageKey::GlyphMaker(hash.clone()));
+    let is_made = env.storage().has(StorageKey::GlyphMaker(hash.clone()));
 
     if !is_made {
         // Save the glyph maker to storage {glyph hash: Address}
-        env
-            .storage()
+        env.storage()
             .set(StorageKey::GlyphMaker(hash.clone()), env.invoker());
     }
 
@@ -99,19 +91,25 @@ pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
 }
 
 pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
-    env
-        .storage()
+    env.storage()
         .get(StorageKey::Glyph(hash.clone()))
         .ok_or(Error::NotFound)?
         .unwrap()
 }
 
+// pub fn get_owner(env: &Env, hash: BytesN<32>) -> Address {
+//     env
+//         .storage()
+//         .get(StorageKey::GlyphOwner(hash.clone()))
+//         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+//         .unwrap()
+// }
+
 // TODO: transfer glyph fn
 
 pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
-
-    // TODO: 
-        // event
+    // TODO:
+    // event
 
     let owner: Address = env
         .storage()
@@ -136,14 +134,10 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
     adjust(&env, &m_palette, true);
 
     // Remove glyph
-    env
-        .storage()
-        .remove(StorageKey::Glyph(hash.clone()));
+    env.storage().remove(StorageKey::Glyph(hash.clone()));
 
     // Remove glyph owner
-    env
-        .storage()
-        .remove(StorageKey::GlyphOwner(hash.clone()));
+    env.storage().remove(StorageKey::GlyphOwner(hash.clone()));
 
     Ok(())
 }
@@ -151,7 +145,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
 fn hex_to_rgb(hex: u32) -> [u8; 3] {
     let a: [u8; 4] = hex.to_le_bytes();
     let mut b = [0; 3];
-    
+
     b.copy_from_slice(&a[..3]);
 
     b

@@ -1,11 +1,13 @@
-use soroban_auth::{Signature, Identifier};
-use soroban_sdk::{contractimpl, Env, Vec, AccountId, BytesN};
+use soroban_auth::{Identifier, Signature};
+use soroban_sdk::{contractimpl, AccountId, BytesN, Env, Vec};
 
 use crate::{
-    types::{StorageKey, MaybeAccountId, ColorAmount, Glyph, Error, AssetType, OfferOwner, MaybeSignature, Side}, 
-    colors::{mine, xfer, get_color}, 
-    glyphs::{make, get_glyph, scrape}, 
-    offers::{offer, get_offer, rm_offer}
+    colors::{get_color, mine, xfer},
+    glyphs::{get_glyph, make, scrape},
+    offers::{get_offer, offer, rm_offer},
+    types::{
+        ColorAmount, Error, Glyph, MaybeAccountId, MaybeSignature, Offer, OfferType, StorageKey,
+    },
 };
 
 pub struct ColorGlyph;
@@ -13,13 +15,9 @@ pub struct ColorGlyph;
 #[contractimpl]
 impl ColorGlyph {
     pub fn init(env: Env, token_id: BytesN<32>, fee_identity: Identifier) {
-        env
-            .storage()
-            .set(StorageKey::InitToken, token_id);
+        env.storage().set(StorageKey::InitToken, token_id);
 
-        env
-            .storage()
-            .set(StorageKey::InitFeeId, fee_identity);
+        env.storage().set(StorageKey::InitFeeId, fee_identity);
     }
 
     // Colors
@@ -40,18 +38,26 @@ impl ColorGlyph {
     pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         get_glyph(&env, hash)
     }
+    // pub fn get_owner(env: Env, hash: BytesN<32>) -> Address {
+    //     get_owner(&env, hash)
+    // }
     pub fn scrape(env: Env, hash: BytesN<32>) -> Result<(), Error> {
         scrape(&env, hash)
     }
 
     // Offers
-    pub fn offer(env: Env, signature: MaybeSignature, buy: AssetType, sell: AssetType) -> Result<(), Error> {
-        offer(&env, signature, buy, sell)
+    pub fn offer(
+        env: Env,
+        signature: MaybeSignature,
+        buy: OfferType,
+        sell: OfferType,
+    ) -> Result<(), Error> {
+        offer(&env, &signature, &buy, &sell)
     }
-    pub fn get_offer(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: Side) -> Result<OfferOwner, Error> {
-        get_offer(&env, buy_hash, sell_hash, amount, side)
+    pub fn get_offer(env: Env, buy: OfferType, sell: OfferType) -> Result<Offer, Error> {
+        get_offer(&env, &buy, &sell)
     }
-    pub fn rm_offer(env: Env, buy_hash: BytesN<32>, sell_hash: BytesN<32>, amount: i128, side: Side) {
-        rm_offer(&env, buy_hash, sell_hash, amount, side);
+    pub fn rm_offer(env: Env, buy: OfferType, sell: OfferType) {
+        rm_offer(&env, &buy, &sell);
     }
 }
