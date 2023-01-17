@@ -14,7 +14,7 @@ use crate::{
 // ✅ Fine tooth comb everything
 // Document everything clearly
 // Break it up into individual functions to improve legibility
-// I'm not convinced it's terribly efficient or that we aren't over doing the types and match nesting hell
+// I'm not convinced it's terribly efficient or that we aren't over doing the match nesting hell
 // ✅ Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 
@@ -24,8 +24,6 @@ pub fn offer(
     buy: &OfferType,
     sell: &OfferType,
 ) -> Result<(), Error> {
-    // TODO:
-    // If actually performing a transfer, deal with royalty payments
 
     // existing counter offer
     // yes
@@ -101,6 +99,8 @@ pub fn offer(
                                         &amount,
                                     );
 
+                                    // TODO: royalty payments
+
                                     // transfer ownership of Glyph from glyph giver to Glyph taker
                                     env.storage().set(
                                         StorageKey::GlyphOwner(existing_offer_hash.clone()),
@@ -129,6 +129,8 @@ pub fn offer(
                         &Identifier::from(env.invoker()),
                         &offer.2,
                     );
+
+                    // TODO: royalty payments
 
                     // remove Asset counter offer
                     let offer_owner = offers.pop_front().unwrap().unwrap();
