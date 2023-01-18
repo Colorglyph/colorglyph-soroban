@@ -15,6 +15,7 @@ testutils = ["soroban-sdk/testutils", "soroban-auth/testutils"]
 [dependencies]
 soroban-sdk = { workspace = true }
 soroban-auth = { workspace = true }
+fixed-point-math = { version = "0.0.1"}
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

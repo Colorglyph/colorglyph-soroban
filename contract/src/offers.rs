@@ -24,7 +24,6 @@ pub fn offer(
     buy: &OfferType,
     sell: &OfferType,
 ) -> Result<(), Error> {
-
     // existing counter offer
     // yes
     // sell glyph

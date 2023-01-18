@@ -1,7 +1,7 @@
 use soroban_sdk::{symbol, AccountId, Address, BytesN, Env, Symbol, Vec};
 
 use crate::{
-    token::{Client as TokenClient, Identifier, Signature},
+    token::{Identifier, Signature},
     types::{ColorAmount, ColorOwner, MaybeAccountId, StorageKey},
     utils::get_token_bits,
 };

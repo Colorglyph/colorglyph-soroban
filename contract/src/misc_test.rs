@@ -4,12 +4,40 @@ use std::println;
 
 use soroban_sdk::{
     testutils::{Accounts, BytesN as UtilsBytesN},
-    Address, BytesN, Env, Vec,
+    Address, BytesN, Env, Vec, TryIntoVal
 };
+use stellar_strkey::ed25519;
+use stellar_xdr::Uint256;
 
 use crate::types::AssetAmount;
+use fixed_point_math::FixedPoint;
 
 extern crate std;
+
+#[test]
+fn test_mootz_math() {
+    const WHITE: i128 = 256i128.pow(3u32) - 1;
+    const ITERS: i128 = 256i128;
+
+    let i = 256i128;
+    
+    let res =  WHITE.fixed_div_floor(ITERS, i).unwrap();
+
+    println!("{:?}", WHITE); // 16777215
+    println!("{:?}", res); // 16777215
+}
+
+#[test]
+fn gen_address_from_string() {
+    let env = Env::default();
+
+    let ed25519_pubkey = ed25519::PublicKey::from_string("GDPUT6M7JFHRXYUJILRY6FK7763GQDUBIFQAAGSCMALAJ65DZATW3ZKQ").unwrap();
+    let xdr_account_id = stellar_xdr::AccountId(stellar_xdr::PublicKey::PublicKeyTypeEd25519(Uint256(ed25519_pubkey.0)));
+    let account_id = xdr_account_id.clone().try_into_val(&env).unwrap();
+    let address = Address::Account(account_id);
+
+    println!("{:?}", address);
+}
 
 #[test]
 fn test_vec_pop() {
@@ -92,7 +120,7 @@ fn test_binary_vs_index() {
     env.budget().reset();
 
     let index = binary_sorted.binary_search(&item).unwrap();
-    let res = binary_sorted.get(index).unwrap().unwrap();
+    binary_sorted.get(index).unwrap().unwrap();
 
     // - CPU Instructions: 17458
     // - Memory Bytes: 3551
@@ -101,7 +129,7 @@ fn test_binary_vs_index() {
     env.budget().reset();
 
     let index = index_sorted.first_index_of(&item).unwrap();
-    let res = index_sorted.get(index).unwrap().unwrap();
+    index_sorted.get(index).unwrap().unwrap();
 
     // - CPU Instructions: 24582
     // - Memory Bytes: 6351

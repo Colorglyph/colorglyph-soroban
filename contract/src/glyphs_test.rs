@@ -1,8 +1,9 @@
 #![cfg(test)]
 
 use soroban_auth::Identifier;
-use soroban_sdk::{vec, Bytes, Env, Vec};
+use soroban_sdk::{vec, Env, Vec};
 use stellar_xdr::Asset;
+use fixed_point_math::FixedPoint;
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
@@ -13,7 +14,7 @@ use crate::{
 
 extern crate std;
 
-const ITER: u32 = 256;
+const ITERS: i128 = 256;
 
 #[test]
 fn test() {
@@ -44,11 +45,11 @@ fn test() {
     let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
-    for i in 0..ITER {
-        let hex = 16777215 / ITER * i; // 0 - 16777215 (black to white)
+    for i in 0..ITERS {
+        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
 
-        colors_indexes.push_back((hex, vec![&env, i]));
-        color_amount.push_back((hex, 1));
+        colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
+        color_amount.push_back((hex as u32, 1));
         pay_amount += 1;
     }
 

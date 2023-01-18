@@ -325,6 +325,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90e5c1c8368803113bf0c9584fc495a58b86dc8a29edbf8fe877d21d9507e797"
 
 [[package]]
+name = "fixed-point-math"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "399498a172a270b946f4b42f004207e7005f5b89e2033452feb3b105907271ba"
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -806,6 +812,7 @@ name = "soroban-colors-contract"
 version = "0.0.0"
 dependencies = [
  "ed25519-dalek",
+ "fixed-point-math",
  "rand 0.7.3",
  "soroban-auth",
  "soroban-sdk",
