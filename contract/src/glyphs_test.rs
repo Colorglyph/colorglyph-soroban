@@ -1,15 +1,15 @@
 #![cfg(test)]
 
+use fixed_point_math::FixedPoint;
 use soroban_auth::Identifier;
 use soroban_sdk::{vec, Env, Vec};
 use stellar_xdr::Asset;
-use fixed_point_math::FixedPoint;
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{Error, Glyph, MaybeAccountId},
+    types::{Error, MaybeAccountId},
 };
 
 extern crate std;
@@ -42,7 +42,7 @@ fn test() {
     env.budget().reset();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -77,10 +77,7 @@ fn test() {
     env.budget().reset();
 
     // Real Test
-    let hash = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_indexes.clone())],
-    });
+    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes.clone())]);
 
     let color = client
         .with_source_account(&u1_account_id)
@@ -117,10 +114,7 @@ fn test() {
         &MaybeAccountId::AccountId(u2_account_id.clone()),
     );
 
-    let hash = client.with_source_account(&u2_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_indexes.clone())],
-    });
+    let hash = client.with_source_account(&u2_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes.clone())]);
 
     client.with_source_account(&u2_account_id).get_glyph(&hash);
 

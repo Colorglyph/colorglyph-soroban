@@ -1,6 +1,8 @@
 use soroban_auth::Signature;
 use soroban_sdk::{contracterror, contracttype, AccountId, Address, BytesN, Vec};
 
+// TODO: only store AccountId never Address
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(u32)]
@@ -42,26 +44,27 @@ pub enum MaybeSignature {
 }
 
 #[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ColorOwner(
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MinerOwnerColor(
+    pub AccountId, // miner
+    pub AccountId, // owner
     pub u32, // color hex
-    pub u32, // miner
-    pub u32, // owner
 );
 
 #[contracttype]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ColorAmount(
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MinerColorAmount(
+    pub AccountId,  // miner
     pub u32,  // color hex
-    pub u32,  // miner
-    pub i128, // amount
+    pub u32, // amount
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Glyph {
     pub width: u32,
-    pub colors: Vec<(u32, Vec<(u32, Vec<u32>)>)>, // [[miner, [color, [index]]]
+    pub length: u32,
+    pub colors: Vec<(AccountId, Vec<(u32, Vec<u32>)>)>, // [[miner, [color, [index]]]
 }
 
 #[contracttype]

@@ -10,7 +10,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{ColorAmount, MaybeAccountId},
+    types::{MinerColorAmount, MaybeAccountId},
 };
 
 extern crate std;
@@ -26,8 +26,8 @@ fn test() {
 
     // Accounts
     let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
-
     let (u2_keypair, _, u2_account_id, _) = generate_full_account(&env);
+    let (_, _, u3_account_id, _) = generate_full_account(&env);
 
     let (_, _, _, fee_identifier) = generate_full_account(&env);
 
@@ -40,7 +40,7 @@ fn test() {
     // Tests
     env.budget().reset();
 
-    let mut colors: Vec<(u32, i128)> = Vec::new(&env);
+    let mut colors: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..10 {
@@ -91,18 +91,16 @@ fn test() {
 
     assert_eq!(color1 + color2, 2);
 
-    let u3 = env.accounts().generate();
-
     client.with_source_account(&u1_account_id).xfer(
-        &vec![&env, ColorAmount(0, 1, 1), ColorAmount(0, 2, 1)],
-        &MaybeAccountId::AccountId(u3.clone()),
+        &vec![&env, MinerColorAmount(u1_account_id.clone(), 0, 1), MinerColorAmount(u2_account_id.clone(), 0, 1)],
+        &MaybeAccountId::AccountId(u3_account_id.clone()),
     );
 
     let color1 = client
-        .with_source_account(&u3)
+        .with_source_account(&u3_account_id)
         .get_color(&0, &u1_account_id);
     let color2 = client
-        .with_source_account(&u3)
+        .with_source_account(&u3_account_id)
         .get_color(&0, &u2_account_id);
 
     assert_eq!(color1 + color2, 2);

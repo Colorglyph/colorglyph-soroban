@@ -1,21 +1,24 @@
-use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
+use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec, AccountId};
 
 use crate::{
     colors::adjust,
-    types::{ColorAmount, Error, Glyph, StorageKey},
+    types::{MinerColorAmount, Error, Glyph, StorageKey},
 };
 
 // const GLYPHS: Symbol = symbol!("GLYPHS");
 
-pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
+// TODO:
+// Limit number of miners
+
+pub fn make(env: &Env, width: u32, colors: Vec<(AccountId, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
-    let mut m_palette: Vec<ColorAmount> = Vec::new(&env);
+    let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
     // TODO: event
 
-    for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
+    for (miner_account_id, colors_indexes) in colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(ColorAmount(hex, miner_idx, i128::from(indexes.len())));
+            m_palette.push_back(MinerColorAmount(miner_account_id.clone(), hex, indexes.len()));
 
             // TODO:
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
@@ -68,7 +71,7 @@ pub fn make(env: &Env, glyph: Glyph) -> BytesN<32> {
         panic_with_error!(env, Error::NotEmpty);
     } else {
         // Save the glyph to storage {glyph hash: Glyph}
-        env.storage().set(StorageKey::Glyph(hash.clone()), glyph);
+        env.storage().set(StorageKey::Glyph(hash.clone()), Glyph{width, length: b_palette.len(), colors});
 
         // Save the glyph owner to storage {glyph hash: Address}
         env.storage()
@@ -112,11 +115,11 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
     }
 
     let glyph = get_glyph(&env, hash.clone()).unwrap();
-    let mut m_palette: Vec<ColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
+    let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
-    for (miner_idx, colors_indexes) in glyph.colors.iter_unchecked() {
+    for (miner_account_id, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(ColorAmount(hex, miner_idx, i128::from(indexes.len())));
+            m_palette.push_back(MinerColorAmount(miner_account_id.clone(), hex, indexes.len()));
         }
     }
 

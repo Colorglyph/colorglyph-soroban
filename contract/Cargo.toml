@@ -1,5 +1,5 @@
 [package]
-name = "soroban-colors-contract"
+name = "soroban-colorglyph-contract"
 version = "0.0.0"
 license = "Apache-2.0"
 authors = ["Tyler van der Hoeven <tyler@tinyanvil.com>"]

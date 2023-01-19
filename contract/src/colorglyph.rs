@@ -6,7 +6,7 @@ use crate::{
     glyphs::{get_glyph, make, scrape},
     offers::{get_offer, offer, rm_offer},
     types::{
-        ColorAmount, Error, Glyph, MaybeAccountId, MaybeSignature, Offer, OfferType, StorageKey,
+        MinerColorAmount, Error, Glyph, MaybeAccountId, MaybeSignature, Offer, OfferType, StorageKey,
     },
 };
 
@@ -23,19 +23,19 @@ impl ColorGlyph {
     }
 
     // Colors
-    pub fn mine(env: Env, signature: Signature, colors: Vec<(u32, i128)>, to: MaybeAccountId) {
+    pub fn mine(env: Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
         mine(&env, signature, colors, to);
     }
-    pub fn xfer(env: Env, colors: Vec<ColorAmount>, to: MaybeAccountId) {
+    pub fn xfer(env: Env, colors: Vec<MinerColorAmount>, to: MaybeAccountId) {
         xfer(&env, colors, to);
     }
-    pub fn get_color(env: Env, hex: u32, miner: AccountId) -> i128 {
+    pub fn get_color(env: Env, hex: u32, miner: AccountId) -> u32 {
         get_color(&env, hex, miner)
     }
 
     // Glyphs
-    pub fn make(env: Env, glyph: Glyph) -> BytesN<32> {
-        make(&env, glyph)
+    pub fn make(env: Env, width: u32, colors: Vec<(AccountId, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
+        make(&env, width, colors)
     }
     pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         get_glyph(&env, hash)

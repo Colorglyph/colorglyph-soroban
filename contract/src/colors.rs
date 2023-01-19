@@ -1,34 +1,40 @@
-use soroban_sdk::{symbol, AccountId, Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{symbol, AccountId, Address, BytesN, Env, Symbol, Vec, panic_with_error};
 
 use crate::{
     token::{Identifier, Signature},
-    types::{ColorAmount, ColorOwner, MaybeAccountId, StorageKey},
+    types::{MinerColorAmount, MinerOwnerColor, Error, MaybeAccountId, StorageKey},
     utils::get_token_bits,
 };
 
 const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
-pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, i128)>, to: MaybeAccountId) {
-    let miner_address = env.invoker();
-    let miner_idx = get_account_idx(env, &miner_address);
+pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
+    let miner_account_id = &invoker_account_id(env);
 
-    let to_address = get_source_account(env, to);
-    let to_idx = get_account_idx(env, &to_address);
+    let to_account_id = &match to {
+        MaybeAccountId::None => {
+            match env.invoker() {
+                Address::Account(account_id) => account_id,
+                _ => panic_with_error!(env, Error::NotPermitted)
+            }
+        },
+        MaybeAccountId::AccountId(account_id) => account_id,
+    };
 
     let mut pay_amount: i128 = 0;
 
     for (hex, amount) in colors.iter_unchecked() {
-        let color = ColorOwner(hex, miner_idx, to_idx);
+        let color = &MinerOwnerColor(miner_account_id.clone(), to_account_id.clone(), hex);
 
         env.events().publish(
             (COLORS, symbol!("mine")),
-            (&to_address, hex, &miner_address),
+            (miner_account_id, to_account_id, hex),
         );
 
-        let current_amount: i128 = env.storage().get(color).unwrap_or(Ok(0)).unwrap();
+        let current_amount: u32 = env.storage().get(color).unwrap_or(Ok(0)).unwrap();
 
-        pay_amount += amount;
+        pay_amount += i128::from(amount);
 
         env.storage().set(color, current_amount + amount);
     }
@@ -50,38 +56,43 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, i128)>, to: Maybe
     );
 }
 
-pub fn xfer(env: &Env, colors: Vec<ColorAmount>, to: MaybeAccountId) {
-    let self_address = env.invoker();
-    let self_idx = get_account_idx(env, &self_address);
+pub fn xfer(env: &Env, colors: Vec<MinerColorAmount>, to: MaybeAccountId) {
+    let self_account_id = &invoker_account_id(env);
 
-    let to_address = get_source_account(env, to);
-    let to_idx = get_account_idx(env, &to_address);
+    let to_account_id = &match to {
+        MaybeAccountId::None => {
+            match env.invoker() {
+                Address::Account(account_id) => account_id,
+                _ => panic_with_error!(env, Error::NotPermitted)
+            }
+        },
+        MaybeAccountId::AccountId(account_id) => account_id,
+    };
 
     // TODO: event
 
     for color in colors.iter_unchecked() {
-        let ColorAmount(hex, miner_idx, amount) = color;
-        let from_color = ColorOwner(hex, miner_idx, self_idx);
-        let current_from_amount: i128 = env.storage().get(from_color).unwrap_or(Ok(0)).unwrap();
+        let MinerColorAmount(miner_account_id, hex, amount) = &color;
+        let from_color = &MinerOwnerColor(miner_account_id.clone(), self_account_id.clone(), *hex);
+        let current_from_amount: u32 = env.storage().get(from_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(from_color, current_from_amount - amount);
 
-        let to_color = ColorOwner(hex, miner_idx, to_idx);
-        let current_to_amount: i128 = env.storage().get(to_color).unwrap_or(Ok(0)).unwrap();
+        let to_color = &MinerOwnerColor(miner_account_id.clone(), to_account_id.clone(), *hex);
+        let current_to_amount: u32 = env.storage().get(to_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(to_color, current_to_amount + amount);
     }
 }
 
-pub fn adjust(env: &Env, colors: &Vec<ColorAmount>, add: bool) {
-    let self_address = env.invoker();
-    let self_idx = get_account_idx(env, &self_address);
+pub fn adjust(env: &Env, colors: &Vec<MinerColorAmount>, add: bool) {
+    let self_account_id = &invoker_account_id(env);
 
     // TODO: event
 
     for color in colors.iter_unchecked() {
-        let ColorAmount(hex, miner_idx, amount) = color;
-        let from_color = ColorOwner(hex, miner_idx, self_idx);
+        let MinerColorAmount(miner_account_id, hex, amount) = color;
+        let from_color = &MinerOwnerColor(miner_account_id, self_account_id.clone(), hex);
         let current_from_amount = env.storage().get(from_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(
@@ -95,42 +106,18 @@ pub fn adjust(env: &Env, colors: &Vec<ColorAmount>, add: bool) {
     }
 }
 
-pub fn get_color(env: &Env, hex: u32, miner: AccountId) -> i128 {
-    let self_address = env.invoker();
-    let self_idx = get_account_idx(env, &self_address);
-
-    let miner_address = Address::Account(miner);
-    let miner_idx = get_account_idx(env, &miner_address);
+pub fn get_color(env: &Env, hex: u32, miner_account_id: AccountId) -> u32 {
+    let self_account_id = invoker_account_id(env);
 
     env.storage()
-        .get(ColorOwner(hex, miner_idx, self_idx))
+        .get(MinerOwnerColor(miner_account_id, self_account_id, hex))
         .unwrap_or(Ok(0))
         .unwrap()
 }
 
-fn get_source_account(env: &Env, to: MaybeAccountId) -> Address {
-    let source_account: Address;
-
-    match to {
-        MaybeAccountId::None => source_account = env.invoker(),
-        MaybeAccountId::AccountId(account_id) => source_account = Address::Account(account_id),
+fn invoker_account_id(env: &Env) -> AccountId {
+    match env.invoker() {
+        Address::Account(account_id) => account_id,
+        _ => panic_with_error!(env, Error::NotPermitted)
     }
-
-    source_account
-}
-
-fn get_account_idx(env: &Env, source_account: &Address) -> u32 {
-    let mut account_idx = env.storage().get(source_account).unwrap_or(Ok(0)).unwrap();
-
-    if account_idx == 0 {
-        account_idx = env.storage().get(ACC_IDX_I).unwrap_or(Ok(0)).unwrap();
-
-        account_idx += 1;
-
-        env.storage().set(ACC_IDX_I, account_idx);
-
-        env.storage().set(source_account, account_idx);
-    }
-
-    account_idx
 }

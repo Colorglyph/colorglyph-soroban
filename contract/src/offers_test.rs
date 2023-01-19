@@ -2,16 +2,16 @@
 
 use std::println;
 
+use fixed_point_math::FixedPoint;
 use soroban_auth::Identifier;
 use soroban_sdk::{vec, Address, Env, Vec};
 use stellar_xdr::Asset;
-use fixed_point_math::FixedPoint;
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{AssetAmount, Error, Glyph, MaybeAccountId, MaybeSignature, OfferType, StorageKey},
+    types::{AssetAmount, Error, MaybeAccountId, MaybeSignature, OfferType, StorageKey},
 };
 
 extern crate std;
@@ -44,7 +44,7 @@ fn test_buy_glyph() {
     env.budget().reset();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -70,10 +70,7 @@ fn test_buy_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_indexes)],
-    });
+    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -105,7 +102,7 @@ fn test_buy_glyph() {
         let res: Address = env
             .storage()
             .get(StorageKey::GlyphOwner(hash.clone()))
-            .unwrap_or_else(|| panic!("404"))
+            .unwrap()
             .unwrap();
 
         assert_eq!(res, Address::Account(u2_account_id.clone()));
@@ -154,7 +151,7 @@ fn test_sell_glyph() {
     env.budget().reset();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -180,10 +177,7 @@ fn test_sell_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_indexes)],
-    });
+    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -215,7 +209,7 @@ fn test_sell_glyph() {
         let res: Address = env
             .storage()
             .get(StorageKey::GlyphOwner(hash.clone()))
-            .unwrap_or_else(|| panic!("404"))
+            .unwrap()
             .unwrap();
 
         assert_eq!(res, Address::Account(u2_account_id.clone()));
@@ -265,7 +259,7 @@ fn test_swap_glyph() {
 
     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -292,10 +286,7 @@ fn test_swap_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash_a = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_a_indexes.clone())],
-    });
+    let hash_a = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
 
     let signature = get_incr_allow_signature(
         &env,
@@ -312,10 +303,7 @@ fn test_swap_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash_b = client.with_source_account(&u2_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_b_indexes.clone())],
-    });
+    let hash_b = client.with_source_account(&u2_account_id).make(&16, &vec![&env, (u2_account_id.clone(), colors_b_indexes)]);
 
     env.budget().reset();
 
@@ -335,7 +323,7 @@ fn test_swap_glyph() {
         let res_a: Address = env
             .storage()
             .get(StorageKey::GlyphOwner(hash_a.clone()))
-            .unwrap_or_else(|| panic!("404"))
+            .unwrap()
             .unwrap();
 
         assert_eq!(res_a, Address::Account(u2_account_id.clone()));
@@ -343,7 +331,7 @@ fn test_swap_glyph() {
         let res_b: Address = env
             .storage()
             .get(StorageKey::GlyphOwner(hash_b.clone()))
-            .unwrap_or_else(|| panic!("404"))
+            .unwrap()
             .unwrap();
 
         assert_eq!(res_b, Address::Account(u1_account_id.clone()));
@@ -384,7 +372,7 @@ fn test_rm_glyph_buy() {
     env.budget().reset();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -410,10 +398,7 @@ fn test_rm_glyph_buy() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_indexes)],
-    });
+    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -481,7 +466,7 @@ fn test_rm_glyph_sell() {
     env.budget().reset();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -507,10 +492,7 @@ fn test_rm_glyph_sell() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_indexes)],
-    });
+    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -549,6 +531,7 @@ fn test_rm_glyph_swap() {
 
     // Accounts
     let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
+    let (_, _, u2_account_id, _) = generate_full_account(&env);
 
     let (_, _, _, fee_identifier) = generate_full_account(&env);
 
@@ -563,7 +546,7 @@ fn test_rm_glyph_swap() {
 
     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, i128)> = Vec::new(&env);
+    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
     let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
@@ -590,10 +573,7 @@ fn test_rm_glyph_swap() {
         &MaybeAccountId::None,
     );
 
-    let hash_a = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_a_indexes.clone())],
-    });
+    let hash_a = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
 
     let signature = get_incr_allow_signature(
         &env,
@@ -607,13 +587,10 @@ fn test_rm_glyph_swap() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAccountId::AccountId(u2_account_id.clone()),
     );
 
-    let hash_b = client.with_source_account(&u1_account_id).make(&Glyph {
-        width: 16,
-        colors: vec![&env, (1, colors_b_indexes.clone())],
-    });
+    let hash_b = client.with_source_account(&u2_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_b_indexes)]);
 
     env.budget().reset();
 
@@ -623,16 +600,16 @@ fn test_rm_glyph_swap() {
 
     client
         .with_source_account(&u1_account_id)
-        .offer(&MaybeSignature::None, &glyph_a, &glyph_b);
+        .offer(&MaybeSignature::None, &glyph_b, &glyph_a);
 
-    client.get_offer(&glyph_a, &glyph_b);
+    client.get_offer(&glyph_b, &glyph_a);
 
     client
         .with_source_account(&u1_account_id)
-        .rm_offer(&glyph_a, &glyph_b);
+        .rm_offer(&glyph_b, &glyph_a);
 
     assert_eq!(
-        client.try_get_offer(&glyph_a, &glyph_b),
+        client.try_get_offer(&glyph_b, &glyph_a),
         Err(Ok(Error::NotFound.into()))
     );
 

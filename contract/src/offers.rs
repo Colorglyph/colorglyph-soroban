@@ -7,7 +7,7 @@ use crate::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, MaybeSignature, Offer,
         OfferType, StorageKey,
     },
-    utils::{get_token_bits, verify_glyph_ownership},
+    utils::{get_token_bits, verify_glyph_ownership}, glyphs::get_glyph,
 };
 
 // TODO:
@@ -17,6 +17,7 @@ use crate::{
 // I'm not convinced it's terribly efficient or that we aren't over doing the match nesting hell
 // ✅ Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
+// Create fn for removing all a glyph owners open sell offers
 
 pub fn offer(
     env: &Env,
@@ -95,10 +96,34 @@ pub fn offer(
                                         &0,
                                         &signature_identifier,
                                         &Identifier::from(existing_offer_owner),
-                                        &amount,
+                                        &amount, // TODO: <- only whatever is left after royalty payments
                                     );
 
                                     // TODO: royalty payments
+                                    
+                                    // Get glyph
+                                    // let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
+                                    
+                                    // Loop over miners
+                                    // for (miner_account, colors_indexes) in glyph.colors.iter_unchecked() {
+                                    //     // let miner_account = get_idx_account(env, miner_idx).unwrap();
+
+                                    //     for (_, indexes) in colors_indexes.iter_unchecked() {
+                                    //         // Count colors per miner
+                                    //         // Determine their percentage of whole
+                                    //         // Derive their share of the amount
+                                    //         // Make payment?
+                                    //         token.xfer_from(
+                                    //             &Signature::Invoker,
+                                    //             &0,
+                                    //             &signature_identifier,
+                                    //             &Identifier::from(&miner_account),
+                                    //             &(indexes.len() as i128), // TODO: <- only a percentage of this miners colors given the whole
+                                    //         );
+
+                                    //         // Save “claimable balance”?
+                                    //     }
+                                    // }
 
                                     // transfer ownership of Glyph from glyph giver to Glyph taker
                                     env.storage().set(
@@ -271,8 +296,6 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
         }
     }
 }
-
-// TODO: fn for removing all a glyph owners open sell offers
 
 pub fn rm_offer(env: &Env, buy: &OfferType, sell: &OfferType) {
     match get_offer(env, buy, sell) {

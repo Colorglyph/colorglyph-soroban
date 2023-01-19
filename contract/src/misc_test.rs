@@ -4,7 +4,7 @@ use std::println;
 
 use soroban_sdk::{
     testutils::{Accounts, BytesN as UtilsBytesN},
-    Address, BytesN, Env, Vec, TryIntoVal
+    Address, BytesN, Env, TryIntoVal, Vec,
 };
 use stellar_strkey::ed25519;
 use stellar_xdr::Uint256;
@@ -20,26 +20,29 @@ fn test_mootz_math() {
     const ITERS: i128 = 256i128;
 
     let i = 256i128;
-    
-    let res =  WHITE.fixed_div_floor(ITERS, i).unwrap();
 
-    println!("{:?}", WHITE); // 16777215
-    println!("{:?}", res); // 16777215
+    let res = WHITE.fixed_div_floor(ITERS, i).unwrap();
+
+    assert_eq!(res, WHITE);
 }
 
-#[test]
+// #[test]
 fn gen_address_from_string() {
     let env = Env::default();
 
-    let ed25519_pubkey = ed25519::PublicKey::from_string("GDPUT6M7JFHRXYUJILRY6FK7763GQDUBIFQAAGSCMALAJ65DZATW3ZKQ").unwrap();
-    let xdr_account_id = stellar_xdr::AccountId(stellar_xdr::PublicKey::PublicKeyTypeEd25519(Uint256(ed25519_pubkey.0)));
+    let ed25519_pubkey =
+        ed25519::PublicKey::from_string("GDPUT6M7JFHRXYUJILRY6FK7763GQDUBIFQAAGSCMALAJ65DZATW3ZKQ")
+            .unwrap();
+    let xdr_account_id = stellar_xdr::AccountId(stellar_xdr::PublicKey::PublicKeyTypeEd25519(
+        Uint256(ed25519_pubkey.0),
+    ));
     let account_id = xdr_account_id.clone().try_into_val(&env).unwrap();
     let address = Address::Account(account_id);
 
     println!("{:?}", address);
 }
 
-#[test]
+// #[test]
 fn test_vec_pop() {
     let env = Env::default();
 
@@ -79,7 +82,7 @@ fn test_vec_pop() {
     println!("items back {:?}", env.budget().print());
 }
 
-#[test]
+// #[test]
 fn test_binary_vs_index() {
     let env = Env::default();
 
