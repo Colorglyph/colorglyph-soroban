@@ -2,12 +2,13 @@ use soroban_auth::{Identifier, Signature};
 use soroban_sdk::{panic_with_error, Address, Env, Vec};
 
 use crate::{
+    glyphs::get_glyph,
     token::Client as TokenClient,
     types::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, MaybeSignature, Offer,
         OfferType, StorageKey,
     },
-    utils::{get_token_bits, verify_glyph_ownership}, glyphs::get_glyph,
+    utils::{get_token_bits, verify_glyph_ownership},
 };
 
 // TODO:
@@ -100,10 +101,10 @@ pub fn offer(
                                     );
 
                                     // TODO: royalty payments
-                                    
+
                                     // Get glyph
                                     // let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
-                                    
+
                                     // Loop over miners
                                     // for (miner_account, colors_indexes) in glyph.colors.iter_unchecked() {
                                     //     // let miner_account = get_idx_account(env, miner_idx).unwrap();

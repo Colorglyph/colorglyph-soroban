@@ -10,7 +10,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{MinerColorAmount, MaybeAccountId},
+    types::{MaybeAccountId, MinerColorAmount},
 };
 
 extern crate std;
@@ -92,7 +92,11 @@ fn test() {
     assert_eq!(color1 + color2, 2);
 
     client.with_source_account(&u1_account_id).xfer(
-        &vec![&env, MinerColorAmount(u1_account_id.clone(), 0, 1), MinerColorAmount(u2_account_id.clone(), 0, 1)],
+        &vec![
+            &env,
+            MinerColorAmount(u1_account_id.clone(), 0, 1),
+            MinerColorAmount(u2_account_id.clone(), 0, 1),
+        ],
         &MaybeAccountId::AccountId(u3_account_id.clone()),
     );
 

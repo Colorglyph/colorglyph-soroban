@@ -77,7 +77,10 @@ fn test() {
     env.budget().reset();
 
     // Real Test
-    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes.clone())]);
+    let hash = client.with_source_account(&u1_account_id).make(
+        &16,
+        &vec![&env, (u1_account_id.clone(), colors_indexes.clone())],
+    );
 
     let color = client
         .with_source_account(&u1_account_id)
@@ -114,7 +117,10 @@ fn test() {
         &MaybeAccountId::AccountId(u2_account_id.clone()),
     );
 
-    let hash = client.with_source_account(&u2_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes.clone())]);
+    let hash = client.with_source_account(&u2_account_id).make(
+        &16,
+        &vec![&env, (u1_account_id.clone(), colors_indexes.clone())],
+    );
 
     client.with_source_account(&u2_account_id).get_glyph(&hash);
 

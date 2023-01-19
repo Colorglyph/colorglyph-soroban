@@ -48,15 +48,15 @@ pub enum MaybeSignature {
 pub struct MinerOwnerColor(
     pub AccountId, // miner
     pub AccountId, // owner
-    pub u32, // color hex
+    pub u32,       // color hex
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MinerColorAmount(
-    pub AccountId,  // miner
-    pub u32,  // color hex
-    pub u32, // amount
+    pub AccountId, // miner
+    pub u32,       // color hex
+    pub u32,       // amount
 );
 
 #[contracttype]

@@ -70,7 +70,9 @@ fn test_buy_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+    let hash = client
+        .with_source_account(&u1_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -177,7 +179,9 @@ fn test_sell_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+    let hash = client
+        .with_source_account(&u1_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -286,7 +290,9 @@ fn test_swap_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash_a = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
+    let hash_a = client
+        .with_source_account(&u1_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
 
     let signature = get_incr_allow_signature(
         &env,
@@ -303,7 +309,9 @@ fn test_swap_glyph() {
         &MaybeAccountId::None,
     );
 
-    let hash_b = client.with_source_account(&u2_account_id).make(&16, &vec![&env, (u2_account_id.clone(), colors_b_indexes)]);
+    let hash_b = client
+        .with_source_account(&u2_account_id)
+        .make(&16, &vec![&env, (u2_account_id.clone(), colors_b_indexes)]);
 
     env.budget().reset();
 
@@ -398,7 +406,9 @@ fn test_rm_glyph_buy() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+    let hash = client
+        .with_source_account(&u1_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -492,7 +502,9 @@ fn test_rm_glyph_sell() {
         &MaybeAccountId::None,
     );
 
-    let hash = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+    let hash = client
+        .with_source_account(&u1_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -573,7 +585,9 @@ fn test_rm_glyph_swap() {
         &MaybeAccountId::None,
     );
 
-    let hash_a = client.with_source_account(&u1_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
+    let hash_a = client
+        .with_source_account(&u1_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
 
     let signature = get_incr_allow_signature(
         &env,
@@ -590,7 +604,9 @@ fn test_rm_glyph_swap() {
         &MaybeAccountId::AccountId(u2_account_id.clone()),
     );
 
-    let hash_b = client.with_source_account(&u2_account_id).make(&16, &vec![&env, (u1_account_id.clone(), colors_b_indexes)]);
+    let hash_b = client
+        .with_source_account(&u2_account_id)
+        .make(&16, &vec![&env, (u1_account_id.clone(), colors_b_indexes)]);
 
     env.budget().reset();
 

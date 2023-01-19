@@ -1,23 +1,20 @@
-use soroban_sdk::{symbol, AccountId, Address, BytesN, Env, Symbol, Vec, panic_with_error};
+use soroban_sdk::{panic_with_error, symbol, AccountId, Address, BytesN, Env, Symbol, Vec};
 
 use crate::{
     token::{Identifier, Signature},
-    types::{MinerColorAmount, MinerOwnerColor, Error, MaybeAccountId, StorageKey},
+    types::{Error, MaybeAccountId, MinerColorAmount, MinerOwnerColor, StorageKey},
     utils::get_token_bits,
 };
 
-const ACC_IDX_I: Symbol = symbol!("ACC_IDX_I");
 const COLORS: Symbol = symbol!("COLORS");
 
 pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
     let miner_account_id = &invoker_account_id(env);
 
     let to_account_id = &match to {
-        MaybeAccountId::None => {
-            match env.invoker() {
-                Address::Account(account_id) => account_id,
-                _ => panic_with_error!(env, Error::NotPermitted)
-            }
+        MaybeAccountId::None => match env.invoker() {
+            Address::Account(account_id) => account_id,
+            _ => panic_with_error!(env, Error::NotPermitted),
         },
         MaybeAccountId::AccountId(account_id) => account_id,
     };
@@ -60,11 +57,9 @@ pub fn xfer(env: &Env, colors: Vec<MinerColorAmount>, to: MaybeAccountId) {
     let self_account_id = &invoker_account_id(env);
 
     let to_account_id = &match to {
-        MaybeAccountId::None => {
-            match env.invoker() {
-                Address::Account(account_id) => account_id,
-                _ => panic_with_error!(env, Error::NotPermitted)
-            }
+        MaybeAccountId::None => match env.invoker() {
+            Address::Account(account_id) => account_id,
+            _ => panic_with_error!(env, Error::NotPermitted),
         },
         MaybeAccountId::AccountId(account_id) => account_id,
     };
@@ -118,6 +113,6 @@ pub fn get_color(env: &Env, hex: u32, miner_account_id: AccountId) -> u32 {
 fn invoker_account_id(env: &Env) -> AccountId {
     match env.invoker() {
         Address::Account(account_id) => account_id,
-        _ => panic_with_error!(env, Error::NotPermitted)
+        _ => panic_with_error!(env, Error::NotPermitted),
     }
 }
