@@ -2,31 +2,28 @@ use soroban_sdk::{panic_with_error, symbol, AccountId, Address, BytesN, Env, Sym
 
 use crate::{
     token::{Identifier, Signature},
-    types::{Error, MaybeAccountId, MinerColorAmount, MinerOwnerColor, StorageKey},
+    types::{Error, MaybeAddress, MinerColorAmount, MinerOwnerColor, StorageKey},
     utils::get_token_bits,
 };
 
 const COLORS: Symbol = symbol!("COLORS");
 
-pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
-    let miner_account_id = &invoker_account_id(env);
+pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAddress) {
+    let self_address = &env.invoker();
 
-    let to_account_id = &match to {
-        MaybeAccountId::None => match env.invoker() {
-            Address::Account(account_id) => account_id,
-            _ => panic_with_error!(env, Error::NotPermitted),
-        },
-        MaybeAccountId::AccountId(account_id) => account_id,
+    let to_address = &match to {
+        MaybeAddress::None => self_address.clone(),
+        MaybeAddress::Address(address) => address,
     };
 
     let mut pay_amount: i128 = 0;
 
     for (hex, amount) in colors.iter_unchecked() {
-        let color = &MinerOwnerColor(miner_account_id.clone(), to_account_id.clone(), hex);
+        let color = &MinerOwnerColor(self_address.clone(), to_address.clone(), hex);
 
         env.events().publish(
             (COLORS, symbol!("mine")),
-            (miner_account_id, to_account_id, hex),
+            color,
         );
 
         let current_amount: u32 = env.storage().get(color).unwrap_or(Ok(0)).unwrap();
@@ -53,27 +50,24 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeA
     );
 }
 
-pub fn xfer(env: &Env, colors: Vec<MinerColorAmount>, to: MaybeAccountId) {
-    let self_account_id = &invoker_account_id(env);
+pub fn xfer(env: &Env, colors: Vec<MinerColorAmount>, to: MaybeAddress) {
+    let self_address = &env.invoker();
 
-    let to_account_id = &match to {
-        MaybeAccountId::None => match env.invoker() {
-            Address::Account(account_id) => account_id,
-            _ => panic_with_error!(env, Error::NotPermitted),
-        },
-        MaybeAccountId::AccountId(account_id) => account_id,
+    let to_address = &match to {
+        MaybeAddress::None => self_address.clone(),
+        MaybeAddress::Address(account_id) => account_id,
     };
 
     // TODO: event
 
     for color in colors.iter_unchecked() {
-        let MinerColorAmount(miner_account_id, hex, amount) = &color;
-        let from_color = &MinerOwnerColor(miner_account_id.clone(), self_account_id.clone(), *hex);
+        let MinerColorAmount(miner_address, hex, amount) = &color;
+        let from_color = &MinerOwnerColor(miner_address.clone(), self_address.clone(), *hex);
         let current_from_amount: u32 = env.storage().get(from_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(from_color, current_from_amount - amount);
 
-        let to_color = &MinerOwnerColor(miner_account_id.clone(), to_account_id.clone(), *hex);
+        let to_color = &MinerOwnerColor(miner_address.clone(), to_address.clone(), *hex);
         let current_to_amount: u32 = env.storage().get(to_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(to_color, current_to_amount + amount);
@@ -81,13 +75,13 @@ pub fn xfer(env: &Env, colors: Vec<MinerColorAmount>, to: MaybeAccountId) {
 }
 
 pub fn adjust(env: &Env, colors: &Vec<MinerColorAmount>, add: bool) {
-    let self_account_id = &invoker_account_id(env);
+    let self_address = env.invoker();
 
     // TODO: event
 
     for color in colors.iter_unchecked() {
-        let MinerColorAmount(miner_account_id, hex, amount) = color;
-        let from_color = &MinerOwnerColor(miner_account_id, self_account_id.clone(), hex);
+        let MinerColorAmount(miner_address, hex, amount) = color;
+        let from_color = &MinerOwnerColor(miner_address, self_address.clone(), hex);
         let current_from_amount = env.storage().get(from_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(
@@ -101,18 +95,11 @@ pub fn adjust(env: &Env, colors: &Vec<MinerColorAmount>, add: bool) {
     }
 }
 
-pub fn get_color(env: &Env, hex: u32, miner_account_id: AccountId) -> u32 {
-    let self_account_id = invoker_account_id(env);
+pub fn get_color(env: &Env, hex: u32, miner_address: Address) -> u32 {
+    let self_address = env.invoker();
 
     env.storage()
-        .get(MinerOwnerColor(miner_account_id, self_account_id, hex))
+        .get(MinerOwnerColor(miner_address, self_address, hex))
         .unwrap_or(Ok(0))
         .unwrap()
-}
-
-fn invoker_account_id(env: &Env) -> AccountId {
-    match env.invoker() {
-        Address::Account(account_id) => account_id,
-        _ => panic_with_error!(env, Error::NotPermitted),
-    }
 }

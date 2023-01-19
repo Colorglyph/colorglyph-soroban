@@ -1,12 +1,12 @@
 use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{contractimpl, AccountId, BytesN, Env, Vec};
+use soroban_sdk::{contractimpl, BytesN, Env, Vec, Address};
 
 use crate::{
     colors::{get_color, mine, xfer},
     glyphs::{get_glyph, make, scrape},
     offers::{get_offer, offer, rm_offer},
     types::{
-        Error, Glyph, MaybeAccountId, MaybeSignature, MinerColorAmount, Offer, OfferType,
+        Error, Glyph, MaybeAddress, MaybeSignature, MinerColorAmount, Offer, OfferType,
         StorageKey,
     },
 };
@@ -24,13 +24,13 @@ impl ColorGlyph {
     }
 
     // Colors
-    pub fn mine(env: Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAccountId) {
+    pub fn mine(env: Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeAddress) {
         mine(&env, signature, colors, to);
     }
-    pub fn xfer(env: Env, colors: Vec<MinerColorAmount>, to: MaybeAccountId) {
+    pub fn xfer(env: Env, colors: Vec<MinerColorAmount>, to: MaybeAddress) {
         xfer(&env, colors, to);
     }
-    pub fn get_color(env: Env, hex: u32, miner: AccountId) -> u32 {
+    pub fn get_color(env: Env, hex: u32, miner: Address) -> u32 {
         get_color(&env, hex, miner)
     }
 
@@ -38,7 +38,7 @@ impl ColorGlyph {
     pub fn make(
         env: Env,
         width: u32,
-        colors: Vec<(AccountId, Vec<(u32, Vec<u32>)>)>,
+        colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
     ) -> BytesN<32> {
         make(&env, width, colors)
     }

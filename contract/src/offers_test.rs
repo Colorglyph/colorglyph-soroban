@@ -11,7 +11,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{AssetAmount, Error, MaybeAccountId, MaybeSignature, OfferType, StorageKey},
+    types::{AssetAmount, Error, MaybeAddress, MaybeSignature, OfferType, StorageKey},
 };
 
 extern crate std;
@@ -28,11 +28,10 @@ fn test_buy_glyph() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
+    let (u2_keypair, _, u2_account_id, u2_identifier, _) = generate_full_account(&env);
 
-    let (u2_keypair, _, u2_account_id, u2_identifier) = generate_full_account(&env);
-
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -67,12 +66,12 @@ fn test_buy_glyph() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -137,11 +136,10 @@ fn test_sell_glyph() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
+    let (u2_keypair, _, u2_account_id, u2_identifier, _) = generate_full_account(&env);
 
-    let (u2_keypair, _, u2_account_id, u2_identifier) = generate_full_account(&env);
-
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -176,12 +174,12 @@ fn test_sell_glyph() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -246,11 +244,10 @@ fn test_swap_glyph() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, _, u1_address) = generate_full_account(&env);
+    let (u2_keypair, _, u2_account_id, _, u2_address) = generate_full_account(&env);
 
-    let (u2_keypair, _, u2_account_id, u2_identifier) = generate_full_account(&env);
-
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -287,12 +284,12 @@ fn test_swap_glyph() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash_a = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_a_indexes)]);
 
     let signature = get_incr_allow_signature(
         &env,
@@ -306,12 +303,12 @@ fn test_swap_glyph() {
     client.with_source_account(&u2_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash_b = client
         .with_source_account(&u2_account_id)
-        .make(&16, &vec![&env, (u2_account_id.clone(), colors_b_indexes)]);
+        .make(&16, &vec![&env, (u2_address.clone(), colors_b_indexes)]);
 
     env.budget().reset();
 
@@ -366,9 +363,9 @@ fn test_rm_glyph_buy() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
 
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -403,12 +400,12 @@ fn test_rm_glyph_buy() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -462,9 +459,9 @@ fn test_rm_glyph_sell() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
 
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -499,12 +496,12 @@ fn test_rm_glyph_sell() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_indexes)]);
 
     env.budget().reset();
 
@@ -542,10 +539,10 @@ fn test_rm_glyph_swap() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
-    let (_, _, u2_account_id, _) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
+    let (_, _, u2_account_id, _, u2_address) = generate_full_account(&env);
 
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -582,12 +579,12 @@ fn test_rm_glyph_swap() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let hash_a = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_a_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_a_indexes)]);
 
     let signature = get_incr_allow_signature(
         &env,
@@ -601,12 +598,12 @@ fn test_rm_glyph_swap() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::AccountId(u2_account_id.clone()),
+        &MaybeAddress::Address(u2_address),
     );
 
     let hash_b = client
         .with_source_account(&u2_account_id)
-        .make(&16, &vec![&env, (u1_account_id.clone(), colors_b_indexes)]);
+        .make(&16, &vec![&env, (u1_address.clone(), colors_b_indexes)]);
 
     env.budget().reset();
 

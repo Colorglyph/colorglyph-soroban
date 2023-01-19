@@ -2,13 +2,13 @@
 
 use std::{print, println};
 
-use ed25519_dalek::Keypair;
+use ed25519_dalek::{Keypair, SecretKey};
 use rand::thread_rng;
 use soroban_auth::{
     testutils::ed25519::{sign, signer},
     AccountSignatures, Identifier, Signature,
 };
-use soroban_sdk::{symbol, testutils::Accounts, vec, AccountId, BytesN, Env, TryIntoVal};
+use soroban_sdk::{symbol, testutils::Accounts, vec, AccountId, BytesN, Env, TryIntoVal, Address};
 use stellar_xdr::{AccountId as XdrAccountId, PublicKey, Uint256};
 
 use crate::token::Client;
@@ -53,16 +53,27 @@ pub fn get_incr_allow_signature(
     }
 }
 
-pub fn generate_full_account(env: &Env) -> (Keypair, XdrAccountId, AccountId, Identifier) {
+pub fn generate_full_account(env: &Env) -> (
+    Keypair,
+    // public: [u8; 32],
+    // secret: [u8; 32],
+    XdrAccountId,
+    AccountId,
+    Identifier,
+    Address,
+) {
     let keypair = Keypair::generate(&mut thread_rng());
     let public = keypair.public.to_bytes();
-    // let secret = keypair.secret.to_bytes();
+    let secret = keypair.secret.to_bytes();
     let account_xdr_id = XdrAccountId(PublicKey::PublicKeyTypeEd25519(Uint256(public)));
     let account_id = account_xdr_id.clone().try_into_val(env).unwrap();
     let identifier = Identifier::from(account_id.clone());
+    let account = Address::Account(account_id.clone());
 
     env.accounts().create(&account_id);
     env.accounts().update_balance(&account_id, 10_000i64);
 
-    (keypair, account_xdr_id, account_id, identifier)
+    (keypair, 
+        // public, secret, 
+        account_xdr_id, account_id, identifier, account)
 }

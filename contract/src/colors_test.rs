@@ -10,7 +10,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{MaybeAccountId, MinerColorAmount},
+    types::{MaybeAddress, MinerColorAmount},
 };
 
 extern crate std;
@@ -25,11 +25,11 @@ fn test() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier) = generate_full_account(&env);
-    let (u2_keypair, _, u2_account_id, _) = generate_full_account(&env);
-    let (_, _, u3_account_id, _) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
+    let (u2_keypair, _, u2_account_id, _, u2_address) = generate_full_account(&env);
+    let (_, _, u3_account_id, _, u3_address) = generate_full_account(&env);
 
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -59,11 +59,11 @@ fn test() {
 
     client
         .with_source_account(&u1_account_id)
-        .mine(&signature, &colors, &MaybeAccountId::None);
+        .mine(&signature, &colors, &MaybeAddress::None);
 
     let color = client
         .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_account_id);
+        .get_color(&0, &u1_address);
 
     assert_eq!(color, 1);
 
@@ -79,33 +79,33 @@ fn test() {
     client.with_source_account(&u2_account_id).mine(
         &signature,
         &colors,
-        &MaybeAccountId::AccountId(u1_account_id.clone()),
+        &MaybeAddress::Address(u1_address.clone()),
     );
 
     let color1 = client
         .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_account_id);
+        .get_color(&0, &u1_address);
     let color2 = client
         .with_source_account(&u1_account_id)
-        .get_color(&0, &u2_account_id);
+        .get_color(&0, &u2_address);
 
     assert_eq!(color1 + color2, 2);
 
     client.with_source_account(&u1_account_id).xfer(
         &vec![
             &env,
-            MinerColorAmount(u1_account_id.clone(), 0, 1),
-            MinerColorAmount(u2_account_id.clone(), 0, 1),
+            MinerColorAmount(u1_address.clone(), 0, 1),
+            MinerColorAmount(u2_address.clone(), 0, 1),
         ],
-        &MaybeAccountId::AccountId(u3_account_id.clone()),
+        &MaybeAddress::Address(u3_address),
     );
 
     let color1 = client
         .with_source_account(&u3_account_id)
-        .get_color(&0, &u1_account_id);
+        .get_color(&0, &u1_address);
     let color2 = client
         .with_source_account(&u3_account_id)
-        .get_color(&0, &u2_account_id);
+        .get_color(&0, &u2_address);
 
     assert_eq!(color1 + color2, 2);
 

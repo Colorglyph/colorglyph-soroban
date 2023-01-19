@@ -97,34 +97,34 @@ pub fn offer(
                                         &0,
                                         &signature_identifier,
                                         &Identifier::from(existing_offer_owner),
-                                        &amount, // TODO: <- only whatever is left after royalty payments
+                                        &amount, // TODO: only whatever is left after royalty payments
                                     );
 
                                     // TODO: royalty payments
 
                                     // Get glyph
-                                    // let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
+                                    let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
 
                                     // Loop over miners
-                                    // for (miner_account, colors_indexes) in glyph.colors.iter_unchecked() {
-                                    //     // let miner_account = get_idx_account(env, miner_idx).unwrap();
+                                    for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
+                                        // let miner_account = get_idx_account(env, miner_idx).unwrap();
 
-                                    //     for (_, indexes) in colors_indexes.iter_unchecked() {
-                                    //         // Count colors per miner
-                                    //         // Determine their percentage of whole
-                                    //         // Derive their share of the amount
-                                    //         // Make payment?
-                                    //         token.xfer_from(
-                                    //             &Signature::Invoker,
-                                    //             &0,
-                                    //             &signature_identifier,
-                                    //             &Identifier::from(&miner_account),
-                                    //             &(indexes.len() as i128), // TODO: <- only a percentage of this miners colors given the whole
-                                    //         );
+                                        for (_, indexes) in colors_indexes.iter_unchecked() {
+                                            // Count colors per miner
+                                            // Determine their percentage of whole
+                                            // Derive their share of the amount
+                                            // Make payment?
+                                            token.xfer_from(
+                                                &Signature::Invoker,
+                                                &0,
+                                                &signature_identifier,
+                                                &Identifier::from(&miner_address),
+                                                &i128::from(indexes.len()),
+                                            );
 
-                                    //         // Save “claimable balance”?
-                                    //     }
-                                    // }
+                                            // Save “claimable balance”?
+                                        }
+                                    }
 
                                     // transfer ownership of Glyph from glyph giver to Glyph taker
                                     env.storage().set(

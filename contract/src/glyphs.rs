@@ -1,4 +1,4 @@
-use soroban_sdk::{panic_with_error, AccountId, Address, Bytes, BytesN, Env, Vec};
+use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
     colors::adjust,
@@ -10,16 +10,16 @@ use crate::{
 // TODO:
 // Limit number of miners
 
-pub fn make(env: &Env, width: u32, colors: Vec<(AccountId, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
+pub fn make(env: &Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
     // TODO: event
 
-    for (miner_account_id, colors_indexes) in colors.iter_unchecked() {
+    for (miner_address, colors_indexes) in colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
             m_palette.push_back(MinerColorAmount(
-                miner_account_id.clone(),
+                miner_address.clone(),
                 hex,
                 indexes.len(),
             ));
@@ -128,10 +128,10 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
     let glyph = get_glyph(&env, hash.clone()).unwrap();
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
-    for (miner_account_id, colors_indexes) in glyph.colors.iter_unchecked() {
+    for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
             m_palette.push_back(MinerColorAmount(
-                miner_account_id.clone(),
+                miner_address.clone(),
                 hex,
                 indexes.len(),
             ));

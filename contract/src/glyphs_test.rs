@@ -9,7 +9,7 @@ use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     testutils::{generate_full_account, get_incr_allow_signature},
     token::Client as TokenClient,
-    types::{Error, MaybeAccountId},
+    types::{Error, MaybeAddress},
 };
 
 extern crate std;
@@ -26,11 +26,10 @@ fn test() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, _) = generate_full_account(&env);
+    let (u1_keypair, _, u1_account_id, _, u1_address) = generate_full_account(&env);
+    let (_, _, u2_account_id, _, u2_address) = generate_full_account(&env);
 
-    let (_, _, u2_account_id, _) = generate_full_account(&env);
-
-    let (_, _, _, fee_identifier) = generate_full_account(&env);
+    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
     // Token
     let token_id = env.register_stellar_asset_contract(Asset::Native);
@@ -65,12 +64,12 @@ fn test() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::None,
+        &MaybeAddress::None,
     );
 
     let color = client
         .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_account_id);
+        .get_color(&0, &u1_address);
 
     assert_eq!(color, 1);
 
@@ -79,12 +78,12 @@ fn test() {
     // Real Test
     let hash = client.with_source_account(&u1_account_id).make(
         &16,
-        &vec![&env, (u1_account_id.clone(), colors_indexes.clone())],
+        &vec![&env, (u1_address.clone(), colors_indexes.clone())],
     );
 
     let color = client
         .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_account_id);
+        .get_color(&0, &u1_address);
 
     assert_eq!(color, 0);
 
@@ -98,7 +97,7 @@ fn test() {
 
     let color = client
         .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_account_id);
+        .get_color(&0, &u1_address);
 
     assert_eq!(color, 1);
 
@@ -114,12 +113,12 @@ fn test() {
     client.with_source_account(&u1_account_id).mine(
         &signature,
         &color_amount,
-        &MaybeAccountId::AccountId(u2_account_id.clone()),
+        &MaybeAddress::Address(u2_address),
     );
 
     let hash = client.with_source_account(&u2_account_id).make(
         &16,
-        &vec![&env, (u1_account_id.clone(), colors_indexes.clone())],
+        &vec![&env, (u1_address.clone(), colors_indexes.clone())],
     );
 
     client.with_source_account(&u2_account_id).get_glyph(&hash);
