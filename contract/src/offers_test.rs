@@ -63,11 +63,9 @@ fn test_buy_glyph() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash = client
         .with_source_account(&u1_account_id)
@@ -171,11 +169,9 @@ fn test_sell_glyph() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash = client
         .with_source_account(&u1_account_id)
@@ -281,11 +277,9 @@ fn test_swap_glyph() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash_a = client
         .with_source_account(&u1_account_id)
@@ -300,11 +294,9 @@ fn test_swap_glyph() {
         &pay_amount,
     );
 
-    client.with_source_account(&u2_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u2_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash_b = client
         .with_source_account(&u2_account_id)
@@ -397,11 +389,9 @@ fn test_rm_glyph_buy() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash = client
         .with_source_account(&u1_account_id)
@@ -493,11 +483,9 @@ fn test_rm_glyph_sell() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash = client
         .with_source_account(&u1_account_id)
@@ -576,11 +564,9 @@ fn test_rm_glyph_swap() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let hash_a = client
         .with_source_account(&u1_account_id)

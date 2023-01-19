@@ -103,28 +103,35 @@ pub fn offer(
                                     // TODO: royalty payments
 
                                     // Get glyph
-                                    let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
+                                    let glyph =
+                                        get_glyph(env, existing_offer_hash.clone()).unwrap();
 
                                     // Loop over miners
-                                    for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
-                                        // let miner_account = get_idx_account(env, miner_idx).unwrap();
+                                    for (miner_address, colors_indexes) in
+                                        glyph.colors.iter_unchecked()
+                                    {
+                                        let mut color_count: u32 = 0;
 
+                                        // Count colors per miner
                                         for (_, indexes) in colors_indexes.iter_unchecked() {
-                                            // Count colors per miner
-                                            // Determine their percentage of whole
-                                            // Derive their share of the amount
-                                            // Make payment?
-                                            token.xfer_from(
-                                                &Signature::Invoker,
-                                                &0,
-                                                &signature_identifier,
-                                                &Identifier::from(&miner_address),
-                                                &i128::from(indexes.len()),
-                                            );
-
-                                            // Save “claimable balance”?
+                                            color_count += indexes.len();
                                         }
+
+                                        // Determine their percentage of whole
+                                        // Derive their share of the amount
+                                        // Make payment?
+                                        token.xfer_from(
+                                            &Signature::Invoker,
+                                            &0,
+                                            &signature_identifier,
+                                            &Identifier::from(&miner_address),
+                                            &i128::from(color_count),
+                                        );
+
+                                        // Save “claimable balance”?
                                     }
+
+                                    // END TODO
 
                                     // transfer ownership of Glyph from glyph giver to Glyph taker
                                     env.storage().set(

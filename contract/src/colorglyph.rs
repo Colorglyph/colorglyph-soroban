@@ -1,13 +1,12 @@
 use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{contractimpl, BytesN, Env, Vec, Address};
+use soroban_sdk::{contractimpl, Address, BytesN, Env, Vec};
 
 use crate::{
     colors::{get_color, mine, xfer},
     glyphs::{get_glyph, make, scrape},
     offers::{get_offer, offer, rm_offer},
     types::{
-        Error, Glyph, MaybeAddress, MaybeSignature, MinerColorAmount, Offer, OfferType,
-        StorageKey,
+        Error, Glyph, MaybeAddress, MaybeSignature, MinerColorAmount, Offer, OfferType, StorageKey,
     },
 };
 
@@ -35,11 +34,7 @@ impl ColorGlyph {
     }
 
     // Glyphs
-    pub fn make(
-        env: Env,
-        width: u32,
-        colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
-    ) -> BytesN<32> {
+    pub fn make(env: Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
         make(&env, width, colors)
     }
     pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {

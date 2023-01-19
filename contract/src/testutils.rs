@@ -8,7 +8,7 @@ use soroban_auth::{
     testutils::ed25519::{sign, signer},
     AccountSignatures, Identifier, Signature,
 };
-use soroban_sdk::{symbol, testutils::Accounts, vec, AccountId, BytesN, Env, TryIntoVal, Address};
+use soroban_sdk::{symbol, testutils::Accounts, vec, AccountId, Address, BytesN, Env, TryIntoVal};
 use stellar_xdr::{AccountId as XdrAccountId, PublicKey, Uint256};
 
 use crate::token::Client;
@@ -53,7 +53,9 @@ pub fn get_incr_allow_signature(
     }
 }
 
-pub fn generate_full_account(env: &Env) -> (
+pub fn generate_full_account(
+    env: &Env,
+) -> (
     Keypair,
     // public: [u8; 32],
     // secret: [u8; 32],
@@ -73,7 +75,12 @@ pub fn generate_full_account(env: &Env) -> (
     env.accounts().create(&account_id);
     env.accounts().update_balance(&account_id, 10_000i64);
 
-    (keypair, 
-        // public, secret, 
-        account_xdr_id, account_id, identifier, account)
+    (
+        keypair,
+        // public, secret,
+        account_xdr_id,
+        account_id,
+        identifier,
+        account,
+    )
 }

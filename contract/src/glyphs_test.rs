@@ -61,11 +61,9 @@ fn test() {
         &pay_amount,
     );
 
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
-        &color_amount,
-        &MaybeAddress::None,
-    );
+    client
+        .with_source_account(&u1_account_id)
+        .mine(&signature, &color_amount, &MaybeAddress::None);
 
     let color = client
         .with_source_account(&u1_account_id)

@@ -21,10 +21,7 @@ pub fn mine(env: &Env, signature: Signature, colors: Vec<(u32, u32)>, to: MaybeA
     for (hex, amount) in colors.iter_unchecked() {
         let color = &MinerOwnerColor(self_address.clone(), to_address.clone(), hex);
 
-        env.events().publish(
-            (COLORS, symbol!("mine")),
-            color,
-        );
+        env.events().publish((COLORS, symbol!("mine")), color);
 
         let current_amount: u32 = env.storage().get(color).unwrap_or(Ok(0)).unwrap();
 

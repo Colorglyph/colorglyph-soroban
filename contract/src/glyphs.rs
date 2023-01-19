@@ -18,11 +18,7 @@ pub fn make(env: &Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>)
 
     for (miner_address, colors_indexes) in colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(
-                miner_address.clone(),
-                hex,
-                indexes.len(),
-            ));
+            m_palette.push_back(MinerColorAmount(miner_address.clone(), hex, indexes.len()));
 
             // TODO:
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
@@ -130,11 +126,7 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
 
     for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(
-                miner_address.clone(),
-                hex,
-                indexes.len(),
-            ));
+            m_palette.push_back(MinerColorAmount(miner_address.clone(), hex, indexes.len()));
         }
     }
 
