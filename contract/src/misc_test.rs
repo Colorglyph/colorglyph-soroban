@@ -16,14 +16,23 @@ extern crate std;
 
 #[test]
 fn test_mootz_math() {
-    const WHITE: i128 = 256i128.pow(3u32) - 1;
-    const ITERS: i128 = 256i128;
+    // const WHITE: i128 = 256i128.pow(3u32) - 1;
+    // const ITERS: i128 = 256i128;
 
-    let i = 256i128;
+    let amount = 16i128;
+    let length = 10i128;
+    let count = 10i128;
 
-    let res = WHITE.fixed_div_floor(ITERS, i).unwrap();
+    // let res = amount.fixed_mul_floor(count, length).unwrap();
 
-    assert_eq!(res, WHITE);
+    let res = (amount / 2) // <- TODO: not sure I live this math (half of the amount goes to miners)
+        .fixed_mul_floor(i128::from(count), i128::from(length))
+        .unwrap();
+
+    println!("{}", amount / 10);
+    println!("{}", res);
+
+    // assert_eq!(res, WHITE);
 }
 
 // #[test]

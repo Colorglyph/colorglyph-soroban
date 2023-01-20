@@ -1,5 +1,6 @@
+use fixed_point_math::FixedPoint;
 use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{panic_with_error, Address, Env, Vec};
+use soroban_sdk::{log, panic_with_error, Address, Env, Vec};
 
 use crate::{
     glyphs::get_glyph,
@@ -91,20 +92,40 @@ pub fn offer(
                                         &amount,
                                     );
 
-                                    // xfer_from Asset from Glyph taker to Glyph giver
-                                    token.xfer_from(
-                                        &Signature::Invoker,
-                                        &0,
-                                        &signature_identifier,
-                                        &Identifier::from(existing_offer_owner),
-                                        &amount, // TODO: only whatever is left after royalty payments
-                                    );
-
                                     // TODO: royalty payments
+                                    // Might want to make a map of payees to reduce or eliminate piecemeal payments
+                                    log!(env, "amount {}", *amount as u32);
+
+                                    let mut leftover_amount = amount.clone();
+
+                                    log!(env, "leftover amount 1 {}", leftover_amount as u32);
 
                                     // Get glyph
                                     let glyph =
                                         get_glyph(env, existing_offer_hash.clone()).unwrap();
+                                    let glyph_maker: Address = env
+                                        .storage()
+                                        .get(StorageKey::GlyphMaker(existing_offer_hash.clone()))
+                                        .ok_or(Error::NotFound)?
+                                        .unwrap();
+
+                                    // pay the glyph maker their cut (10% of amount atm)
+                                    // TODO: if glyph_maker is existing_offer_owner don't make this payment
+                                    let maker_amount = amount / 10;
+
+                                    token.xfer_from(
+                                        &Signature::Invoker,
+                                        &0,
+                                        &signature_identifier,
+                                        &Identifier::from(glyph_maker),
+                                        &maker_amount,
+                                    );
+
+                                    log!(env, "maker amount {}", maker_amount as u32);
+
+                                    leftover_amount -= maker_amount;
+
+                                    log!(env, "leftover amount 2 {}", leftover_amount as u32);
 
                                     // Loop over miners
                                     for (miner_address, colors_indexes) in
@@ -117,20 +138,42 @@ pub fn offer(
                                             color_count += indexes.len();
                                         }
 
+                                        let miner_amount = (amount / 2) // <- TODO: not sure I like this math (half of the amount goes to miners)
+                                        .fixed_mul_floor(
+                                            i128::from(color_count),
+                                            i128::from(glyph.length),
+                                        )
+                                        .unwrap();
+
+                                        log!(env, "color count {}", color_count as u32);
+                                        log!(env, "glyph length {}", glyph.length as u32);
+                                        log!(env, "miner amount {}", miner_amount as u32);
+
                                         // Determine their percentage of whole
                                         // Derive their share of the amount
                                         // Make payment?
+                                        // TODO: if miner_address is existing_offer_owner don't make this payment
                                         token.xfer_from(
                                             &Signature::Invoker,
                                             &0,
                                             &signature_identifier,
                                             &Identifier::from(&miner_address),
-                                            &i128::from(color_count),
+                                            &miner_amount,
                                         );
 
-                                        // Save “claimable balance”?
+                                        leftover_amount -= miner_amount;
                                     }
 
+                                    log!(env, "leftover amount 3 {}", leftover_amount as u32);
+
+                                    // xfer_from Asset from Glyph taker to Glyph giver
+                                    token.xfer_from(
+                                        &Signature::Invoker,
+                                        &0,
+                                        &signature_identifier,
+                                        &Identifier::from(existing_offer_owner),
+                                        &leftover_amount,
+                                    );
                                     // END TODO
 
                                     // transfer ownership of Glyph from glyph giver to Glyph taker
@@ -152,20 +195,108 @@ pub fn offer(
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
                     verify_glyph_ownership(env, offer.0.clone());
 
-                    let token = TokenClient::new(env, &offer.1);
+                    let token = TokenClient::new(env, &offer.1);                    
 
                     // xfer Asset from Glyph taker to Glyph giver
-                    token.xfer(
-                        &Signature::Invoker,
-                        &0,
-                        &Identifier::from(env.invoker()),
-                        &offer.2,
-                    );
+                    // token.xfer(
+                    //     &Signature::Invoker,
+                    //     &0,
+                    //     &Identifier::from(env.invoker()),
+                    //     &offer.2,
+                    // );
 
                     // TODO: royalty payments
+                    let signature_identifier = Identifier::from(env.invoker());
+                    let existing_offer_hash = &offer.0;
+                    let amount = &offer.2;
 
+                    // Might want to make a map of payees to reduce or eliminate piecemeal payments
+                    log!(env, "amount {}", *amount as u32);
+
+                    let mut leftover_amount = amount.clone();
+
+                    log!(env, "leftover amount 1 {}", leftover_amount as u32);
+
+                    // Get glyph
+                    let glyph =
+                        get_glyph(env, existing_offer_hash.clone()).unwrap();
+                    let glyph_maker: Address = env
+                        .storage()
+                        .get(StorageKey::GlyphMaker(existing_offer_hash.clone()))
+                        .ok_or(Error::NotFound)?
+                        .unwrap();
+
+                    // pay the glyph maker their cut (10% of amount atm)
+                    // TODO: if glyph_maker is existing_offer_owner don't make this payment
+                    let maker_amount = amount / 10;
+
+                    token.xfer_from(
+                        &Signature::Invoker,
+                        &0,
+                        &signature_identifier,
+                        &Identifier::from(glyph_maker),
+                        &maker_amount,
+                    );
+
+                    log!(env, "maker amount {}", maker_amount as u32);
+
+                    leftover_amount -= maker_amount;
+
+                    log!(env, "leftover amount 2 {}", leftover_amount as u32);
+
+                    // Loop over miners
+                    for (miner_address, colors_indexes) in
+                        glyph.colors.iter_unchecked()
+                    {
+                        let mut color_count: u32 = 0;
+
+                        // Count colors per miner
+                        for (_, indexes) in colors_indexes.iter_unchecked() {
+                            color_count += indexes.len();
+                        }
+
+                        let miner_amount = (amount / 2) // <- TODO: not sure I like this math (half of the amount goes to miners)
+                        .fixed_mul_floor(
+                            i128::from(color_count),
+                            i128::from(glyph.length),
+                        )
+                        .unwrap();
+
+                        log!(env, "color count {}", color_count as u32);
+                        log!(env, "glyph length {}", glyph.length as u32);
+                        log!(env, "miner amount {}", miner_amount as u32);
+
+                        // Determine their percentage of whole
+                        // Derive their share of the amount
+                        // Make payment?
+                        // TODO: if miner_address is existing_offer_owner don't make this payment
+                        token.xfer_from(
+                            &Signature::Invoker,
+                            &0,
+                            &signature_identifier,
+                            &Identifier::from(&miner_address),
+                            &miner_amount,
+                        );
+
+                        leftover_amount -= miner_amount;
+                    }
+
+                    log!(env, "leftover amount 3 {}", leftover_amount as u32);
+
+                    // (this was moved from outside the royalty TODO)
                     // remove Asset counter offer
                     let offer_owner = offers.pop_front().unwrap().unwrap();
+                    // end "this was moved"
+
+                    // xfer_from Asset from Glyph taker to Glyph giver
+                    token.xfer_from(
+                        &Signature::Invoker,
+                        &0,
+                        &signature_identifier,
+                        &Identifier::from(&offer_owner),
+                        &leftover_amount,
+                    );
+                    // END TODO
 
                     if offers.is_empty() {
                         env.storage().remove(StorageKey::AssetOffer(offer.clone()));

@@ -75,7 +75,7 @@ pub fn make(env: &Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>)
             StorageKey::Glyph(hash.clone()),
             Glyph {
                 width,
-                length: b_palette.len(),
+                length: b_palette.len() / 3, // because there are 3 values per color
                 colors,
             },
         );

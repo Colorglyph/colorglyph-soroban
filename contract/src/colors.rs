@@ -1,8 +1,8 @@
-use soroban_sdk::{panic_with_error, symbol, AccountId, Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{symbol, Address, BytesN, Env, Symbol, Vec};
 
 use crate::{
     token::{Identifier, Signature},
-    types::{Error, MaybeAddress, MinerColorAmount, MinerOwnerColor, StorageKey},
+    types::{MaybeAddress, MinerColorAmount, MinerOwnerColor, StorageKey},
     utils::get_token_bits,
 };
 
@@ -52,7 +52,7 @@ pub fn xfer(env: &Env, colors: Vec<MinerColorAmount>, to: MaybeAddress) {
 
     let to_address = &match to {
         MaybeAddress::None => self_address.clone(),
-        MaybeAddress::Address(account_id) => account_id,
+        MaybeAddress::Address(address) => address,
     };
 
     // TODO: event

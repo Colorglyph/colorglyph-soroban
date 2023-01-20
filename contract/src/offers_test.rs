@@ -4,7 +4,7 @@ use std::println;
 
 use fixed_point_math::FixedPoint;
 use soroban_auth::Identifier;
-use soroban_sdk::{vec, Address, Env, Vec};
+use soroban_sdk::{testutils::Logger, vec, Address, Env, Vec};
 use stellar_xdr::Asset;
 
 use crate::{
@@ -134,8 +134,9 @@ fn test_sell_glyph() {
     let client = ColorGlyphClient::new(&env, &contract_id);
 
     // Accounts
-    let (u1_keypair, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
+    let (_, _, u1_account_id, u1_identifier, u1_address) = generate_full_account(&env);
     let (u2_keypair, _, u2_account_id, u2_identifier, _) = generate_full_account(&env);
+    let (u3_keypair, _, u3_account_id, u3_identifier, u3_address) = generate_full_account(&env);
 
     let (_, _, _, fee_identifier, _) = generate_full_account(&env);
 
@@ -163,24 +164,26 @@ fn test_sell_glyph() {
     let signature = get_incr_allow_signature(
         &env,
         &token_id,
-        &u1_keypair,
+        &u3_keypair,
         &token,
         &contract_identifier,
         &pay_amount,
     );
 
-    client
-        .with_source_account(&u1_account_id)
-        .mine(&signature, &color_amount, &MaybeAddress::None);
+    client.with_source_account(&u3_account_id).mine(
+        &signature,
+        &color_amount,
+        &MaybeAddress::Address(u1_address.clone()),
+    );
 
     let hash = client
         .with_source_account(&u1_account_id)
-        .make(&16, &vec![&env, (u1_address.clone(), colors_indexes)]);
+        .make(&16, &vec![&env, (u3_address.clone(), colors_indexes)]);
 
     env.budget().reset();
 
     // Real Tests
-    let amount: i128 = 5;
+    let amount: i128 = 16;
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
@@ -223,11 +226,12 @@ fn test_sell_glyph() {
         Err(Ok(Error::NotFound.into()))
     );
 
+    println!("{:?}", env.logger().print());
+
     assert_eq!(token.balance(&contract_identifier), 0i128);
-
-    assert_eq!(token.balance(&u1_identifier), 9_995i128);
-
-    assert_eq!(token.balance(&u2_identifier), 9_995i128);
+    assert_eq!(token.balance(&u1_identifier), 10_008i128);
+    assert_eq!(token.balance(&u2_identifier), 9_984i128);
+    assert_eq!(token.balance(&u3_identifier), 9_998i128);
 }
 
 #[test]
