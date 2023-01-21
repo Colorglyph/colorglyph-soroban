@@ -195,7 +195,7 @@ pub fn offer(
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
                     verify_glyph_ownership(env, offer.0.clone());
 
-                    let token = TokenClient::new(env, &offer.1);                    
+                    let token = TokenClient::new(env, &offer.1);
 
                     // xfer Asset from Glyph taker to Glyph giver
                     // token.xfer(
@@ -217,8 +217,7 @@ pub fn offer(
                     log!(env, "leftover amount 1 {}", leftover_amount as u32);
 
                     // Get glyph
-                    let glyph =
-                        get_glyph(env, existing_offer_hash.clone()).unwrap();
+                    let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
                     let glyph_maker: Address = env
                         .storage()
                         .get(StorageKey::GlyphMaker(existing_offer_hash.clone()))
@@ -243,9 +242,7 @@ pub fn offer(
                     log!(env, "leftover amount 2 {}", leftover_amount as u32);
 
                     // Loop over miners
-                    for (miner_address, colors_indexes) in
-                        glyph.colors.iter_unchecked()
-                    {
+                    for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
                         let mut color_count: u32 = 0;
 
                         // Count colors per miner

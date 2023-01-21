@@ -90,6 +90,8 @@ fn test_buy_glyph() {
         &amount,
     );
 
+    env.budget().reset();
+
     client.with_source_account(&u2_account_id).offer(
         &MaybeSignature::Signature(signature),
         &glyph,
@@ -99,6 +101,8 @@ fn test_buy_glyph() {
     client
         .with_source_account(&u1_account_id)
         .offer(&MaybeSignature::None, &asset, &glyph);
+
+    env.budget().print();
 
     env.as_contract(&contract_id, || {
         let res: Address = env
