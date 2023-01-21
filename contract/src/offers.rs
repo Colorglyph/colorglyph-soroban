@@ -206,7 +206,6 @@ pub fn offer(
                     // );
 
                     // TODO: royalty payments
-                    let signature_identifier = Identifier::from(env.invoker());
                     let existing_offer_hash = &offer.0;
                     let amount = &offer.2;
 
@@ -230,10 +229,9 @@ pub fn offer(
                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
                     let maker_amount = amount / 10;
 
-                    token.xfer_from(
+                    token.xfer(
                         &Signature::Invoker,
                         &0,
-                        &signature_identifier,
                         &Identifier::from(glyph_maker),
                         &maker_amount,
                     );
@@ -270,10 +268,9 @@ pub fn offer(
                         // Derive their share of the amount
                         // Make payment?
                         // TODO: if miner_address is existing_offer_owner don't make this payment
-                        token.xfer_from(
+                        token.xfer(
                             &Signature::Invoker,
                             &0,
-                            &signature_identifier,
                             &Identifier::from(&miner_address),
                             &miner_amount,
                         );
@@ -283,20 +280,17 @@ pub fn offer(
 
                     log!(env, "leftover amount 3 {}", leftover_amount as u32);
 
-                    // (this was moved from outside the royalty TODO)
-                    // remove Asset counter offer
-                    let offer_owner = offers.pop_front().unwrap().unwrap();
-                    // end "this was moved"
-
                     // xfer_from Asset from Glyph taker to Glyph giver
-                    token.xfer_from(
+                    token.xfer(
                         &Signature::Invoker,
                         &0,
-                        &signature_identifier,
-                        &Identifier::from(&offer_owner),
+                        &Identifier::from(env.invoker()),
                         &leftover_amount,
                     );
                     // END TODO
+
+                    // remove Asset counter offer
+                    let offer_owner = offers.pop_front().unwrap().unwrap();
 
                     if offers.is_empty() {
                         env.storage().remove(StorageKey::AssetOffer(offer.clone()));
