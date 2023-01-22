@@ -25,8 +25,8 @@ fn test_mootz_math() {
 
     // let res = amount.fixed_mul_floor(count, length).unwrap();
 
-    let res = (amount / 2) // <- TODO: not sure I live this math (half of the amount goes to miners)
-        .fixed_mul_floor(i128::from(count), i128::from(length))
+    let res = (amount / 2)
+        .fixed_mul_floor(count, length)
         .unwrap();
 
     println!("{}", amount / 10);
@@ -35,7 +35,7 @@ fn test_mootz_math() {
     // assert_eq!(res, WHITE);
 }
 
-// #[test]
+#[test]
 fn gen_address_from_string() {
     let env = Env::default();
 
@@ -51,7 +51,7 @@ fn gen_address_from_string() {
     println!("{:?}", address);
 }
 
-// #[test]
+#[test]
 fn test_vec_pop() {
     let env = Env::default();
 
@@ -91,7 +91,7 @@ fn test_vec_pop() {
     println!("items back {:?}", env.budget().print());
 }
 
-// #[test]
+#[test]
 fn test_binary_vs_index() {
     let env = Env::default();
 

@@ -21,6 +21,9 @@ use crate::{
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 // Create fn for removing all a glyph owners open sell offers
 
+const MAKER_ROYALTY_RATE: i128 = 100 / 10; // maybe 4%
+const MINER_ROYALTY_RATE: i128 = 100 / 50; // maybe 6%
+
 pub fn offer(
     env: &Env,
     signature: &MaybeSignature,
@@ -92,13 +95,9 @@ pub fn offer(
                                         &amount,
                                     );
 
-                                    // TODO: royalty payments
+                                    // START royalties
                                     // Might want to make a map of payees to reduce or eliminate piecemeal payments
-                                    log!(env, "amount {}", *amount as u32);
-
                                     let mut leftover_amount = amount.clone();
-
-                                    log!(env, "leftover amount 1 {}", leftover_amount as u32);
 
                                     // Get glyph
                                     let glyph =
@@ -109,9 +108,9 @@ pub fn offer(
                                         .ok_or(Error::NotFound)?
                                         .unwrap();
 
-                                    // pay the glyph maker their cut (10% of amount atm)
+                                    // pay the glyph maker their cut
                                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                                    let maker_amount = amount / 10;
+                                    let maker_amount = amount / MAKER_ROYALTY_RATE;
 
                                     token.xfer_from(
                                         &Signature::Invoker,
@@ -121,11 +120,7 @@ pub fn offer(
                                         &maker_amount,
                                     );
 
-                                    log!(env, "maker amount {}", maker_amount as u32);
-
                                     leftover_amount -= maker_amount;
-
-                                    log!(env, "leftover amount 2 {}", leftover_amount as u32);
 
                                     // Loop over miners
                                     for (miner_address, colors_indexes) in
@@ -138,16 +133,12 @@ pub fn offer(
                                             color_count += indexes.len();
                                         }
 
-                                        let miner_amount = (amount / 2) // <- TODO: not sure I like this math (half of the amount goes to miners)
+                                        let miner_amount = (amount / MINER_ROYALTY_RATE)
                                         .fixed_mul_floor(
                                             i128::from(color_count),
                                             i128::from(glyph.length),
                                         )
                                         .unwrap();
-
-                                        log!(env, "color count {}", color_count as u32);
-                                        log!(env, "glyph length {}", glyph.length as u32);
-                                        log!(env, "miner amount {}", miner_amount as u32);
 
                                         // Determine their percentage of whole
                                         // Derive their share of the amount
@@ -164,8 +155,6 @@ pub fn offer(
                                         leftover_amount -= miner_amount;
                                     }
 
-                                    log!(env, "leftover amount 3 {}", leftover_amount as u32);
-
                                     // xfer_from Asset from Glyph taker to Glyph giver
                                     token.xfer_from(
                                         &Signature::Invoker,
@@ -174,7 +163,7 @@ pub fn offer(
                                         &Identifier::from(existing_offer_owner),
                                         &leftover_amount,
                                     );
-                                    // END TODO
+                                    // END royalties
 
                                     // transfer ownership of Glyph from glyph giver to Glyph taker
                                     env.storage().set(
@@ -197,24 +186,12 @@ pub fn offer(
 
                     let token = TokenClient::new(env, &offer.1);
 
-                    // xfer Asset from Glyph taker to Glyph giver
-                    // token.xfer(
-                    //     &Signature::Invoker,
-                    //     &0,
-                    //     &Identifier::from(env.invoker()),
-                    //     &offer.2,
-                    // );
-
-                    // TODO: royalty payments
+                    // START royalties
                     let existing_offer_hash = &offer.0;
                     let amount = &offer.2;
 
                     // Might want to make a map of payees to reduce or eliminate piecemeal payments
-                    log!(env, "amount {}", *amount as u32);
-
                     let mut leftover_amount = amount.clone();
-
-                    log!(env, "leftover amount 1 {}", leftover_amount as u32);
 
                     // Get glyph
                     let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
@@ -224,9 +201,9 @@ pub fn offer(
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
-                    // pay the glyph maker their cut (10% of amount atm)
+                    // pay the glyph maker their cut
                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                    let maker_amount = amount / 10;
+                    let maker_amount = amount / MAKER_ROYALTY_RATE;
 
                     token.xfer(
                         &Signature::Invoker,
@@ -235,11 +212,7 @@ pub fn offer(
                         &maker_amount,
                     );
 
-                    log!(env, "maker amount {}", maker_amount as u32);
-
                     leftover_amount -= maker_amount;
-
-                    log!(env, "leftover amount 2 {}", leftover_amount as u32);
 
                     // Loop over miners
                     for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
@@ -250,16 +223,12 @@ pub fn offer(
                             color_count += indexes.len();
                         }
 
-                        let miner_amount = (amount / 2) // <- TODO: not sure I like this math (half of the amount goes to miners)
+                        let miner_amount = (amount / MINER_ROYALTY_RATE)
                         .fixed_mul_floor(
                             i128::from(color_count),
                             i128::from(glyph.length),
                         )
                         .unwrap();
-
-                        log!(env, "color count {}", color_count as u32);
-                        log!(env, "glyph length {}", glyph.length as u32);
-                        log!(env, "miner amount {}", miner_amount as u32);
 
                         // Determine their percentage of whole
                         // Derive their share of the amount
@@ -275,8 +244,6 @@ pub fn offer(
                         leftover_amount -= miner_amount;
                     }
 
-                    log!(env, "leftover amount 3 {}", leftover_amount as u32);
-
                     // xfer_from Asset from Glyph taker to Glyph giver
                     token.xfer(
                         &Signature::Invoker,
@@ -284,7 +251,7 @@ pub fn offer(
                         &Identifier::from(env.invoker()),
                         &leftover_amount,
                     );
-                    // END TODO
+                    // END royalties
 
                     // remove Asset counter offer
                     let offer_owner = offers.pop_front().unwrap().unwrap();

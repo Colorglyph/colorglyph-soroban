@@ -102,7 +102,7 @@ fn test_buy_glyph() {
         .with_source_account(&u1_account_id)
         .offer(&MaybeSignature::None, &asset, &glyph);
 
-    env.budget().print();
+    // env.budget().print();
 
     env.as_contract(&contract_id, || {
         let res: Address = env
@@ -232,7 +232,7 @@ fn test_sell_glyph() {
         Err(Ok(Error::NotFound))
     );
 
-    println!("{:?}", env.logger().print());
+    // env.logger().print();
 
     assert_eq!(token.balance(&contract_identifier), 0i128);
     assert_eq!(token.balance(&u1_identifier), 10_008i128);
