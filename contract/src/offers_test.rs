@@ -77,7 +77,7 @@ fn test_buy_glyph() {
     env.budget().reset();
 
     // Real Tests
-    let amount: i128 = 16;
+    let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
@@ -125,9 +125,9 @@ fn test_buy_glyph() {
     );
 
     assert_eq!(token.balance(&contract_identifier), 0i128);
-    assert_eq!(token.balance(&u1_identifier), 10_008i128);
-    assert_eq!(token.balance(&u2_identifier), 9_984i128);
-    assert_eq!(token.balance(&u3_identifier), 9_998i128);
+    assert_eq!(token.balance(&u1_identifier), 10_098i128);
+    assert_eq!(token.balance(&u2_identifier), 9_900i128);
+    assert_eq!(token.balance(&u3_identifier), 9_992i128);
 }
 
 #[test]
@@ -189,7 +189,7 @@ fn test_sell_glyph() {
     env.budget().reset();
 
     // Real Tests
-    let amount: i128 = 16;
+    let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
@@ -235,9 +235,9 @@ fn test_sell_glyph() {
     // env.logger().print();
 
     assert_eq!(token.balance(&contract_identifier), 0i128);
-    assert_eq!(token.balance(&u1_identifier), 10_008i128);
-    assert_eq!(token.balance(&u2_identifier), 9_984i128);
-    assert_eq!(token.balance(&u3_identifier), 9_998i128);
+    assert_eq!(token.balance(&u1_identifier), 10_098i128);
+    assert_eq!(token.balance(&u2_identifier), 9_900i128);
+    assert_eq!(token.balance(&u3_identifier), 9_992i128);
 }
 
 #[test]

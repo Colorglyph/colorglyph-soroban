@@ -16,23 +16,24 @@ extern crate std;
 
 #[test]
 fn test_mootz_math() {
-    // const WHITE: i128 = 256i128.pow(3u32) - 1;
-    // const ITERS: i128 = 256i128;
+    const MAKER_ROYALTY_RATE: i128 = 3;
+    const MINER_ROYALTY_RATE: i128 = 2;
 
     let amount = 16i128;
-    let length = 10i128;
-    let count = 10i128;
+    let total_pixels = 10u32;
+    let miner_pixels = 10u32;
 
-    // let res = amount.fixed_mul_floor(count, length).unwrap();
+    let res1 = MAKER_ROYALTY_RATE.fixed_mul_ceil(amount, 100).unwrap();
 
-    let res = (amount / 2)
-        .fixed_mul_floor(count, length)
+    println!("{}", res1);
+
+    let res2 = MINER_ROYALTY_RATE
+        .fixed_mul_ceil(amount, 100)
+        .unwrap()
+        .fixed_mul_ceil(i128::from(miner_pixels), i128::from(total_pixels))
         .unwrap();
 
-    println!("{}", amount / 10);
-    println!("{}", res);
-
-    // assert_eq!(res, WHITE);
+    println!("{}", res2);
 }
 
 #[test]

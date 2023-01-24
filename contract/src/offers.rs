@@ -21,8 +21,8 @@ use crate::{
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 // Create fn for removing all a glyph owners open sell offers
 
-const MAKER_ROYALTY_RATE: i128 = 100 / 10; // maybe 4%
-const MINER_ROYALTY_RATE: i128 = 100 / 50; // maybe 6%
+const MAKER_ROYALTY_RATE: i128 = 3;
+const MINER_ROYALTY_RATE: i128 = 2;
 
 pub fn offer(
     env: &Env,
@@ -110,7 +110,8 @@ pub fn offer(
 
                                     // pay the glyph maker their cut
                                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                                    let maker_amount = amount / MAKER_ROYALTY_RATE;
+                                    let maker_amount =
+                                        MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
                                     token.xfer_from(
                                         &Signature::Invoker,
@@ -133,12 +134,14 @@ pub fn offer(
                                             color_count += indexes.len();
                                         }
 
-                                        let miner_amount = (amount / MINER_ROYALTY_RATE)
-                                        .fixed_mul_floor(
-                                            i128::from(color_count),
-                                            i128::from(glyph.length),
-                                        )
-                                        .unwrap();
+                                        let miner_amount = MINER_ROYALTY_RATE
+                                            .fixed_mul_ceil(*amount, 100)
+                                            .unwrap()
+                                            .fixed_mul_ceil(
+                                                i128::from(color_count),
+                                                i128::from(glyph.length),
+                                            )
+                                            .unwrap();
 
                                         // Determine their percentage of whole
                                         // Derive their share of the amount
@@ -203,7 +206,7 @@ pub fn offer(
 
                     // pay the glyph maker their cut
                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                    let maker_amount = amount / MAKER_ROYALTY_RATE;
+                    let maker_amount = MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
                     token.xfer(
                         &Signature::Invoker,
@@ -223,12 +226,11 @@ pub fn offer(
                             color_count += indexes.len();
                         }
 
-                        let miner_amount = (amount / MINER_ROYALTY_RATE)
-                        .fixed_mul_floor(
-                            i128::from(color_count),
-                            i128::from(glyph.length),
-                        )
-                        .unwrap();
+                        let miner_amount = MINER_ROYALTY_RATE
+                            .fixed_mul_ceil(*amount, 100)
+                            .unwrap()
+                            .fixed_mul_ceil(i128::from(color_count), i128::from(glyph.length))
+                            .unwrap();
 
                         // Determine their percentage of whole
                         // Derive their share of the amount
