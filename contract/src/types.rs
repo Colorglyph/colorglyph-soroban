@@ -1,4 +1,3 @@
-// use soroban_auth::Signature;
 use soroban_sdk::{contracterror, contracttype, Address, BytesN, Vec};
 
 #[contracterror]

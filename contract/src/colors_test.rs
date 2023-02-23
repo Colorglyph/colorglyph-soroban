@@ -5,8 +5,8 @@
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
 
 use crate::{
-    token,
     colorglyph::{ColorGlyph, ColorGlyphClient},
+    token,
     types::{MaybeAddress, MinerColorAmount},
 };
 

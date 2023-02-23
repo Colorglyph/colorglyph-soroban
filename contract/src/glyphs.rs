@@ -10,7 +10,12 @@ use crate::{
 // TODO:
 // Limit number of miners
 
-pub fn make(env: &Env, from: Address, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
+pub fn make(
+    env: &Env,
+    from: Address,
+    width: u32,
+    colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
+) -> BytesN<32> {
     from.require_auth();
 
     let mut b_palette = Bytes::new(&env);
@@ -112,7 +117,7 @@ pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
 
 pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
     from.require_auth();
-    
+
     // TODO: event
 
     let owner: Address = env

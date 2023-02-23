@@ -1,11 +1,11 @@
 #![cfg(test)]
 
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{testutils::Address as _, Address, vec, Env, Vec};
+use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
 
 use crate::{
-    token,
     colorglyph::{ColorGlyph, ColorGlyphClient},
+    token,
     types::{Error, MaybeAddress},
 };
 
@@ -49,11 +49,9 @@ fn test() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client
-        .mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
 
-    let color = client
-        .get_color(&u1_address, &0, &u1_address);
+    let color = client.get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 1);
 
@@ -66,8 +64,7 @@ fn test() {
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],
     );
 
-    let color = client
-        .get_color(&u1_address, &0, &u1_address);
+    let color = client.get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 0);
 
@@ -79,8 +76,7 @@ fn test() {
 
     assert_eq!(res, Err(Ok(Error::NotFound)));
 
-    let color = client
-        .get_color(&u1_address, &0, &u1_address);
+    let color = client.get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 1);
 

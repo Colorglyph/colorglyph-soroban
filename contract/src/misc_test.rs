@@ -3,9 +3,8 @@
 use std::println;
 
 use soroban_sdk::{
-    testutils::{BytesN as UtilsBytesN, Address as _},
-    Address,
-    BytesN, Env, Vec,
+    testutils::{Address as _, BytesN as UtilsBytesN},
+    Address, BytesN, Env, Vec,
 };
 
 use crate::types::AssetAmount;

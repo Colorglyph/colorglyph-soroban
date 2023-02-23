@@ -31,7 +31,12 @@ impl ColorGlyph {
     }
 
     // Glyphs
-    pub fn make(env: Env, from: Address, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
+    pub fn make(
+        env: Env,
+        from: Address,
+        width: u32,
+        colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
+    ) -> BytesN<32> {
         make(&env, from, width, colors)
     }
     pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
@@ -42,12 +47,7 @@ impl ColorGlyph {
     }
 
     // Offers
-    pub fn offer(
-        env: Env,
-        from: Address,
-        buy: OfferType,
-        sell: OfferType,
-    ) -> Result<(), Error> {
+    pub fn offer(env: Env, from: Address, buy: OfferType, sell: OfferType) -> Result<(), Error> {
         offer(&env, from, &buy, &sell)
     }
     pub fn get_offer(env: Env, buy: OfferType, sell: OfferType) -> Result<Offer, Error> {

@@ -3,7 +3,7 @@
 // use std::println;
 
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{vec, testutils::Address as _, Address, Env, Vec};
+use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
@@ -60,8 +60,11 @@ fn test_buy_glyph() {
         &MaybeAddress::Address(u1_address.clone()),
     );
 
-    let hash = client
-        .make(&u1_address, &16, &vec![&env, (u3_address.clone(), colors_indexes)]);
+    let hash = client.make(
+        &u1_address,
+        &16,
+        &vec![&env, (u3_address.clone(), colors_indexes)],
+    );
 
     env.budget().reset();
 
@@ -72,14 +75,9 @@ fn test_buy_glyph() {
 
     env.budget().reset();
 
-    client.offer(
-        &u2_address,
-        &glyph,
-        &asset,
-    );
+    client.offer(&u2_address, &glyph, &asset);
 
-    client
-        .offer(&u1_address, &asset, &glyph);
+    client.offer(&u1_address, &asset, &glyph);
 
     // env.budget().print();
 
@@ -154,8 +152,11 @@ fn test_sell_glyph() {
         &MaybeAddress::Address(u1_address.clone()),
     );
 
-    let hash = client
-        .make(&u1_address, &16, &vec![&env, (u3_address.clone(), colors_indexes)]);
+    let hash = client.make(
+        &u1_address,
+        &16,
+        &vec![&env, (u3_address.clone(), colors_indexes)],
+    );
 
     env.budget().reset();
 
@@ -164,14 +165,9 @@ fn test_sell_glyph() {
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
-    client
-        .offer(&u1_address, &asset, &glyph);
+    client.offer(&u1_address, &asset, &glyph);
 
-    client.offer(
-        &u2_address,
-        &glyph,
-        &asset,
-    );
+    client.offer(&u2_address, &glyph, &asset);
 
     env.as_contract(&contract_id, || {
         let res: Address = env
@@ -239,17 +235,21 @@ fn test_swap_glyph() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client
-        .mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
 
-    let hash_a = client
-        .make(&u1_address, &16, &vec![&env, (u1_address.clone(), colors_a_indexes)]);
+    let hash_a = client.make(
+        &u1_address,
+        &16,
+        &vec![&env, (u1_address.clone(), colors_a_indexes)],
+    );
 
-    client
-        .mine(&u2_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u2_address, &color_amount, &MaybeAddress::None);
 
-    let hash_b = client
-        .make(&u2_address, &16, &vec![&env, (u2_address.clone(), colors_b_indexes)]);
+    let hash_b = client.make(
+        &u2_address,
+        &16,
+        &vec![&env, (u2_address.clone(), colors_b_indexes)],
+    );
 
     env.budget().reset();
 
@@ -257,11 +257,9 @@ fn test_swap_glyph() {
     let glyph_1 = OfferType::Glyph(hash_a.clone());
     let glyph_2 = OfferType::Glyph(hash_b.clone());
 
-    client
-        .offer(&u1_address, &glyph_2, &glyph_1);
+    client.offer(&u1_address, &glyph_2, &glyph_1);
 
-    client
-        .offer(&u2_address, &glyph_1, &glyph_2);
+    client.offer(&u2_address, &glyph_1, &glyph_2);
 
     env.as_contract(&contract_id, || {
         let res_a: Address = env
@@ -327,11 +325,13 @@ fn test_rm_glyph_buy() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client
-        .mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
 
-    let hash = client
-        .make(&u1_address, &16, &vec![&env, (u1_address.clone(), colors_indexes)]);
+    let hash = client.make(
+        &u1_address,
+        &16,
+        &vec![&env, (u1_address.clone(), colors_indexes)],
+    );
 
     env.budget().reset();
 
@@ -340,11 +340,7 @@ fn test_rm_glyph_buy() {
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
-    client.offer(
-        &u1_address,
-        &glyph,
-        &asset,
-    );
+    client.offer(&u1_address, &glyph, &asset);
 
     assert_eq!(token.balance(&contract_address), 1i128);
 
@@ -352,8 +348,7 @@ fn test_rm_glyph_buy() {
 
     client.get_offer(&glyph, &asset);
 
-    client
-        .rm_offer(&u1_address, &glyph, &asset);
+    client.rm_offer(&u1_address, &glyph, &asset);
 
     assert_eq!(
         client.try_get_offer(&glyph, &asset),
@@ -400,11 +395,13 @@ fn test_rm_glyph_sell() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client
-        .mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
 
-    let hash = client
-        .make( &u1_address, &16, &vec![&env, (u1_address.clone(), colors_indexes)]);
+    let hash = client.make(
+        &u1_address,
+        &16,
+        &vec![&env, (u1_address.clone(), colors_indexes)],
+    );
 
     env.budget().reset();
 
@@ -412,13 +409,11 @@ fn test_rm_glyph_sell() {
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), 1i128));
 
-    client
-        .offer(&u1_address, &asset, &glyph);
+    client.offer(&u1_address, &asset, &glyph);
 
     client.get_offer(&asset, &glyph);
 
-    client
-        .rm_offer(&u1_address, &asset, &glyph);
+    client.rm_offer(&u1_address, &asset, &glyph);
 
     assert_eq!(
         client.try_get_offer(&asset, &glyph),
@@ -469,11 +464,13 @@ fn test_rm_glyph_swap() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client
-        .mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
 
-    let hash_a = client
-        .make(&u1_address, &16, &vec![&env, (u1_address.clone(), colors_a_indexes)]);
+    let hash_a = client.make(
+        &u1_address,
+        &16,
+        &vec![&env, (u1_address.clone(), colors_a_indexes)],
+    );
 
     client.mine(
         &u1_address,
@@ -481,8 +478,11 @@ fn test_rm_glyph_swap() {
         &MaybeAddress::Address(u2_address.clone()),
     );
 
-    let hash_b = client
-        .make(&u2_address, &16, &vec![&env, (u1_address.clone(), colors_b_indexes)]);
+    let hash_b = client.make(
+        &u2_address,
+        &16,
+        &vec![&env, (u1_address.clone(), colors_b_indexes)],
+    );
 
     env.budget().reset();
 
@@ -490,13 +490,11 @@ fn test_rm_glyph_swap() {
     let glyph_a = OfferType::Glyph(hash_a.clone());
     let glyph_b = OfferType::Glyph(hash_b.clone());
 
-    client
-        .offer(&u1_address, &glyph_b, &glyph_a);
+    client.offer(&u1_address, &glyph_b, &glyph_a);
 
     client.get_offer(&glyph_b, &glyph_a);
 
-    client
-        .rm_offer(&u1_address, &glyph_b, &glyph_a);
+    client.rm_offer(&u1_address, &glyph_b, &glyph_a);
 
     assert_eq!(
         client.try_get_offer(&glyph_b, &glyph_a),
