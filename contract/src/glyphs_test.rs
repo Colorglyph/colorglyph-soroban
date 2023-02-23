@@ -1,14 +1,11 @@
 #![cfg(test)]
 
 use fixed_point_math::FixedPoint;
-use soroban_auth::Identifier;
-use soroban_sdk::{vec, Env, Vec};
-use stellar_xdr::Asset;
+use soroban_sdk::{testutils::Address as _, Address, vec, Env, Vec};
 
 use crate::{
+    token,
     colorglyph::{ColorGlyph, ColorGlyphClient},
-    testutils::{generate_full_account, get_incr_allow_signature},
-    token::Client as TokenClient,
     types::{Error, MaybeAddress},
 };
 
@@ -22,106 +19,86 @@ fn test() {
 
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
-    let contract_identifier = Identifier::Contract(contract_id.clone());
     let client = ColorGlyphClient::new(&env, &contract_id);
 
-    // Accounts
-    let (u1_keypair, _, u1_account_id, _, u1_address) = generate_full_account(&env);
-    let (_, _, u2_account_id, _, u2_address) = generate_full_account(&env);
-
-    let (_, _, _, fee_identifier, _) = generate_full_account(&env);
-
     // Token
-    let token_id = env.register_stellar_asset_contract(Asset::Native);
-    let token = TokenClient::new(&env, &token_id);
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
 
-    client.init(&token_id, &fee_identifier);
+    // Accounts
+    let u1_address = Address::random(&env);
+    let u2_address = Address::random(&env);
+    let fee_address = Address::random(&env);
+
+    token.mint(&token_admin, &u1_address, &10_000);
+    token.mint(&token_admin, &u2_address, &10_000);
+
+    client.init(&token_id, &fee_address);
 
     // Tests
     env.budget().reset();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
-    let mut pay_amount: i128 = 0;
 
     for i in 0..ITERS {
         let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
 
         colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
         color_amount.push_back((hex as u32, 1));
-        pay_amount += 1;
     }
 
-    let signature = get_incr_allow_signature(
-        &env,
-        &token_id,
-        &u1_keypair,
-        &token,
-        &contract_identifier,
-        &pay_amount,
-    );
-
     client
-        .with_source_account(&u1_account_id)
-        .mine(&signature, &color_amount, &MaybeAddress::None);
+        .mine(&u1_address, &color_amount, &MaybeAddress::None);
 
     let color = client
-        .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_address);
+        .get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 1);
 
     env.budget().reset();
 
     // Real Test
-    let hash = client.with_source_account(&u1_account_id).make(
+    let hash = client.make(
+        &u1_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],
     );
 
     let color = client
-        .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_address);
+        .get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 0);
 
-    client.with_source_account(&u1_account_id).get_glyph(&hash);
+    client.get_glyph(&hash);
 
-    client.with_source_account(&u1_account_id).scrape(&hash);
+    client.scrape(&u1_address, &hash);
 
     let res = client.try_get_glyph(&hash);
 
     assert_eq!(res, Err(Ok(Error::NotFound)));
 
     let color = client
-        .with_source_account(&u1_account_id)
-        .get_color(&0, &u1_address);
+        .get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 1);
 
-    let signature = get_incr_allow_signature(
-        &env,
-        &token_id,
-        &u1_keypair,
-        &token,
-        &contract_identifier,
-        &pay_amount,
-    );
-
-    client.with_source_account(&u1_account_id).mine(
-        &signature,
+    client.mine(
+        &u1_address,
         &color_amount,
-        &MaybeAddress::Address(u2_address),
+        &MaybeAddress::Address(u2_address.clone()),
     );
 
-    let hash = client.with_source_account(&u2_account_id).make(
+    let hash = client.make(
+        &u2_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],
     );
 
-    client.with_source_account(&u2_account_id).get_glyph(&hash);
+    client.get_glyph(&hash);
 
-    let res = client.with_source_account(&u1_account_id).try_scrape(&hash);
+    let res = client.try_scrape(&u1_address, &hash);
 
     assert_eq!(res, Err(Ok(Error::NotAuthorized.into())));
 }

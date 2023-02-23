@@ -3,11 +3,10 @@
 use std::println;
 
 use soroban_sdk::{
-    testutils::{Accounts, BytesN as UtilsBytesN},
-    Address, BytesN, Env, TryIntoVal, Vec,
+    testutils::{BytesN as UtilsBytesN, Address as _},
+    Address,
+    BytesN, Env, Vec,
 };
-use stellar_strkey::ed25519;
-use stellar_xdr::Uint256;
 
 use crate::types::AssetAmount;
 use fixed_point_math::FixedPoint;
@@ -37,22 +36,6 @@ fn test_mootz_math() {
 }
 
 #[test]
-fn gen_address_from_string() {
-    let env = Env::default();
-
-    let ed25519_pubkey =
-        ed25519::PublicKey::from_string("GDPUT6M7JFHRXYUJILRY6FK7763GQDUBIFQAAGSCMALAJ65DZATW3ZKQ")
-            .unwrap();
-    let xdr_account_id = stellar_xdr::AccountId(stellar_xdr::PublicKey::PublicKeyTypeEd25519(
-        Uint256(ed25519_pubkey.0),
-    ));
-    let account_id = xdr_account_id.clone().try_into_val(&env).unwrap();
-    let address = Address::Account(account_id);
-
-    println!("{:?}", address);
-}
-
-#[test]
 fn test_vec_pop() {
     let env = Env::default();
 
@@ -62,7 +45,7 @@ fn test_vec_pop() {
     env.budget().reset();
 
     for _ in 0..10 {
-        items_front.push_front(Address::Account(env.accounts().generate()));
+        items_front.push_front(Address::random(&env));
     }
 
     println!("{:?}", items_front.len());
@@ -78,7 +61,7 @@ fn test_vec_pop() {
     env.budget().reset();
 
     for _ in 0..10 {
-        items_back.push_back(Address::Account(env.accounts().generate()));
+        items_back.push_back(Address::random(&env));
     }
 
     println!("{:?}", items_back.len());

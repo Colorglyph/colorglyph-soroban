@@ -10,7 +10,9 @@ use crate::{
 // TODO:
 // Limit number of miners
 
-pub fn make(env: &Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
+pub fn make(env: &Env, from: Address, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>) -> BytesN<32> {
+    from.require_auth();
+
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
@@ -65,15 +67,15 @@ pub fn make(env: &Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>)
     // no maker
     // not exists
 
-    let is_owned = env.storage().has(StorageKey::GlyphOwner(hash.clone()));
+    let is_owned = env.storage().has(&StorageKey::GlyphOwner(hash.clone()));
 
     if is_owned {
         panic_with_error!(env, Error::NotEmpty);
     } else {
         // Save the glyph to storage {glyph hash: Glyph}
         env.storage().set(
-            StorageKey::Glyph(hash.clone()),
-            Glyph {
+            &StorageKey::Glyph(hash.clone()),
+            &Glyph {
                 width,
                 length: b_palette.len() / 3, // because there are 3 values per color
                 colors,
@@ -82,42 +84,44 @@ pub fn make(env: &Env, width: u32, colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>)
 
         // Save the glyph owner to storage {glyph hash: Address}
         env.storage()
-            .set(StorageKey::GlyphOwner(hash.clone()), env.invoker());
+            .set(&StorageKey::GlyphOwner(hash.clone()), &from);
     }
 
-    let is_made = env.storage().has(StorageKey::GlyphMaker(hash.clone()));
+    let is_made = env.storage().has(&StorageKey::GlyphMaker(hash.clone()));
 
     if !is_made {
         // Save the glyph maker to storage {glyph hash: Address}
         env.storage()
-            .set(StorageKey::GlyphMaker(hash.clone()), env.invoker());
+            .set(&StorageKey::GlyphMaker(hash.clone()), &from);
     }
 
     // Remove the colors from the owner
-    adjust(&env, &m_palette, false);
+    adjust(&env, &from, &m_palette, false);
 
     hash
 }
 
 pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
     env.storage()
-        .get(StorageKey::Glyph(hash.clone()))
+        .get(&StorageKey::Glyph(hash.clone()))
         .ok_or(Error::NotFound)?
         .unwrap()
 }
 
 // TODO: transfer glyph fn
 
-pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
+pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
+    from.require_auth();
+    
     // TODO: event
 
     let owner: Address = env
         .storage()
-        .get(StorageKey::GlyphOwner(hash.clone()))
+        .get(&StorageKey::GlyphOwner(hash.clone()))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
-    if owner != env.invoker() {
+    if owner != from {
         panic_with_error!(env, Error::NotAuthorized);
     }
 
@@ -131,13 +135,13 @@ pub fn scrape(env: &Env, hash: BytesN<32>) -> Result<(), Error> {
     }
 
     // Add the colors to the owner
-    adjust(&env, &m_palette, true);
+    adjust(&env, &from, &m_palette, true);
 
     // Remove glyph
-    env.storage().remove(StorageKey::Glyph(hash.clone()));
+    env.storage().remove(&StorageKey::Glyph(hash.clone()));
 
     // Remove glyph owner
-    env.storage().remove(StorageKey::GlyphOwner(hash.clone()));
+    env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
 
     Ok(())
 }
