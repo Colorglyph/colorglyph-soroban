@@ -1,6 +1,6 @@
 use fixed_point_math::FixedPoint;
 use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{log, panic_with_error, Address, Env, Vec};
+use soroban_sdk::{panic_with_error, Address, Env, Vec};
 
 use crate::{
     glyphs::get_glyph,
