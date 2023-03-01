@@ -40,21 +40,21 @@ impl ColorGlyph {
     ) -> BytesN<32> {
         make(&env, from, width, colors)
     }
-    pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
-        get_glyph(&env, hash)
-    }
     pub fn scrape(env: Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
         scrape(&env, from, hash)
+    }
+    pub fn get_glyph(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
+        get_glyph(&env, hash)
     }
 
     // Offers
     pub fn offer(env: Env, from: Address, buy: OfferType, sell: OfferType) -> Result<(), Error> {
         offer(&env, from, &buy, &sell)
     }
-    pub fn get_offer(env: Env, buy: OfferType, sell: OfferType) -> Result<Offer, Error> {
-        get_offer(&env, &buy, &sell)
-    }
     pub fn rm_offer(env: Env, from: Address, buy: OfferType, sell: OfferType) {
         rm_offer(&env, from, &buy, &sell);
+    }
+    pub fn get_offer(env: Env, buy: OfferType, sell: OfferType) -> Result<Offer, Error> {
+        get_offer(&env, &buy, &sell)
     }
 }

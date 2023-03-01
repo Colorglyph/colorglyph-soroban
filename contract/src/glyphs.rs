@@ -35,7 +35,7 @@ pub fn make(
 
             for index in indexes.iter_unchecked() {
                 // We need to extend the length of the palette
-                if b_palette.len() <= index {
+                if b_palette.len() / 3 <= index {
                     // Start wherever we have data .. wherever we need data
                     for i in (b_palette.len() / 3)..(index + 1) {
                         // If this is the section we're interested in filling, just fill
@@ -51,7 +51,11 @@ pub fn make(
                 }
                 // If the bytes already exist just fill them in
                 else {
-                    b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
+                    let [r,g,b] = hex_to_rgb(hex);
+
+                    b_palette.set(index * 3, r);
+                    b_palette.set(index * 3 + 1, g);
+                    b_palette.set(index * 3 + 2, b);
                 }
             }
         }
