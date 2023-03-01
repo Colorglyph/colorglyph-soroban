@@ -8,11 +8,10 @@ pub mod colorglyph;
 mod colors;
 mod glyphs;
 mod offers;
-pub mod types;
-pub mod utils;
+mod types;
+mod utils;
 
 mod colors_test;
 mod glyphs_test;
 mod misc_test;
 mod offers_test;
-mod testutils;

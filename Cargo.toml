@@ -16,22 +16,11 @@ codegen-units = 1
 lto = true
 
 [workspace.dependencies.soroban-sdk]
-# version = "0.4.3"
-git = "https://github.com/stellar/rs-soroban-sdk"
-rev = "a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
-
-[workspace.dependencies.soroban-auth]
-# version = "0.4.3"
-git = "https://github.com/stellar/rs-soroban-sdk"
-rev = "a7cf3f04b558879cf7c952c1ae7fa5b64066c2c5"
+version = "0.6.0"
 
 [workspace.dependencies.stellar-strkey]
 version = "0.0.7"
-git = "https://github.com/stellar/rs-stellar-strkey"
-rev = "6e9bb10"
 
 [workspace.dependencies.stellar-xdr]
-version = "0.0.12"
-git = "https://github.com/stellar/rs-stellar-xdr"
-rev = "154e07e"
+version = "0.0.14"
 default-features = false

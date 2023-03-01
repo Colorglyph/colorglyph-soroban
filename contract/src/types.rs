@@ -1,4 +1,3 @@
-use soroban_auth::Signature;
 use soroban_sdk::{contracterror, contracttype, Address, BytesN, Vec};
 
 #[contracterror]
@@ -31,14 +30,6 @@ pub enum MaybeAddress {
     #[default]
     None,
     Address(Address),
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub enum MaybeSignature {
-    #[default]
-    None,
-    Signature(Signature),
 }
 
 #[contracttype]

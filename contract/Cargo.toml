@@ -10,16 +10,14 @@ publish = false
 crate-type = ["cdylib"]
 
 [features]
-testutils = ["soroban-sdk/testutils", "soroban-auth/testutils"]
+testutils = ["soroban-sdk/testutils"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
-soroban-auth = { workspace = true }
 fixed-point-math = { version = "0.0.2"}
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
-soroban-auth = { workspace = true, features = ["testutils"] }
 stellar-xdr = { workspace = true, features = ["next", "std"] }
 stellar-strkey = { workspace = true }
 ed25519-dalek = { version = "1.0.1" }

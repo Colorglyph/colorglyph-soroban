@@ -1,15 +1,13 @@
 use fixed_point_math::FixedPoint;
-use soroban_auth::{Identifier, Signature};
-use soroban_sdk::{panic_with_error, Address, Env, Vec};
+use soroban_sdk::{panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::{
     glyphs::get_glyph,
-    token::Client as TokenClient,
+    token,
     types::{
-        AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, MaybeSignature, Offer,
-        OfferType, StorageKey,
+        AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
     },
-    utils::{get_token_bits, verify_glyph_ownership},
+    utils::verify_glyph_ownership,
 };
 
 // TODO:
@@ -24,12 +22,9 @@ use crate::{
 const MAKER_ROYALTY_RATE: i128 = 3;
 const MINER_ROYALTY_RATE: i128 = 2;
 
-pub fn offer(
-    env: &Env,
-    signature: &MaybeSignature,
-    buy: &OfferType,
-    sell: &OfferType,
-) -> Result<(), Error> {
+pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Result<(), Error> {
+    from.require_auth();
+
     // existing counter offer
     // yes
     // sell glyph
@@ -54,140 +49,97 @@ pub fn offer(
                     match sell {
                         // sell glyph now for glyph
                         OfferType::Glyph(offer_hash) => {
-                            verify_glyph_ownership(env, offer_hash.clone());
+                            verify_glyph_ownership(env, from.clone(), offer_hash.clone());
 
                             // transfer ownership from seller to buyer
                             env.storage().set(
-                                StorageKey::GlyphOwner(offer_hash.clone()),
-                                existing_offer_owner,
+                                &StorageKey::GlyphOwner(offer_hash.clone()),
+                                &existing_offer_owner,
                             );
 
                             // transfer ownership from buyer to seller
-                            env.storage().set(
-                                StorageKey::GlyphOwner(existing_offer_hash.clone()),
-                                env.invoker(),
-                            );
+                            env.storage()
+                                .set(&StorageKey::GlyphOwner(existing_offer_hash.clone()), &from);
 
                             // remove all glyph seller offers
                             env.storage()
-                                .remove(StorageKey::GlyphOffer(offer_hash.clone()));
+                                .remove(&StorageKey::GlyphOffer(offer_hash.clone()));
 
                             // remove all glyph buyer offers
                             env.storage()
-                                .remove(StorageKey::GlyphOffer(existing_offer_hash));
+                                .remove(&StorageKey::GlyphOffer(existing_offer_hash));
                         }
                         // sell asset now for glyph
                         OfferType::Asset(AssetAmount(offer_hash, amount)) => {
-                            match signature {
-                                MaybeSignature::Signature(signature) => {
-                                    let (
-                                        contract_identifier,
-                                        signature_identifier,
-                                        token,
-                                        sender_nonce,
-                                    ) = get_token_bits(env, &offer_hash, signature);
+                            let token = token::Client::new(env, offer_hash);
 
-                                    // incr_allow Asset from Glyph taker to contract
-                                    token.incr_allow(
-                                        signature,
-                                        &sender_nonce,
-                                        &contract_identifier,
-                                        &amount,
-                                    );
+                            // START royalties
+                            // Might want to make a map of payees to reduce or eliminate piecemeal payments
+                            let mut leftover_amount = amount.clone();
 
-                                    // START royalties
-                                    // Might want to make a map of payees to reduce or eliminate piecemeal payments
-                                    let mut leftover_amount = amount.clone();
+                            // Get glyph
+                            let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
+                            let glyph_maker: Address = env
+                                .storage()
+                                .get(&StorageKey::GlyphMaker(existing_offer_hash.clone()))
+                                .ok_or(Error::NotFound)?
+                                .unwrap();
 
-                                    // Get glyph
-                                    let glyph =
-                                        get_glyph(env, existing_offer_hash.clone()).unwrap();
-                                    let glyph_maker: Address = env
-                                        .storage()
-                                        .get(StorageKey::GlyphMaker(existing_offer_hash.clone()))
-                                        .ok_or(Error::NotFound)?
-                                        .unwrap();
+                            // pay the glyph maker their cut
+                            // TODO: if glyph_maker is existing_offer_owner don't make this payment
+                            let maker_amount =
+                                MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                                    // pay the glyph maker their cut
-                                    // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                                    let maker_amount =
-                                        MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                            token.xfer(&from, &glyph_maker, &maker_amount);
 
-                                    token.xfer_from(
-                                        &Signature::Invoker,
-                                        &0,
-                                        &signature_identifier,
-                                        &Identifier::from(glyph_maker),
-                                        &maker_amount,
-                                    );
+                            leftover_amount -= maker_amount;
 
-                                    leftover_amount -= maker_amount;
+                            // Loop over miners
+                            for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
+                                let mut color_count: u32 = 0;
 
-                                    // Loop over miners
-                                    for (miner_address, colors_indexes) in
-                                        glyph.colors.iter_unchecked()
-                                    {
-                                        let mut color_count: u32 = 0;
-
-                                        // Count colors per miner
-                                        for (_, indexes) in colors_indexes.iter_unchecked() {
-                                            color_count += indexes.len();
-                                        }
-
-                                        let miner_amount = MINER_ROYALTY_RATE
-                                            .fixed_mul_ceil(*amount, 100)
-                                            .unwrap()
-                                            .fixed_mul_ceil(
-                                                i128::from(color_count),
-                                                i128::from(glyph.length),
-                                            )
-                                            .unwrap();
-
-                                        // Determine their percentage of whole
-                                        // Derive their share of the amount
-                                        // Make payment?
-                                        // TODO: if miner_address is existing_offer_owner don't make this payment
-                                        token.xfer_from(
-                                            &Signature::Invoker,
-                                            &0,
-                                            &signature_identifier,
-                                            &Identifier::from(&miner_address),
-                                            &miner_amount,
-                                        );
-
-                                        leftover_amount -= miner_amount;
-                                    }
-
-                                    // xfer_from Asset from Glyph taker to Glyph giver
-                                    token.xfer_from(
-                                        &Signature::Invoker,
-                                        &0,
-                                        &signature_identifier,
-                                        &Identifier::from(existing_offer_owner),
-                                        &leftover_amount,
-                                    );
-                                    // END royalties
-
-                                    // transfer ownership of Glyph from glyph giver to Glyph taker
-                                    env.storage().set(
-                                        StorageKey::GlyphOwner(existing_offer_hash.clone()),
-                                        env.invoker(),
-                                    );
-
-                                    // remove all other sell offers for this glyph
-                                    env.storage()
-                                        .remove(StorageKey::GlyphOffer(existing_offer_hash));
+                                // Count colors per miner
+                                for (_, indexes) in colors_indexes.iter_unchecked() {
+                                    color_count += indexes.len();
                                 }
-                                _ => panic_with_error!(env, Error::NotPermitted), // You cannot sell an Asset without a signature
+
+                                let miner_amount = MINER_ROYALTY_RATE
+                                    .fixed_mul_ceil(*amount, 100)
+                                    .unwrap()
+                                    .fixed_mul_ceil(
+                                        i128::from(color_count),
+                                        i128::from(glyph.length),
+                                    )
+                                    .unwrap();
+
+                                // Determine their percentage of whole
+                                // Derive their share of the amount
+                                // Make payment?
+                                // TODO: if miner_address is existing_offer_owner don't make this payment
+                                token.xfer(&from, &miner_address, &miner_amount);
+
+                                leftover_amount -= miner_amount;
                             }
+
+                            // xfer_from Asset from Glyph taker to Glyph giver
+                            token.xfer(&from, &existing_offer_owner, &leftover_amount);
+                            // END royalties
+
+                            // transfer ownership of Glyph from glyph giver to Glyph taker
+                            env.storage()
+                                .set(&StorageKey::GlyphOwner(existing_offer_hash.clone()), &from);
+
+                            // remove all other sell offers for this glyph
+                            env.storage()
+                                .remove(&StorageKey::GlyphOffer(existing_offer_hash));
                         }
                     }
                 }
                 // Found someone buying your sale with an Asset (meaning sell is a Glyph)
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
-                    verify_glyph_ownership(env, offer.0.clone());
+                    verify_glyph_ownership(env, from.clone(), offer.0.clone());
 
-                    let token = TokenClient::new(env, &offer.1);
+                    let token = token::Client::new(env, &offer.1);
 
                     // START royalties
                     let existing_offer_hash = &offer.0;
@@ -200,7 +152,7 @@ pub fn offer(
                     let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
                     let glyph_maker: Address = env
                         .storage()
-                        .get(StorageKey::GlyphMaker(existing_offer_hash.clone()))
+                        .get(&StorageKey::GlyphMaker(existing_offer_hash.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
@@ -208,12 +160,7 @@ pub fn offer(
                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
                     let maker_amount = MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                    token.xfer(
-                        &Signature::Invoker,
-                        &0,
-                        &Identifier::from(glyph_maker),
-                        &maker_amount,
-                    );
+                    token.xfer(&env.current_contract_address(), &glyph_maker, &maker_amount);
 
                     leftover_amount -= maker_amount;
 
@@ -237,9 +184,8 @@ pub fn offer(
                         // Make payment?
                         // TODO: if miner_address is existing_offer_owner don't make this payment
                         token.xfer(
-                            &Signature::Invoker,
-                            &0,
-                            &Identifier::from(&miner_address),
+                            &env.current_contract_address(),
+                            &miner_address,
                             &miner_amount,
                         );
 
@@ -247,42 +193,37 @@ pub fn offer(
                     }
 
                     // xfer_from Asset from Glyph taker to Glyph giver
-                    token.xfer(
-                        &Signature::Invoker,
-                        &0,
-                        &Identifier::from(env.invoker()),
-                        &leftover_amount,
-                    );
+                    token.xfer(&env.current_contract_address(), &from, &leftover_amount);
                     // END royalties
 
                     // remove Asset counter offer
                     let offer_owner = offers.pop_front().unwrap().unwrap();
 
                     if offers.is_empty() {
-                        env.storage().remove(StorageKey::AssetOffer(offer.clone()));
+                        env.storage().remove(&StorageKey::AssetOffer(offer.clone()));
                     } else {
                         env.storage()
-                            .set(StorageKey::AssetOffer(offer.clone()), offers);
+                            .set(&StorageKey::AssetOffer(offer.clone()), &offers);
                     }
 
                     // transfer ownership of Glyph from glyph giver to Glyph taker
                     env.storage()
-                        .set(StorageKey::GlyphOwner(offer.0.clone()), offer_owner);
+                        .set(&StorageKey::GlyphOwner(offer.0.clone()), &offer_owner);
 
                     // remove all other sell offers for this glyph
-                    env.storage().remove(StorageKey::GlyphOffer(offer.0));
+                    env.storage().remove(&StorageKey::GlyphOffer(offer.0));
                 }
             }
         }
         Err(_) => {
             match sell {
                 OfferType::Glyph(offer_hash) => {
-                    verify_glyph_ownership(env, offer_hash.clone());
+                    verify_glyph_ownership(env, from.clone(), offer_hash.clone());
 
                     // Selling a Glyph
                     let mut offers: Vec<OfferType> = env
                         .storage()
-                        .get(StorageKey::GlyphOffer(offer_hash.clone()))
+                        .get(&StorageKey::GlyphOffer(offer_hash.clone()))
                         .unwrap_or(Ok(Vec::new(env)))
                         .unwrap();
 
@@ -292,51 +233,29 @@ pub fn offer(
                     }
 
                     env.storage()
-                        .set(StorageKey::GlyphOffer(offer_hash.clone()), offers);
+                        .set(&StorageKey::GlyphOffer(offer_hash.clone()), &offers);
                 }
                 OfferType::Asset(AssetAmount(asset_hash, amount)) => {
                     // Buying a Glyph
                     match buy {
                         OfferType::Glyph(glyph_hash) => {
-                            match signature {
-                                MaybeSignature::Signature(signature) => {
-                                    let (
-                                        contract_identifier,
-                                        signature_identifier,
-                                        token,
-                                        sender_nonce,
-                                    ) = get_token_bits(env, asset_hash, signature);
+                            let token_id: BytesN<32> =
+                                env.storage().get(&StorageKey::InitToken).unwrap().unwrap();
+                            let token = token::Client::new(env, &token_id);
 
-                                    token.incr_allow(
-                                        signature,
-                                        &sender_nonce,
-                                        &contract_identifier,
-                                        &amount,
-                                    );
+                            token.xfer(&from, &env.current_contract_address(), &amount);
 
-                                    token.xfer_from(
-                                        &Signature::Invoker,
-                                        &0,
-                                        &signature_identifier,
-                                        &contract_identifier,
-                                        &amount,
-                                    );
+                            let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
 
-                                    let offer =
-                                        AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
+                            let mut offers: Vec<Address> = env
+                                .storage()
+                                .get(&StorageKey::AssetOffer(offer.clone()))
+                                .unwrap_or(Ok(Vec::new(env)))
+                                .unwrap();
 
-                                    let mut offers: Vec<Address> = env
-                                        .storage()
-                                        .get(StorageKey::AssetOffer(offer.clone()))
-                                        .unwrap_or(Ok(Vec::new(env)))
-                                        .unwrap();
+                            offers.push_back(from);
 
-                                    offers.push_back(env.invoker());
-
-                                    env.storage().set(StorageKey::AssetOffer(offer), offers);
-                                }
-                                _ => panic_with_error!(env, Error::NotPermitted), // You cannot sell an Asset without a signature
-                            }
+                            env.storage().set(&StorageKey::AssetOffer(offer), &offers);
                         }
                         _ => panic_with_error!(env, Error::NotPermitted), // You cannot sell an Asset for an Asset
                     }
@@ -354,7 +273,7 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
             // Selling a Glyph
             let offers: Vec<OfferType> = env
                 .storage()
-                .get(StorageKey::GlyphOffer(offer_hash.clone()))
+                .get(&StorageKey::GlyphOffer(offer_hash.clone()))
                 .ok_or(Error::NotFound)?
                 .unwrap();
 
@@ -362,7 +281,7 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
                 Ok(offer_index) => {
                     let offer_owner = env
                         .storage()
-                        .get(StorageKey::GlyphOwner(offer_hash.clone()))
+                        .get(&StorageKey::GlyphOwner(offer_hash.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
@@ -384,7 +303,7 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
                     let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
                     let offers: Vec<Address> = env
                         .storage()
-                        .get(StorageKey::AssetOffer(offer.clone()))
+                        .get(&StorageKey::AssetOffer(offer.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
@@ -396,43 +315,38 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
     }
 }
 
-pub fn rm_offer(env: &Env, buy: &OfferType, sell: &OfferType) {
+pub fn rm_offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) {
+    from.require_auth();
+
     match get_offer(env, buy, sell) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Selling a Glyph
                 Offer::Glyph(GlyphOfferArg(offer_index, mut offers, offer_owner, offer_hash)) => {
                     // You cannot delete an offer for a glyph you are not the owner of
-                    if offer_owner != env.invoker() {
+                    if offer_owner != from {
                         panic_with_error!(env, Error::NotAuthorized);
                     }
 
                     offers.remove(offer_index);
 
                     env.storage()
-                        .set(StorageKey::GlyphOffer(offer_hash.clone()), offers);
+                        .set(&StorageKey::GlyphOffer(offer_hash.clone()), &offers);
                 }
                 // Selling an Asset
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
-                    let offer_owner = env.invoker();
-
-                    match offers.first_index_of(&offer_owner) {
+                    match offers.first_index_of(from.clone()) {
                         Some(offer_index) => {
-                            let token = TokenClient::new(env, &offer.1);
+                            let token = token::Client::new(env, &offer.1);
 
-                            token.xfer(
-                                &Signature::Invoker,
-                                &0,
-                                &Identifier::from(offer_owner),
-                                &offer.2,
-                            );
+                            token.xfer(&env.current_contract_address(), &from, &offer.2);
 
                             offers.remove(offer_index);
 
                             if offers.is_empty() {
-                                env.storage().remove(StorageKey::AssetOffer(offer));
+                                env.storage().remove(&StorageKey::AssetOffer(offer));
                             } else {
-                                env.storage().set(StorageKey::AssetOffer(offer), offers);
+                                env.storage().set(&StorageKey::AssetOffer(offer), &offers);
                             }
                         }
                         None => panic_with_error!(env, Error::NotFound),
