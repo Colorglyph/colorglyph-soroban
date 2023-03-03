@@ -1,10 +1,10 @@
-use soroban_sdk::{contractimpl, Address, BytesN, Env, Vec};
+use soroban_sdk::{contractimpl, Address, BytesN, Env, Vec, panic_with_error};
 
 use crate::{
     colors::{get_color, mine, xfer},
     glyphs::{get_glyph, make, scrape},
     offers::{get_offer, offer, rm_offer},
-    types::{Error, Glyph, MaybeAddress, MinerColorAmount, Offer, OfferType, StorageKey},
+    types::{Error, Glyph, MinerColorAmount, Offer, OfferType, StorageKey},
 };
 
 pub struct ColorGlyph;
@@ -14,17 +14,20 @@ pub struct ColorGlyph;
 
 #[contractimpl]
 impl ColorGlyph {
-    pub fn init(env: Env, token_id: BytesN<32>, fee_identity: Address) {
-        // TODO only allow init once
+    pub fn init(env: Env, token_id: BytesN<32>, fee_address: Address) {
+        if env.storage().has(&StorageKey::InitToken) {
+            panic_with_error!(env, Error::NotEmpty);
+        }
+
         env.storage().set(&StorageKey::InitToken, &token_id);
-        env.storage().set(&StorageKey::InitFeeId, &fee_identity);
+        env.storage().set(&StorageKey::InitFee, &fee_address);
     }
 
     // Colors
-    pub fn mine(env: Env, from: Address, colors: Vec<(u32, u32)>, to: MaybeAddress) {
+    pub fn mine(env: Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Address>) {
         mine(&env, from, colors, to);
     }
-    pub fn xfer(env: Env, from: Address, colors: Vec<MinerColorAmount>, to: MaybeAddress) {
+    pub fn xfer(env: Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {
         xfer(&env, from, colors, to);
     }
     pub fn get_color(env: Env, from: Address, hex: u32, miner: Address) -> u32 {

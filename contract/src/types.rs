@@ -16,20 +16,12 @@ pub enum StorageKey {
     #[default]
     None,
     InitToken,
-    InitFeeId,
+    InitFee,
     Glyph(BytesN<32>),      // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
     GlyphMaker(BytesN<32>), // glyph hash
     GlyphOffer(BytesN<32>), // glyph owner
     AssetOffer(AssetOffer),
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
-pub enum MaybeAddress {
-    #[default]
-    None,
-    Address(Address),
 }
 
 #[contracttype]

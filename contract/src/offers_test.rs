@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-// use std::println;
+use std::println;
 
 use fixed_point_math::FixedPoint;
 use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
@@ -8,10 +8,10 @@ use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     token,
-    types::{AssetAmount, Error, MaybeAddress, OfferType, StorageKey},
+    types::{AssetAmount, Error, OfferType, StorageKey},
 };
 
-// extern crate std;
+extern crate std;
 
 const ITERS: i128 = 10;
 
@@ -57,7 +57,7 @@ fn test_buy_glyph() {
     client.mine(
         &u3_address,
         &color_amount,
-        &MaybeAddress::Address(u1_address.clone()),
+        &Some(u1_address.clone()),
     );
 
     let hash = client.make(
@@ -149,7 +149,7 @@ fn test_sell_glyph() {
     client.mine(
         &u3_address,
         &color_amount,
-        &MaybeAddress::Address(u1_address.clone()),
+        &Some(u1_address.clone()),
     );
 
     let hash = client.make(
@@ -225,17 +225,20 @@ fn test_swap_glyph() {
 
     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut colors_a_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut colors_b_amount: Vec<(u32, u32)> = Vec::new(&env);
 
     for i in 0..ITERS {
-        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+        let hex_a = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+        let hex_b = 16777215i128.fixed_div_floor(ITERS, i + 1).unwrap();
 
-        colors_a_indexes.push_back((hex as u32, vec![&env, i as u32]));
-        colors_b_indexes.push_front((hex as u32, vec![&env, i as u32]));
-        color_amount.push_back((hex as u32, 1));
+        colors_a_indexes.push_back((hex_a as u32, vec![&env, i as u32]));
+        colors_b_indexes.push_back((hex_b as u32, vec![&env, i as u32]));
+        colors_a_amount.push_back((hex_a as u32, 1));
+        colors_b_amount.push_back((hex_b as u32, 1));
     }
 
-    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &colors_a_amount, &None);
 
     let hash_a = client.make(
         &u1_address,
@@ -243,7 +246,7 @@ fn test_swap_glyph() {
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
     );
 
-    client.mine(&u2_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u2_address, &colors_b_amount, &None);
 
     let hash_b = client.make(
         &u2_address,
@@ -325,7 +328,7 @@ fn test_rm_glyph_buy() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &None);
 
     let hash = client.make(
         &u1_address,
@@ -395,7 +398,7 @@ fn test_rm_glyph_sell() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &color_amount, &None);
 
     let hash = client.make(
         &u1_address,
@@ -454,17 +457,20 @@ fn test_rm_glyph_swap() {
 
     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut colors_a_amount: Vec<(u32, u32)> = Vec::new(&env);
+    let mut colors_b_amount: Vec<(u32, u32)> = Vec::new(&env);
 
     for i in 0..ITERS {
-        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+        let hex_a = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+        let hex_b = 16777215i128.fixed_div_floor(ITERS, i + 1).unwrap();
 
-        colors_a_indexes.push_back((hex as u32, vec![&env, i as u32]));
-        colors_b_indexes.push_front((hex as u32, vec![&env, i as u32]));
-        color_amount.push_back((hex as u32, 1));
+        colors_a_indexes.push_back((hex_a as u32, vec![&env, i as u32]));
+        colors_b_indexes.push_back((hex_b as u32, vec![&env, i as u32]));
+        colors_a_amount.push_back((hex_a as u32, 1));
+        colors_b_amount.push_back((hex_b as u32, 1));
     }
 
-    client.mine(&u1_address, &color_amount, &MaybeAddress::None);
+    client.mine(&u1_address, &colors_a_amount, &None);
 
     let hash_a = client.make(
         &u1_address,
@@ -474,8 +480,8 @@ fn test_rm_glyph_swap() {
 
     client.mine(
         &u1_address,
-        &color_amount,
-        &MaybeAddress::Address(u2_address.clone()),
+        &colors_b_amount,
+        &Some(u2_address.clone()),
     );
 
     let hash_b = client.make(

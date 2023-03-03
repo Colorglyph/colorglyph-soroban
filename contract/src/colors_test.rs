@@ -7,7 +7,7 @@ use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     token,
-    types::{MaybeAddress, MinerColorAmount},
+    types::MinerColorAmount,
 };
 
 // extern crate std;
@@ -46,7 +46,7 @@ fn test() {
         colors.push_back((i, 1));
     }
 
-    client.mine(&u1_address, &colors, &MaybeAddress::None);
+    client.mine(&u1_address, &colors, &None);
 
     let color = client.get_color(&u1_address, &0, &u1_address);
 
@@ -55,7 +55,7 @@ fn test() {
     client.mine(
         &u2_address,
         &colors,
-        &MaybeAddress::Address(u1_address.clone()),
+        &Some(u1_address.clone()),
     );
 
     let color1 = client.get_color(&u1_address, &0, &u1_address);
@@ -70,7 +70,7 @@ fn test() {
             MinerColorAmount(u1_address.clone(), 0, 1),
             MinerColorAmount(u2_address.clone(), 0, 1),
         ],
-        &MaybeAddress::Address(u3_address.clone()),
+        &Some(u3_address.clone()),
     );
 
     let color1 = client.get_color(&u3_address, &0, &u1_address);

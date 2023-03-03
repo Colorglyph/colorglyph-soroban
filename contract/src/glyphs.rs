@@ -35,9 +35,9 @@ pub fn make(
 
             for index in indexes.iter_unchecked() {
                 // We need to extend the length of the palette
-                if b_palette.len() / 3 <= index {
+                if (b_palette.len() / 3) <= index {
                     // Start wherever we have data .. wherever we need data
-                    for i in (b_palette.len() / 3)..(index + 1) {
+                    for i in (b_palette.len() / 3)..=index {
                         // If this is the section we're interested in filling, just fill
                         if i == index {
                             b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
