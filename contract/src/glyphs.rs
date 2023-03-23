@@ -51,7 +51,7 @@ pub fn make(
                 }
                 // If the bytes already exist just fill them in
                 else {
-                    let [r,g,b] = hex_to_rgb(hex);
+                    let [r, g, b] = hex_to_rgb(hex);
 
                     b_palette.set(index * 3, r);
                     b_palette.set(index * 3 + 1, g);

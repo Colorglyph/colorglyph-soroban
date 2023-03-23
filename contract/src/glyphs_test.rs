@@ -89,11 +89,7 @@ fn test() {
     // assert_eq!(color, 1);
     assert_eq!(color, 2);
 
-    client.mine(
-        &u1_address,
-        &color_amount,
-        &Some(u2_address.clone()),
-    );
+    client.mine(&u1_address, &color_amount, &Some(u2_address.clone()));
 
     let hash = client.make(
         &u2_address,

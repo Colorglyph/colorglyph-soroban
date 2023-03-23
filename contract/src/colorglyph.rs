@@ -1,4 +1,4 @@
-use soroban_sdk::{contractimpl, Address, BytesN, Env, Vec, panic_with_error};
+use soroban_sdk::{contractimpl, panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::{
     colors::{get_color, mine, xfer},

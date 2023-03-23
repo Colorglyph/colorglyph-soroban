@@ -54,11 +54,7 @@ fn test_buy_glyph() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(
-        &u3_address,
-        &color_amount,
-        &Some(u1_address.clone()),
-    );
+    client.mine(&u3_address, &color_amount, &Some(u1_address.clone()));
 
     let hash = client.make(
         &u1_address,
@@ -146,11 +142,7 @@ fn test_sell_glyph() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(
-        &u3_address,
-        &color_amount,
-        &Some(u1_address.clone()),
-    );
+    client.mine(&u3_address, &color_amount, &Some(u1_address.clone()));
 
     let hash = client.make(
         &u1_address,
@@ -478,11 +470,7 @@ fn test_rm_glyph_swap() {
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
     );
 
-    client.mine(
-        &u1_address,
-        &colors_b_amount,
-        &Some(u2_address.clone()),
-    );
+    client.mine(&u1_address, &colors_b_amount, &Some(u2_address.clone()));
 
     let hash_b = client.make(
         &u2_address,

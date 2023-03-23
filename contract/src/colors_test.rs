@@ -52,11 +52,7 @@ fn test() {
 
     assert_eq!(color, 1);
 
-    client.mine(
-        &u2_address,
-        &colors,
-        &Some(u1_address.clone()),
-    );
+    client.mine(&u2_address, &colors, &Some(u1_address.clone()));
 
     let color1 = client.get_color(&u1_address, &0, &u1_address);
     let color2 = client.get_color(&u1_address, &0, &u2_address);
