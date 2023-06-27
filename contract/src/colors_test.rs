@@ -37,20 +37,20 @@ fn test() {
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset_default();
-
     let mut colors: Vec<(u32, u32)> = Vec::new(&env);
 
-    for i in 0..10 {
+    for i in 0..=255 {
         colors.push_back((i, 1));
     }
 
+    env.budget().reset_default();
     client.mine(&u1_address, &colors, &None);
 
     let color = client.get_color(&u1_address, &0, &u1_address);
 
     assert_eq!(color, 1);
 
+    env.budget().reset_default();
     client.mine(&u2_address, &colors, &Some(u1_address.clone()));
 
     let color1 = client.get_color(&u1_address, &0, &u1_address);
@@ -73,7 +73,7 @@ fn test() {
 
     assert_eq!(color1 + color2, 2);
 
-    assert_eq!(token.balance(&u1_address), 10_000 - 10);
-    assert_eq!(token.balance(&u2_address), 10_000 - 10);
-    assert_eq!(token.balance(&fee_address), 20);
+    assert_eq!(token.balance(&u1_address), 10_000 - 256);
+    assert_eq!(token.balance(&u2_address), 10_000 - 256);
+    assert_eq!(token.balance(&fee_address), 512);
 }

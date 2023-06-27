@@ -11,10 +11,11 @@ use crate::{
     types::{AssetAmount, Error, OfferType, StorageKey},
 };
 
-const ITERS: i128 = 10;
+const ITERS: i128 = 10i128;
 
 #[test]
 fn test_buy_glyph() {
+    
     let env = Env::default();
 
     env.mock_all_auths();
