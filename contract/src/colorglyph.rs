@@ -14,7 +14,7 @@ pub struct ColorGlyph;
 
 #[contractimpl]
 impl ColorGlyph {
-    pub fn init(env: Env, token_id: BytesN<32>, fee_address: Address) {
+    pub fn init(env: Env, token_id: Address, fee_address: Address) {
         if env.storage().has(&StorageKey::InitToken) {
             panic_with_error!(env, Error::NotEmpty);
         }

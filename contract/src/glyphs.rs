@@ -61,6 +61,8 @@ pub fn make(
         }
     }
 
+    // TODO should the hash also include something with the width? Otherwise two identical palettes with different widths would clash
+
     let hash = env.crypto().sha256(&b_palette);
 
     // made

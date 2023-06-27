@@ -83,13 +83,13 @@ pub struct AssetOfferArg(
 pub struct AssetOffer(
     // This first arg is needed as we store asset sell offers off the whole buy and sell side of the offer
     pub BytesN<32>, // glyph hash
-    pub BytesN<32>, // asset hash
+    pub Address,    // asset hash
     pub i128,       // amount
 );
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssetAmount(
-    pub BytesN<32>, // asset hash
-    pub i128,       // amount
+    pub Address, // asset hash
+    pub i128,    // amount
 );

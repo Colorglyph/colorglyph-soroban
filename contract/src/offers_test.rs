@@ -1,17 +1,15 @@
 #![cfg(test)]
 
-use std::println;
+// use std::println;
+// extern crate std;
 
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
+use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
-    token,
     types::{AssetAmount, Error, OfferType, StorageKey},
 };
-
-extern crate std;
 
 const ITERS: i128 = 10;
 
@@ -19,10 +17,11 @@ const ITERS: i128 = 10;
 fn test_buy_glyph() {
     let env = Env::default();
 
+    env.mock_all_auths();
+
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let contract_address = Address::from_contract_id(&env, &contract_id);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -35,14 +34,14 @@ fn test_buy_glyph() {
     let u3_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
-    token.mint(&token_admin, &u2_address, &10_000);
-    token.mint(&token_admin, &u3_address, &10_000);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
+    token.mint(&u3_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
@@ -62,14 +61,14 @@ fn test_buy_glyph() {
         &vec![&env, (u3_address.clone(), colors_indexes)],
     );
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Tests
     let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     client.offer(&u2_address, &glyph, &asset);
 
@@ -77,7 +76,7 @@ fn test_buy_glyph() {
 
     // env.budget().print();
 
-    env.as_contract(&contract_id, || {
+    env.as_contract(&contract_address, || {
         let res: Address = env
             .storage()
             .get(&StorageKey::GlyphOwner(hash.clone()))
@@ -107,10 +106,11 @@ fn test_buy_glyph() {
 fn test_sell_glyph() {
     let env = Env::default();
 
+    env.mock_all_auths();
+
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let contract_address = Address::from_contract_id(&env, &contract_id);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -123,14 +123,14 @@ fn test_sell_glyph() {
     let u3_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
-    token.mint(&token_admin, &u2_address, &10_000);
-    token.mint(&token_admin, &u3_address, &10_000);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
+    token.mint(&u3_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
@@ -150,7 +150,7 @@ fn test_sell_glyph() {
         &vec![&env, (u3_address.clone(), colors_indexes)],
     );
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Tests
     let amount: i128 = 100;
@@ -161,7 +161,7 @@ fn test_sell_glyph() {
 
     client.offer(&u2_address, &glyph, &asset);
 
-    env.as_contract(&contract_id, || {
+    env.as_contract(&contract_address, || {
         let res: Address = env
             .storage()
             .get(&StorageKey::GlyphOwner(hash.clone()))
@@ -193,6 +193,8 @@ fn test_sell_glyph() {
 fn test_swap_glyph() {
     let env = Env::default();
 
+    env.mock_all_auths();
+
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, &contract_id);
@@ -207,13 +209,13 @@ fn test_swap_glyph() {
     let u2_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
-    token.mint(&token_admin, &u2_address, &10_000);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
@@ -246,7 +248,7 @@ fn test_swap_glyph() {
         &vec![&env, (u2_address.clone(), colors_b_indexes)],
     );
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Tests
     let glyph_1 = OfferType::Glyph(hash_a.clone());
@@ -289,10 +291,11 @@ fn test_swap_glyph() {
 fn test_rm_glyph_buy() {
     let env = Env::default();
 
+    env.mock_all_auths();
+
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let contract_address = Address::from_contract_id(&env, &contract_id);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -303,12 +306,12 @@ fn test_rm_glyph_buy() {
     let u1_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
+    token.mint(&u1_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
@@ -328,7 +331,7 @@ fn test_rm_glyph_buy() {
         &vec![&env, (u1_address.clone(), colors_indexes)],
     );
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Tests
     let amount: i128 = 1;
@@ -359,10 +362,11 @@ fn test_rm_glyph_buy() {
 fn test_rm_glyph_sell() {
     let env = Env::default();
 
+    env.mock_all_auths();
+
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let contract_address = Address::from_contract_id(&env, &contract_id);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -373,12 +377,12 @@ fn test_rm_glyph_sell() {
     let u1_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
+    token.mint(&u1_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
@@ -398,7 +402,7 @@ fn test_rm_glyph_sell() {
         &vec![&env, (u1_address.clone(), colors_indexes)],
     );
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Tests
     let glyph = OfferType::Glyph(hash.clone());
@@ -424,10 +428,11 @@ fn test_rm_glyph_sell() {
 fn test_rm_glyph_swap() {
     let env = Env::default();
 
+    env.mock_all_auths();
+
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let contract_address = Address::from_contract_id(&env, &contract_id);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -439,13 +444,13 @@ fn test_rm_glyph_swap() {
     let u2_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
-    token.mint(&token_admin, &u2_address, &10_000);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
@@ -478,7 +483,7 @@ fn test_rm_glyph_swap() {
         &vec![&env, (u1_address.clone(), colors_b_indexes)],
     );
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Tests
     let glyph_a = OfferType::Glyph(hash_a.clone());

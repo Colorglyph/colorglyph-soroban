@@ -1,9 +1,8 @@
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{panic_with_error, Address, BytesN, Env, Vec};
+use soroban_sdk::{panic_with_error, token, Address, BytesN, Env, Vec};
 
 use crate::{
     glyphs::get_glyph,
-    token,
     types::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
     },
@@ -90,7 +89,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                             let maker_amount =
                                 MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                            token.xfer(&from, &glyph_maker, &maker_amount);
+                            token.transfer(&from, &glyph_maker, &maker_amount);
 
                             leftover_amount -= maker_amount;
 
@@ -116,13 +115,13 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                                 // Derive their share of the amount
                                 // Make payment?
                                 // TODO: if miner_address is existing_offer_owner don't make this payment
-                                token.xfer(&from, &miner_address, &miner_amount);
+                                token.transfer(&from, &miner_address, &miner_amount);
 
                                 leftover_amount -= miner_amount;
                             }
 
                             // xfer_from Asset from Glyph taker to Glyph giver
-                            token.xfer(&from, &existing_offer_owner, &leftover_amount);
+                            token.transfer(&from, &existing_offer_owner, &leftover_amount);
                             // END royalties
 
                             // transfer ownership of Glyph from glyph giver to Glyph taker
@@ -160,7 +159,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     // TODO: if glyph_maker is existing_offer_owner don't make this payment
                     let maker_amount = MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                    token.xfer(&env.current_contract_address(), &glyph_maker, &maker_amount);
+                    token.transfer(&env.current_contract_address(), &glyph_maker, &maker_amount);
 
                     leftover_amount -= maker_amount;
 
@@ -183,7 +182,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                         // Derive their share of the amount
                         // Make payment?
                         // TODO: if miner_address is existing_offer_owner don't make this payment
-                        token.xfer(
+                        token.transfer(
                             &env.current_contract_address(),
                             &miner_address,
                             &miner_amount,
@@ -193,7 +192,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     }
 
                     // xfer_from Asset from Glyph taker to Glyph giver
-                    token.xfer(&env.current_contract_address(), &from, &leftover_amount);
+                    token.transfer(&env.current_contract_address(), &from, &leftover_amount);
                     // END royalties
 
                     // remove Asset counter offer
@@ -239,11 +238,14 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     // Buying a Glyph
                     match buy {
                         OfferType::Glyph(glyph_hash) => {
-                            let token_id: BytesN<32> =
-                                env.storage().get(&StorageKey::InitToken).unwrap().unwrap();
+                            let token_id = env
+                                .storage()
+                                .get::<StorageKey, Address>(&StorageKey::InitToken)
+                                .unwrap()
+                                .unwrap();
                             let token = token::Client::new(env, &token_id);
 
-                            token.xfer(&from, &env.current_contract_address(), &amount);
+                            token.transfer(&from, &env.current_contract_address(), &amount);
 
                             let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
 
@@ -339,7 +341,7 @@ pub fn rm_offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) {
                         Some(offer_index) => {
                             let token = token::Client::new(env, &offer.1);
 
-                            token.xfer(&env.current_contract_address(), &from, &offer.2);
+                            token.transfer(&env.current_contract_address(), &from, &offer.2);
 
                             offers.remove(offer_index);
 

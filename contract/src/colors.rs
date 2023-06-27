@@ -1,11 +1,8 @@
-use soroban_sdk::{symbol, Address, BytesN, Env, Symbol, Vec};
+use soroban_sdk::{token, Address, Env, Symbol, Vec};
 
-use crate::{
-    token,
-    types::{MinerColorAmount, MinerOwnerColor, StorageKey},
-};
+use crate::types::{MinerColorAmount, MinerOwnerColor, StorageKey};
 
-const COLORS: Symbol = symbol!("COLORS");
+const COLORS: Symbol = Symbol::short("COLORS");
 
 pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Address>) {
     from.require_auth();
@@ -21,7 +18,7 @@ pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Addres
         let color = MinerOwnerColor(from.clone(), to.clone(), hex);
 
         env.events()
-            .publish((COLORS, symbol!("mine")), color.clone());
+            .publish((COLORS, Symbol::short("mine")), color.clone());
 
         let current_amount: u32 = env.storage().get(&color).unwrap_or(Ok(0)).unwrap();
 
@@ -30,11 +27,19 @@ pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Addres
         env.storage().set(&color, &(current_amount + amount));
     }
 
-    let token_id: BytesN<32> = env.storage().get(&StorageKey::InitToken).unwrap().unwrap();
+    let token_id = env
+        .storage()
+        .get::<StorageKey, Address>(&StorageKey::InitToken)
+        .unwrap()
+        .unwrap();
     let token = token::Client::new(env, &token_id);
-    let fee_address: Address = env.storage().get(&StorageKey::InitFee).unwrap().unwrap();
+    let fee_address = env
+        .storage()
+        .get::<StorageKey, Address>(&StorageKey::InitFee)
+        .unwrap()
+        .unwrap();
 
-    token.xfer(&from, &fee_address, &pay_amount);
+    token.transfer(&from, &fee_address, &pay_amount);
 }
 
 pub fn xfer(env: &Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {

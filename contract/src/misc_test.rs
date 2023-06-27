@@ -1,16 +1,11 @@
 #![cfg(test)]
 
 use std::println;
-
-use soroban_sdk::{
-    testutils::{Address as _, BytesN as UtilsBytesN},
-    Address, BytesN, Env, Vec,
-};
+extern crate std;
 
 use crate::types::AssetAmount;
 use fixed_point_math::FixedPoint;
-
-extern crate std;
+use soroban_sdk::{testutils::Address as _, Address, Env, Vec};
 
 #[test]
 fn test_mootz_math() {
@@ -41,7 +36,7 @@ fn test_vec_pop() {
     let mut items_front: Vec<Address> = Vec::new(&env);
     let mut items_back: Vec<Address> = Vec::new(&env);
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     for _ in 0..10 {
         items_front.push_front(Address::random(&env));
@@ -57,7 +52,7 @@ fn test_vec_pop() {
     // - Memory Bytes: 11437
     println!("items front {:?}", env.budget().print());
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     for _ in 0..10 {
         items_back.push_back(Address::random(&env));
@@ -78,18 +73,18 @@ fn test_vec_pop() {
 fn test_binary_vs_index() {
     let env = Env::default();
 
-    let item = AssetAmount(BytesN::random(&env), 10i128);
+    let item = AssetAmount(Address::random(&env), 10i128);
     let mut unsorted: Vec<AssetAmount> = Vec::new(&env);
     let mut binary_sorted: Vec<AssetAmount> = Vec::new(&env);
     let mut index_sorted: Vec<AssetAmount> = Vec::new(&env);
 
     for i in 0..10 {
-        unsorted.push_back(AssetAmount(BytesN::random(&env), i));
+        unsorted.push_back(AssetAmount(Address::random(&env), i));
     }
 
     unsorted.push_back(item.clone());
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     for v in unsorted.clone().into_iter_unchecked() {
         match binary_sorted.binary_search(&v) {
@@ -102,7 +97,7 @@ fn test_binary_vs_index() {
     // - Memory Bytes: 44879
     println!("binary build {:?}", env.budget().print());
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     for v in unsorted.clone().into_iter_unchecked() {
         index_sorted.push_back(v);
@@ -112,7 +107,7 @@ fn test_binary_vs_index() {
     // - Memory Bytes: 25818
     println!("index build {:?}", env.budget().print());
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     let index = binary_sorted.binary_search(&item).unwrap();
     binary_sorted.get(index).unwrap().unwrap();
@@ -121,7 +116,7 @@ fn test_binary_vs_index() {
     // - Memory Bytes: 3551
     println!("binary get {:?}", env.budget().print());
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     let index = index_sorted.first_index_of(&item).unwrap();
     index_sorted.get(index).unwrap().unwrap();

@@ -1,23 +1,22 @@
 #![cfg(test)]
 
 use std::println;
+extern crate std;
 
-use fixed_point_math::FixedPoint;
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
-
+// use fixed_point_math::FixedPoint;
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
-    token,
     types::Error,
 };
-
-extern crate std;
+use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 const ITERS: i128 = 256;
 
 #[test]
 fn test() {
     let env = Env::default();
+
+    env.mock_all_auths();
 
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
@@ -33,13 +32,13 @@ fn test() {
     let u2_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
-    token.mint(&token_admin, &u2_address, &10_000);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
@@ -63,7 +62,7 @@ fn test() {
     // assert_eq!(color, 1);
     assert_eq!(color, 2);
 
-    env.budget().reset();
+    env.budget().reset_default();
 
     // Real Test
     let hash = client.make(

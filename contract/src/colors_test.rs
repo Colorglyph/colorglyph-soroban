@@ -1,20 +1,19 @@
 #![cfg(test)]
 
 // use std::println;
-
-use soroban_sdk::{testutils::Address as _, vec, Address, Env, Vec};
+// extern crate std;
 
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
-    token,
     types::MinerColorAmount,
 };
-
-// extern crate std;
+use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 #[test]
 fn test() {
     let env = Env::default();
+
+    env.mock_all_auths();
 
     // Contract
     let contract_id = env.register_contract(None, ColorGlyph);
@@ -31,14 +30,14 @@ fn test() {
     let u3_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&token_admin, &u1_address, &10_000);
-    token.mint(&token_admin, &u2_address, &10_000);
-    token.mint(&token_admin, &u3_address, &10_000);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
+    token.mint(&u3_address, &10_000);
 
     client.init(&token_id, &fee_address);
 
     // Tests
-    env.budget().reset();
+    env.budget().reset_default();
 
     let mut colors: Vec<(u32, u32)> = Vec::new(&env);
 
