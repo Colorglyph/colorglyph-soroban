@@ -42,7 +42,7 @@ pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Addres
     token.transfer(&from, &fee_address, &pay_amount);
 }
 
-pub fn xfer(env: &Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {
+pub fn transfer(env: &Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {
     from.require_auth();
 
     let to = match to {

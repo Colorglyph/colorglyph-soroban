@@ -10,7 +10,7 @@ use crate::{
 // TODO:
 // Limit number of miners
 
-pub fn make(
+pub fn mint(
     env: &Env,
     from: Address,
     width: u32,
@@ -67,15 +67,15 @@ pub fn make(
 
     // made
     // owner
-    // maker
+    // minter
     // exists
     // scraped
     // no owner
-    // maker
+    // minter
     // not exists
     // new
     // no owner
-    // no maker
+    // no minter
     // not exists
 
     let is_owned = env.storage().has(&StorageKey::GlyphOwner(hash.clone()));
@@ -98,12 +98,12 @@ pub fn make(
             .set(&StorageKey::GlyphOwner(hash.clone()), &from);
     }
 
-    let is_made = env.storage().has(&StorageKey::GlyphMaker(hash.clone()));
+    let is_made = env.storage().has(&StorageKey::GlyphMinter(hash.clone()));
 
     if !is_made {
-        // Save the glyph maker to storage {glyph hash: Address}
+        // Save the glyph minter to storage {glyph hash: Address}
         env.storage()
-            .set(&StorageKey::GlyphMaker(hash.clone()), &from);
+            .set(&StorageKey::GlyphMinter(hash.clone()), &from);
     }
 
     // Remove the colors from the owner

@@ -65,7 +65,7 @@ fn test() {
     env.budget().reset_default();
 
     // Real Test
-    let hash = client.make(
+    let hash = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],
@@ -90,7 +90,7 @@ fn test() {
 
     client.mine(&u1_address, &color_amount, &Some(u2_address.clone()));
 
-    let hash = client.make(
+    let hash = client.mint(
         &u2_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],

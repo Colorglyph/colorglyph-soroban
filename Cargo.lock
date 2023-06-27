@@ -784,12 +784,8 @@ checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
 name = "soroban-colorglyph-contract"
 version = "0.0.0"
 dependencies = [
- "ed25519-dalek",
  "fixed-point-math",
- "rand",
  "soroban-sdk",
- "stellar-strkey",
- "stellar-xdr",
 ]
 
 [[package]]

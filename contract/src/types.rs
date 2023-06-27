@@ -19,7 +19,7 @@ pub enum StorageKey {
     InitFee,
     Glyph(BytesN<32>),      // glyph hash
     GlyphOwner(BytesN<32>), // glyph hash
-    GlyphMaker(BytesN<32>), // glyph hash
+    GlyphMinter(BytesN<32>), // glyph hash
     GlyphOffer(BytesN<32>), // glyph owner
     AssetOffer(AssetOffer),
 }

@@ -18,7 +18,3 @@ fixed-point-math = { version = "0.0.2"}
 
 [dev_dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
-stellar-xdr = { workspace = true, features = ["next", "std"] }
-stellar-strkey = { workspace = true }
-ed25519-dalek = { version = "1.0.1" }
-rand = { version = "0.7.3" }

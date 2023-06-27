@@ -1,8 +1,8 @@
 use soroban_sdk::{contractimpl, panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::{
-    colors::{get_color, mine, xfer},
-    glyphs::{get_glyph, make, scrape},
+    colors::{get_color, mine, transfer},
+    glyphs::{get_glyph, mint, scrape},
     offers::{get_offer, offer, rm_offer},
     types::{Error, Glyph, MinerColorAmount, Offer, OfferType, StorageKey},
 };
@@ -27,21 +27,21 @@ impl ColorGlyph {
     pub fn mine(env: Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Address>) {
         mine(&env, from, colors, to);
     }
-    pub fn xfer(env: Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {
-        xfer(&env, from, colors, to);
+    pub fn transfer(env: Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {
+        transfer(&env, from, colors, to);
     }
     pub fn get_color(env: Env, from: Address, hex: u32, miner: Address) -> u32 {
         get_color(&env, from, hex, miner)
     }
 
     // Glyphs
-    pub fn make(
+    pub fn mint(
         env: Env,
         from: Address,
         width: u32,
         colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
     ) -> BytesN<32> {
-        make(&env, from, width, colors)
+        mint(&env, from, width, colors)
     }
     pub fn scrape(env: Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
         scrape(&env, from, hash)

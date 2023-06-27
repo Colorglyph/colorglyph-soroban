@@ -9,14 +9,14 @@ use soroban_sdk::{testutils::Address as _, Address, Env, Vec};
 
 #[test]
 fn test_mootz_math() {
-    const MAKER_ROYALTY_RATE: i128 = 3;
+    const MINTER_ROYALTY_RATE: i128 = 3;
     const MINER_ROYALTY_RATE: i128 = 2;
 
     let amount = 16i128;
     let total_pixels = 10u32;
     let miner_pixels = 10u32;
 
-    let res1 = MAKER_ROYALTY_RATE.fixed_mul_ceil(amount, 100).unwrap();
+    let res1 = MINTER_ROYALTY_RATE.fixed_mul_ceil(amount, 100).unwrap();
 
     println!("{}", res1);
 

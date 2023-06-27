@@ -58,7 +58,7 @@ fn test() {
 
     assert_eq!(color1 + color2, 2);
 
-    client.xfer(
+    client.transfer(
         &u1_address,
         &vec![
             &env,

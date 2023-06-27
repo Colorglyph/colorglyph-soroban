@@ -1,5 +1,5 @@
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{panic_with_error, token, Address, BytesN, Env, Vec};
+use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
     glyphs::get_glyph,
@@ -18,7 +18,7 @@ use crate::{
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 // Create fn for removing all a glyph owners open sell offers
 
-const MAKER_ROYALTY_RATE: i128 = 3;
+const MINTER_ROYALTY_RATE: i128 = 3;
 const MINER_ROYALTY_RATE: i128 = 2;
 
 pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Result<(), Error> {
@@ -78,20 +78,20 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
 
                             // Get glyph
                             let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
-                            let glyph_maker: Address = env
+                            let glyph_minter: Address = env
                                 .storage()
-                                .get(&StorageKey::GlyphMaker(existing_offer_hash.clone()))
+                                .get(&StorageKey::GlyphMinter(existing_offer_hash.clone()))
                                 .ok_or(Error::NotFound)?
                                 .unwrap();
 
-                            // pay the glyph maker their cut
-                            // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                            let maker_amount =
-                                MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                            // pay the glyph minter their cut
+                            // TODO: if glyph_minter is existing_offer_owner don't make this payment
+                            let minter_amount =
+                                MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                            token.transfer(&from, &glyph_maker, &maker_amount);
+                            token.transfer(&from, &glyph_minter, &minter_amount);
 
-                            leftover_amount -= maker_amount;
+                            leftover_amount -= minter_amount;
 
                             // Loop over miners
                             for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
@@ -149,19 +149,19 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
 
                     // Get glyph
                     let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
-                    let glyph_maker: Address = env
+                    let glyph_minter: Address = env
                         .storage()
-                        .get(&StorageKey::GlyphMaker(existing_offer_hash.clone()))
+                        .get(&StorageKey::GlyphMinter(existing_offer_hash.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
-                    // pay the glyph maker their cut
-                    // TODO: if glyph_maker is existing_offer_owner don't make this payment
-                    let maker_amount = MAKER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                    // pay the glyph minter their cut
+                    // TODO: if glyph_minter is existing_offer_owner don't make this payment
+                    let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                    token.transfer(&env.current_contract_address(), &glyph_maker, &maker_amount);
+                    token.transfer(&env.current_contract_address(), &glyph_minter, &minter_amount);
 
-                    leftover_amount -= maker_amount;
+                    leftover_amount -= minter_amount;
 
                     // Loop over miners
                     for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {

@@ -55,7 +55,7 @@ fn test_buy_glyph() {
 
     client.mine(&u3_address, &color_amount, &Some(u1_address.clone()));
 
-    let hash = client.make(
+    let hash = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u3_address.clone(), colors_indexes)],
@@ -144,7 +144,7 @@ fn test_sell_glyph() {
 
     client.mine(&u3_address, &color_amount, &Some(u1_address.clone()));
 
-    let hash = client.make(
+    let hash = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u3_address.clone(), colors_indexes)],
@@ -234,7 +234,7 @@ fn test_swap_glyph() {
 
     client.mine(&u1_address, &colors_a_amount, &None);
 
-    let hash_a = client.make(
+    let hash_a = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
@@ -242,7 +242,7 @@ fn test_swap_glyph() {
 
     client.mine(&u2_address, &colors_b_amount, &None);
 
-    let hash_b = client.make(
+    let hash_b = client.mint(
         &u2_address,
         &16,
         &vec![&env, (u2_address.clone(), colors_b_indexes)],
@@ -325,7 +325,7 @@ fn test_rm_glyph_buy() {
 
     client.mine(&u1_address, &color_amount, &None);
 
-    let hash = client.make(
+    let hash = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_indexes)],
@@ -396,7 +396,7 @@ fn test_rm_glyph_sell() {
 
     client.mine(&u1_address, &color_amount, &None);
 
-    let hash = client.make(
+    let hash = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_indexes)],
@@ -469,7 +469,7 @@ fn test_rm_glyph_swap() {
 
     client.mine(&u1_address, &colors_a_amount, &None);
 
-    let hash_a = client.make(
+    let hash_a = client.mint(
         &u1_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
@@ -477,7 +477,7 @@ fn test_rm_glyph_swap() {
 
     client.mine(&u1_address, &colors_b_amount, &Some(u2_address.clone()));
 
-    let hash_b = client.make(
+    let hash_b = client.mint(
         &u2_address,
         &16,
         &vec![&env, (u1_address.clone(), colors_b_indexes)],
