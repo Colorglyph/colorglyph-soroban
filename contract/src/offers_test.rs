@@ -15,7 +15,6 @@ const ITERS: i128 = 10i128;
 
 #[test]
 fn test_buy_glyph() {
-    
     let env = Env::default();
 
     env.mock_all_auths();
@@ -54,7 +53,7 @@ fn test_buy_glyph() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(&u3_address, &color_amount, &Some(u1_address.clone()));
+    client.mine(&u3_address, &Some(u1_address.clone()), &color_amount);
 
     let hash = client.mint(
         &u1_address,
@@ -143,7 +142,7 @@ fn test_sell_glyph() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(&u3_address, &color_amount, &Some(u1_address.clone()));
+    client.mine(&u3_address, &Some(u1_address.clone()), &color_amount);
 
     let hash = client.mint(
         &u1_address,
@@ -233,7 +232,7 @@ fn test_swap_glyph() {
         colors_b_amount.push_back((hex_b as u32, 1));
     }
 
-    client.mine(&u1_address, &colors_a_amount, &None);
+    client.mine(&u1_address, &None, &colors_a_amount);
 
     let hash_a = client.mint(
         &u1_address,
@@ -241,7 +240,7 @@ fn test_swap_glyph() {
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
     );
 
-    client.mine(&u2_address, &colors_b_amount, &None);
+    client.mine(&u2_address, &None, &colors_b_amount);
 
     let hash_b = client.mint(
         &u2_address,
@@ -324,7 +323,7 @@ fn test_rm_glyph_buy() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(&u1_address, &color_amount, &None);
+    client.mine(&u1_address, &None, &color_amount);
 
     let hash = client.mint(
         &u1_address,
@@ -395,7 +394,7 @@ fn test_rm_glyph_sell() {
         color_amount.push_back((hex as u32, 1));
     }
 
-    client.mine(&u1_address, &color_amount, &None);
+    client.mine(&u1_address, &None, &color_amount);
 
     let hash = client.mint(
         &u1_address,
@@ -468,7 +467,7 @@ fn test_rm_glyph_swap() {
         colors_b_amount.push_back((hex_b as u32, 1));
     }
 
-    client.mine(&u1_address, &colors_a_amount, &None);
+    client.mine(&u1_address, &None, &colors_a_amount);
 
     let hash_a = client.mint(
         &u1_address,
@@ -476,7 +475,7 @@ fn test_rm_glyph_swap() {
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
     );
 
-    client.mine(&u1_address, &colors_b_amount, &Some(u2_address.clone()));
+    client.mine(&u1_address, &Some(u2_address.clone()), &colors_b_amount);
 
     let hash_b = client.mint(
         &u2_address,

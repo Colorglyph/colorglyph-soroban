@@ -21,7 +21,12 @@ pub fn mint(
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
-    // TODO: event
+    // TODO
+    // event
+    // mint to a specific destination address
+    // better error for not enough colors
+    // should we error if there's a dupe index? (will result in burned colors)
+    // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
 
     for (miner_address, colors_indexes) in colors.iter_unchecked() {
         for (hex, indexes) in colors_indexes.iter_unchecked() {
@@ -124,7 +129,10 @@ pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
 pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
     from.require_auth();
 
-    // TODO: event
+    // TODO
+    // event
+    // scrape to a specific address
+    // Do we need to close any open sell offers (especially from the current owner)?
 
     let owner: Address = env
         .storage()
@@ -165,3 +173,41 @@ fn hex_to_rgb(hex: u32) -> [u8; 3] {
 
     b
 }
+
+// mint `colors` argument structure
+// [
+//     [
+//         miner_ABC,
+//         [
+//             [
+//                 color_123,
+//                 [
+//                     1, 2, 3
+//                 ]
+//             ],
+//             [
+//                 color_456,
+//                 [
+//                     4, 5, 6
+//                 ]
+//             ]
+//         ]
+//     ],
+//     [
+//         miner_DEF,
+//         [
+//             [
+//                 color_123,
+//                 [
+//                     7, 8, 9
+//                 ]
+//             ],
+//             [
+//                 color_456,
+//                 [
+//                     10, 11, 12
+//                 ]
+//             ]
+//         ]
+//     ]
+// ]

@@ -17,6 +17,7 @@ use crate::{
 // ✅ Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 // Create fn for removing all a glyph owners open sell offers
+// Ensure we can't offer to sell a glyph, scrape it, then accept a buy offer
 
 const MINTER_ROYALTY_RATE: i128 = 3;
 const MINER_ROYALTY_RATE: i128 = 2;
@@ -159,7 +160,11 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     // TODO: if glyph_minter is existing_offer_owner don't make this payment
                     let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                    token.transfer(&env.current_contract_address(), &glyph_minter, &minter_amount);
+                    token.transfer(
+                        &env.current_contract_address(),
+                        &glyph_minter,
+                        &minter_amount,
+                    );
 
                     leftover_amount -= minter_amount;
 

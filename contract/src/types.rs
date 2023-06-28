@@ -17,10 +17,10 @@ pub enum StorageKey {
     None,
     InitToken,
     InitFee,
-    Glyph(BytesN<32>),      // glyph hash
-    GlyphOwner(BytesN<32>), // glyph hash
+    Glyph(BytesN<32>),       // glyph hash
+    GlyphOwner(BytesN<32>),  // glyph hash
     GlyphMinter(BytesN<32>), // glyph hash
-    GlyphOffer(BytesN<32>), // glyph owner
+    GlyphOffer(BytesN<32>),  // glyph owner
     AssetOffer(AssetOffer),
 }
 

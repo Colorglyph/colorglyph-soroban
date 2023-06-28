@@ -44,32 +44,32 @@ fn test() {
     }
 
     env.budget().reset_default();
-    client.mine(&u1_address, &colors, &None);
+    client.mine(&u1_address, &None, &colors);
 
-    let color = client.get_color(&u1_address, &0, &u1_address);
+    let color = client.get_color(&u1_address, &Option::None, &0);
 
     assert_eq!(color, 1);
 
     env.budget().reset_default();
-    client.mine(&u2_address, &colors, &Some(u1_address.clone()));
+    client.mine(&u2_address, &Some(u1_address.clone()), &colors);
 
-    let color1 = client.get_color(&u1_address, &0, &u1_address);
-    let color2 = client.get_color(&u1_address, &0, &u2_address);
+    let color1 = client.get_color(&u1_address, &Option::None, &0);
+    let color2 = client.get_color(&u1_address, &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
 
     client.transfer(
         &u1_address,
+        &u3_address,
         &vec![
             &env,
             MinerColorAmount(u1_address.clone(), 0, 1),
             MinerColorAmount(u2_address.clone(), 0, 1),
         ],
-        &Some(u3_address.clone()),
     );
 
-    let color1 = client.get_color(&u3_address, &0, &u1_address);
-    let color2 = client.get_color(&u3_address, &0, &u2_address);
+    let color1 = client.get_color(&u3_address, &Option::Some(u1_address.clone()), &0);
+    let color2 = client.get_color(&u3_address, &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
 

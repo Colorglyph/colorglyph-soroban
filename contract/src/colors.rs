@@ -42,13 +42,25 @@ pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Addres
     token.transfer(&from, &fee_address, &pay_amount);
 }
 
-pub fn transfer(env: &Env, from: Address, colors: Vec<MinerColorAmount>, to: Option<Address>) {
-    from.require_auth();
-
-    let to = match to {
-        None => from.clone(),
+pub fn get_color(env: &Env, owner: Address, miner: Option<Address>, hex: u32) -> u32 {
+    let miner = match miner {
+        None => owner.clone(),
         Some(address) => address,
     };
+
+    env.storage()
+        .get(&MinerOwnerColor(miner, owner, hex))
+        .unwrap_or(Ok(0))
+        .unwrap()
+}
+
+pub fn transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
+    from.require_auth();
+
+    // let to = match to {
+    //     None => from.clone(),
+    //     Some(address) => address,
+    // };
 
     // TODO: event
 
@@ -84,11 +96,4 @@ pub fn adjust(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, add: bo
             },
         );
     }
-}
-
-pub fn get_color(env: &Env, from: Address, hex: u32, miner_address: Address) -> u32 {
-    env.storage()
-        .get(&MinerOwnerColor(miner_address, from, hex))
-        .unwrap_or(Ok(0))
-        .unwrap()
 }

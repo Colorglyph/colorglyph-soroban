@@ -3,17 +3,17 @@
 use std::println;
 extern crate std;
 
-use fixed_point_math::FixedPoint;
 use crate::{
     colorglyph::{ColorGlyph, ColorGlyphClient},
     types::Error,
 };
+use fixed_point_math::FixedPoint;
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 const ITERS: i128 = 16i128.pow(2);
 
 // TODO re-add the tests to ensure minting and scraping send the colors to the right places
-    // Maintain the test on a 16x16 glyph though
+// Maintain the test on a 16x16 glyph though
 
 #[test]
 fn test() {
@@ -57,7 +57,7 @@ fn test() {
     // color_amount.push_back((1 as u32, 2));
 
     env.budget().reset_default();
-    client.mine(&u1_address, &color_amount, &None);
+    client.mine(&u1_address, &None, &color_amount);
 
     // let color = client.get_color(&u1_address, &0, &u1_address);
 
@@ -92,7 +92,7 @@ fn test() {
     // assert_eq!(color, 2);
 
     env.budget().reset_default();
-    client.mine(&u1_address, &color_amount, &Some(u2_address.clone()));
+    client.mine(&u1_address, &Some(u2_address.clone()), &color_amount);
 
     env.budget().reset_default();
     let hash = client.mint(
@@ -105,5 +105,8 @@ fn test() {
     client.get_glyph(&hash);
 
     env.budget().reset_default();
-    assert_eq!(client.try_scrape(&u1_address, &hash), Err(Ok(Error::NotAuthorized.into())));
+    assert_eq!(
+        client.try_scrape(&u1_address, &hash),
+        Err(Ok(Error::NotAuthorized.into()))
+    );
 }
