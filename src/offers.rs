@@ -2,10 +2,11 @@ use fixed_point_math::FixedPoint;
 use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
-    glyphs::{glyph_get},
+    glyphs::glyph_get,
     types::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
-    }, utils::glyph_verify_ownership
+    },
+    utils::glyph_verify_ownership,
 };
 
 // TODO
@@ -166,7 +167,7 @@ pub fn offer_post(
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
-                    // TODO 
+                    // TODO
                     // if glyph_minter is existing_offer_owner don't make this payment
 
                     // pay the glyph minter their cut

@@ -1,4 +1,4 @@
-use crate::types::{Error, StorageKey, MinerOwnerColor, MinerColorAmount};
+use crate::types::{Error, MinerColorAmount, MinerOwnerColor, StorageKey};
 use soroban_sdk::{panic_with_error, Address, BytesN, Env, Vec};
 
 pub fn hex_to_rgb(hex: u32) -> [u8; 3] {

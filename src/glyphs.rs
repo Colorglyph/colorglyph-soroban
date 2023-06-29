@@ -2,7 +2,7 @@ use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
     types::{Error, Glyph, MinerColorAmount, StorageKey},
-    utils::{hex_to_rgb, colors_mint_or_burn},
+    utils::{colors_mint_or_burn, hex_to_rgb},
 };
 
 // TODO
