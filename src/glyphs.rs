@@ -1,8 +1,9 @@
 use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
-    colors::adjust,
+    colors::colors_mint_or_burn,
     types::{Error, Glyph, MinerColorAmount, StorageKey},
+    utils::hex_to_rgb,
 };
 
 // const GLYPHS: Symbol = symbol!("GLYPHS");
@@ -10,13 +11,14 @@ use crate::{
 // TODO:
 // Limit number of miners
 
-pub fn mint(
+pub fn glyph_mint(
     env: &Env,
-    from: Address,
-    width: u32,
+    minter: Address,
+    to: Option<Address>,
     colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
+    width: u32,
 ) -> BytesN<32> {
-    from.require_auth();
+    minter.require_auth();
 
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
@@ -98,9 +100,14 @@ pub fn mint(
             },
         );
 
+        let to = match to {
+            None => minter.clone(),
+            Some(address) => address,
+        };
+
         // Save the glyph owner to storage {glyph hash: Address}
         env.storage()
-            .set(&StorageKey::GlyphOwner(hash.clone()), &from);
+            .set(&StorageKey::GlyphOwner(hash.clone()), &to);
     }
 
     let is_made = env.storage().has(&StorageKey::GlyphMinter(hash.clone()));
@@ -108,16 +115,16 @@ pub fn mint(
     if !is_made {
         // Save the glyph minter to storage {glyph hash: Address}
         env.storage()
-            .set(&StorageKey::GlyphMinter(hash.clone()), &from);
+            .set(&StorageKey::GlyphMinter(hash.clone()), &minter);
     }
 
     // Remove the colors from the owner
-    adjust(&env, &from, &m_palette, false);
+    colors_mint_or_burn(&env, &minter, &m_palette, false);
 
     hash
 }
 
-pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
+pub fn glyph_get(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
     env.storage()
         .get(&StorageKey::Glyph(hash.clone()))
         .ok_or(Error::NotFound)?
@@ -126,7 +133,12 @@ pub fn get_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
 
 // TODO: transfer glyph fn
 
-pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
+pub fn glyph_scrape(
+    env: &Env,
+    from: Address,
+    to: Option<Address>,
+    hash: BytesN<32>,
+) -> Result<(), Error> {
     from.require_auth();
 
     // TODO
@@ -144,7 +156,7 @@ pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
         panic_with_error!(env, Error::NotAuthorized);
     }
 
-    let glyph = get_glyph(&env, hash.clone()).unwrap();
+    let glyph = glyph_get(&env, hash.clone()).unwrap();
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
 
     for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
@@ -153,8 +165,13 @@ pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
         }
     }
 
+    let to = match to {
+        None => from.clone(),
+        Some(address) => address,
+    };
+
     // Add the colors to the owner
-    adjust(&env, &from, &m_palette, true);
+    colors_mint_or_burn(&env, &to, &m_palette, true);
 
     // Remove glyph
     env.storage().remove(&StorageKey::Glyph(hash.clone()));
@@ -163,15 +180,6 @@ pub fn scrape(env: &Env, from: Address, hash: BytesN<32>) -> Result<(), Error> {
     env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
 
     Ok(())
-}
-
-fn hex_to_rgb(hex: u32) -> [u8; 3] {
-    let a: [u8; 4] = hex.to_le_bytes();
-    let mut b = [0; 3];
-
-    b.copy_from_slice(&a[..3]);
-
-    b
 }
 
 // mint `colors` argument structure

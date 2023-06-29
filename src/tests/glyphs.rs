@@ -4,7 +4,7 @@ use std::println;
 extern crate std;
 
 use crate::{
-    colorglyph::{ColorGlyph, ColorGlyphClient},
+    contract::{ColorGlyph, ColorGlyphClient},
     types::Error,
 };
 use fixed_point_math::FixedPoint;
@@ -38,7 +38,7 @@ fn test() {
     token.mint(&u1_address, &10_000);
     token.mint(&u2_address, &10_000);
 
-    client.init(&token_id, &fee_address);
+    client.initialize(&token_id, &fee_address);
 
     // Tests
     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
@@ -57,56 +57,58 @@ fn test() {
     // color_amount.push_back((1 as u32, 2));
 
     env.budget().reset_default();
-    client.mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &None, &color_amount);
 
-    // let color = client.get_color(&u1_address, &0, &u1_address);
+    // let color = client.color_balance(&u1_address, &0, &u1_address);
 
     // assert_eq!(color, 1);
     // assert_eq!(color, 2);
 
     // Real Test
     env.budget().reset_default();
-    let hash = client.mint(
+    let hash = client.glyph_mint(
         &u1_address,
-        &16,
+        &Option::None,
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],
+        &16,
     );
 
     // env.budget().reset_default();
-    // let color = client.get_color(&u1_address, &0, &u1_address);
+    // let color = client.color_balance(&u1_address, &0, &u1_address);
 
     // assert_eq!(color, 0);
 
-    println!("{:?}", client.get_glyph(&hash));
+    println!("{:?}", client.glyph_get(&hash));
 
     env.budget().reset_default();
-    client.scrape(&u1_address, &hash);
+    client.glyph_scrape(&u1_address, &Option::None, &hash);
 
     env.budget().reset_default();
-    assert_eq!(client.try_get_glyph(&hash), Err(Ok(Error::NotFound)));
+    assert_eq!(client.try_glyph_get(&hash), Err(Ok(Error::NotFound)));
 
     // env.budget().reset_default();
-    // let color = client.get_color(&u1_address, &0, &u1_address);
+    // let color = client.color_balance(&u1_address, &0, &u1_address);
 
     // assert_eq!(color, 1);
     // assert_eq!(color, 2);
 
     env.budget().reset_default();
-    client.mine(&u1_address, &Some(u2_address.clone()), &color_amount);
+    client.colors_mine(&u1_address, &Some(u2_address.clone()), &color_amount);
 
     env.budget().reset_default();
-    let hash = client.mint(
+    let hash = client.glyph_mint(
         &u2_address,
-        &16,
+        &Option::None,
         &vec![&env, (u1_address.clone(), colors_indexes.clone())],
+        &16,
     );
 
     env.budget().reset_default();
-    client.get_glyph(&hash);
+    client.glyph_get(&hash);
 
     env.budget().reset_default();
     assert_eq!(
-        client.try_scrape(&u1_address, &hash),
+        client.try_glyph_scrape(&u1_address, &Option::None, &hash),
         Err(Ok(Error::NotAuthorized.into()))
     );
 }

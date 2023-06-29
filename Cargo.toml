@@ -1,9 +1,23 @@
-[workspace]
-resolver = "2"
+[package]
+name = "colorglyph"
+version = "0.0.0"
+license = "Apache-2.0"
+authors = ["Tyler van der Hoeven <tyler@tinyanvil.com>"]
+edition = "2021"
+publish = false
 
-members = [
-    "contract"
-]
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = "0.8.4"
+fixed-point-math = { version = "0.0.2"}
+
+[dev_dependencies]
+soroban-sdk = { version = "0.8.4", features = ["testutils"] }
+
+[features]
+testutils = ["soroban-sdk/testutils"]
 
 [profile.release]
 opt-level = "z"
@@ -14,13 +28,3 @@ debug-assertions = false
 panic = "abort"
 codegen-units = 1
 lto = true
-
-[workspace.dependencies.soroban-sdk]
-version = "0.8.4"
-
-[workspace.dependencies.stellar-strkey]
-version = "0.0.7"
-
-[workspace.dependencies.stellar-xdr]
-version = "0.0.16"
-default-features = false

@@ -4,7 +4,7 @@
 // extern crate std;
 
 use crate::{
-    colorglyph::{ColorGlyph, ColorGlyphClient},
+    contract::{ColorGlyph, ColorGlyphClient},
     types::MinerColorAmount,
 };
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
@@ -34,7 +34,7 @@ fn test() {
     token.mint(&u2_address, &10_000);
     token.mint(&u3_address, &10_000);
 
-    client.init(&token_id, &fee_address);
+    client.initialize(&token_id, &fee_address);
 
     // Tests
     let mut colors: Vec<(u32, u32)> = Vec::new(&env);
@@ -44,21 +44,21 @@ fn test() {
     }
 
     env.budget().reset_default();
-    client.mine(&u1_address, &None, &colors);
+    client.colors_mine(&u1_address, &None, &colors);
 
-    let color = client.get_color(&u1_address, &Option::None, &0);
+    let color = client.color_balance(&u1_address, &Option::None, &0);
 
     assert_eq!(color, 1);
 
     env.budget().reset_default();
-    client.mine(&u2_address, &Some(u1_address.clone()), &colors);
+    client.colors_mine(&u2_address, &Some(u1_address.clone()), &colors);
 
-    let color1 = client.get_color(&u1_address, &Option::None, &0);
-    let color2 = client.get_color(&u1_address, &Option::Some(u2_address.clone()), &0);
+    let color1 = client.color_balance(&u1_address, &Option::None, &0);
+    let color2 = client.color_balance(&u1_address, &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
 
-    client.transfer(
+    client.colors_transfer(
         &u1_address,
         &u3_address,
         &vec![
@@ -68,8 +68,8 @@ fn test() {
         ],
     );
 
-    let color1 = client.get_color(&u3_address, &Option::Some(u1_address.clone()), &0);
-    let color2 = client.get_color(&u3_address, &Option::Some(u2_address.clone()), &0);
+    let color1 = client.color_balance(&u3_address, &Option::Some(u1_address.clone()), &0);
+    let color2 = client.color_balance(&u3_address, &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
 

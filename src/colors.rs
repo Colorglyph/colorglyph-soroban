@@ -4,18 +4,18 @@ use crate::types::{MinerColorAmount, MinerOwnerColor, StorageKey};
 
 const COLORS: Symbol = Symbol::short("COLORS");
 
-pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Address>) {
-    from.require_auth();
+pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Vec<(u32, u32)>) {
+    miner.require_auth();
 
     let to = match to {
-        None => from.clone(),
+        None => miner.clone(),
         Some(address) => address,
     };
 
     let mut pay_amount: i128 = 0;
 
     for (hex, amount) in colors.iter_unchecked() {
-        let color = MinerOwnerColor(from.clone(), to.clone(), hex);
+        let color = MinerOwnerColor(miner.clone(), to.clone(), hex);
 
         env.events()
             .publish((COLORS, Symbol::short("mine")), color.clone());
@@ -39,22 +39,10 @@ pub fn mine(env: &Env, from: Address, colors: Vec<(u32, u32)>, to: Option<Addres
         .unwrap()
         .unwrap();
 
-    token.transfer(&from, &fee_address, &pay_amount);
+    token.transfer(&miner, &fee_address, &pay_amount);
 }
 
-pub fn get_color(env: &Env, owner: Address, miner: Option<Address>, hex: u32) -> u32 {
-    let miner = match miner {
-        None => owner.clone(),
-        Some(address) => address,
-    };
-
-    env.storage()
-        .get(&MinerOwnerColor(miner, owner, hex))
-        .unwrap_or(Ok(0))
-        .unwrap()
-}
-
-pub fn transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
+pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
     from.require_auth();
 
     // let to = match to {
@@ -79,7 +67,19 @@ pub fn transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmo
     }
 }
 
-pub fn adjust(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, add: bool) {
+pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
+    let miner = match miner {
+        None => owner.clone(),
+        Some(address) => address,
+    };
+
+    env.storage()
+        .get(&MinerOwnerColor(miner, owner, color))
+        .unwrap_or(Ok(0))
+        .unwrap()
+}
+
+pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, mint: bool) {
     // TODO: event
 
     for color in colors.iter_unchecked() {
@@ -89,7 +89,7 @@ pub fn adjust(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, add: bo
 
         env.storage().set(
             &from_color,
-            &if add {
+            &if mint {
                 current_from_amount + amount
             } else {
                 current_from_amount - amount

@@ -2,7 +2,7 @@ use fixed_point_math::FixedPoint;
 use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
-    glyphs::get_glyph,
+    glyphs::glyph_get,
     types::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
     },
@@ -22,8 +22,13 @@ use crate::{
 const MINTER_ROYALTY_RATE: i128 = 3;
 const MINER_ROYALTY_RATE: i128 = 2;
 
-pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Result<(), Error> {
-    from.require_auth();
+pub fn offer_post(
+    env: &Env,
+    seller: Address,
+    sell: &OfferType,
+    buy: &OfferType,
+) -> Result<(), Error> {
+    seller.require_auth();
 
     // existing counter offer
     // yes
@@ -41,7 +46,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
     // take asset into custody
     // set asset offer (save glyph hash and asset amount)
 
-    match get_offer(env, sell, buy) {
+    match offer_get(env, buy, sell) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Found someone buying your sale with a Glyph (meaning sell is either a Glyph or Asset)
@@ -49,7 +54,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     match sell {
                         // sell glyph now for glyph
                         OfferType::Glyph(offer_hash) => {
-                            verify_glyph_ownership(env, from.clone(), offer_hash.clone());
+                            verify_glyph_ownership(env, seller.clone(), offer_hash.clone());
 
                             // transfer ownership from seller to buyer
                             env.storage().set(
@@ -58,8 +63,10 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                             );
 
                             // transfer ownership from buyer to seller
-                            env.storage()
-                                .set(&StorageKey::GlyphOwner(existing_offer_hash.clone()), &from);
+                            env.storage().set(
+                                &StorageKey::GlyphOwner(existing_offer_hash.clone()),
+                                &seller,
+                            );
 
                             // remove all glyph seller offers
                             env.storage()
@@ -78,7 +85,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                             let mut leftover_amount = amount.clone();
 
                             // Get glyph
-                            let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
+                            let glyph = glyph_get(env, existing_offer_hash.clone()).unwrap();
                             let glyph_minter: Address = env
                                 .storage()
                                 .get(&StorageKey::GlyphMinter(existing_offer_hash.clone()))
@@ -90,7 +97,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                             let minter_amount =
                                 MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
-                            token.transfer(&from, &glyph_minter, &minter_amount);
+                            token.transfer(&seller, &glyph_minter, &minter_amount);
 
                             leftover_amount -= minter_amount;
 
@@ -116,18 +123,20 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                                 // Derive their share of the amount
                                 // Make payment?
                                 // TODO: if miner_address is existing_offer_owner don't make this payment
-                                token.transfer(&from, &miner_address, &miner_amount);
+                                token.transfer(&seller, &miner_address, &miner_amount);
 
                                 leftover_amount -= miner_amount;
                             }
 
                             // xfer_from Asset from Glyph taker to Glyph giver
-                            token.transfer(&from, &existing_offer_owner, &leftover_amount);
+                            token.transfer(&seller, &existing_offer_owner, &leftover_amount);
                             // END royalties
 
                             // transfer ownership of Glyph from glyph giver to Glyph taker
-                            env.storage()
-                                .set(&StorageKey::GlyphOwner(existing_offer_hash.clone()), &from);
+                            env.storage().set(
+                                &StorageKey::GlyphOwner(existing_offer_hash.clone()),
+                                &seller,
+                            );
 
                             // remove all other sell offers for this glyph
                             env.storage()
@@ -137,7 +146,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                 }
                 // Found someone buying your sale with an Asset (meaning sell is a Glyph)
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
-                    verify_glyph_ownership(env, from.clone(), offer.0.clone());
+                    verify_glyph_ownership(env, seller.clone(), offer.0.clone());
 
                     let token = token::Client::new(env, &offer.1);
 
@@ -149,7 +158,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     let mut leftover_amount = amount.clone();
 
                     // Get glyph
-                    let glyph = get_glyph(env, existing_offer_hash.clone()).unwrap();
+                    let glyph = glyph_get(env, existing_offer_hash.clone()).unwrap();
                     let glyph_minter: Address = env
                         .storage()
                         .get(&StorageKey::GlyphMinter(existing_offer_hash.clone()))
@@ -197,7 +206,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                     }
 
                     // xfer_from Asset from Glyph taker to Glyph giver
-                    token.transfer(&env.current_contract_address(), &from, &leftover_amount);
+                    token.transfer(&env.current_contract_address(), &seller, &leftover_amount);
                     // END royalties
 
                     // remove Asset counter offer
@@ -222,7 +231,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
         Err(_) => {
             match sell {
                 OfferType::Glyph(offer_hash) => {
-                    verify_glyph_ownership(env, from.clone(), offer_hash.clone());
+                    verify_glyph_ownership(env, seller.clone(), offer_hash.clone());
 
                     // Selling a Glyph
                     let mut offers: Vec<OfferType> = env
@@ -250,7 +259,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                                 .unwrap();
                             let token = token::Client::new(env, &token_id);
 
-                            token.transfer(&from, &env.current_contract_address(), &amount);
+                            token.transfer(&seller, &env.current_contract_address(), &amount);
 
                             let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
 
@@ -260,7 +269,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
                                 .unwrap_or(Ok(Vec::new(env)))
                                 .unwrap();
 
-                            offers.push_back(from);
+                            offers.push_back(seller);
 
                             env.storage().set(&StorageKey::AssetOffer(offer), &offers);
                         }
@@ -274,7 +283,7 @@ pub fn offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) -> Res
     Ok(())
 }
 
-pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, Error> {
+pub fn offer_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, Error> {
     match sell {
         OfferType::Glyph(offer_hash) => {
             // Selling a Glyph
@@ -322,16 +331,16 @@ pub fn get_offer(env: &Env, buy: &OfferType, sell: &OfferType) -> Result<Offer, 
     }
 }
 
-pub fn rm_offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) {
-    from.require_auth();
+pub fn offer_delete(env: &Env, seller: Address, sell: &OfferType, buy: &OfferType) {
+    seller.require_auth();
 
-    match get_offer(env, buy, sell) {
+    match offer_get(env, sell, buy) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Selling a Glyph
                 Offer::Glyph(GlyphOfferArg(offer_index, mut offers, offer_owner, offer_hash)) => {
                     // You cannot delete an offer for a glyph you are not the owner of
-                    if offer_owner != from {
+                    if offer_owner != seller {
                         panic_with_error!(env, Error::NotAuthorized);
                     }
 
@@ -342,11 +351,11 @@ pub fn rm_offer(env: &Env, from: Address, buy: &OfferType, sell: &OfferType) {
                 }
                 // Selling an Asset
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
-                    match offers.first_index_of(from.clone()) {
+                    match offers.first_index_of(seller.clone()) {
                         Some(offer_index) => {
                             let token = token::Client::new(env, &offer.1);
 
-                            token.transfer(&env.current_contract_address(), &from, &offer.2);
+                            token.transfer(&env.current_contract_address(), &seller, &offer.2);
 
                             offers.remove(offer_index);
 

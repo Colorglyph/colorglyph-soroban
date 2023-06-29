@@ -143,6 +143,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "colorglyph"
+version = "0.0.0"
+dependencies = [
+ "fixed-point-math",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -779,14 +787,6 @@ name = "signature"
 version = "1.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
-
-[[package]]
-name = "soroban-colorglyph-contract"
-version = "0.0.0"
-dependencies = [
- "fixed-point-math",
- "soroban-sdk",
-]
 
 [[package]]
 name = "soroban-env-common"
