@@ -2,19 +2,16 @@ use fixed_point_math::FixedPoint;
 use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
-    glyphs::glyph_get,
+    glyphs::{glyph_get},
     types::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
-    },
-    utils::verify_glyph_ownership,
+    }, utils::glyph_verify_ownership
 };
 
-// TODO:
-// ✅ Fine tooth comb everything
+// TODO
 // Document everything clearly
 // Break it up into individual functions to improve legibility
 // I'm not convinced it's terribly efficient or that we aren't over doing the match nesting hell
-// ✅ Ensure proper ownership of offer creation, removing and matching (almost positive this is dangerously missing atm)
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 // Create fn for removing all a glyph owners open sell offers
 // Ensure we can't offer to sell a glyph, scrape it, then accept a buy offer
@@ -54,7 +51,7 @@ pub fn offer_post(
                     match sell {
                         // sell glyph now for glyph
                         OfferType::Glyph(offer_hash) => {
-                            verify_glyph_ownership(env, seller.clone(), offer_hash.clone());
+                            glyph_verify_ownership(env, seller.clone(), offer_hash.clone());
 
                             // transfer ownership from seller to buyer
                             env.storage().set(
@@ -92,8 +89,10 @@ pub fn offer_post(
                                 .ok_or(Error::NotFound)?
                                 .unwrap();
 
+                            // TODO
+                            // if glyph_minter is existing_offer_owner don't make this payment
+
                             // pay the glyph minter their cut
-                            // TODO: if glyph_minter is existing_offer_owner don't make this payment
                             let minter_amount =
                                 MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
@@ -119,10 +118,12 @@ pub fn offer_post(
                                     )
                                     .unwrap();
 
+                                // TODO
+                                // if miner_address is existing_offer_owner don't make this payment
+
                                 // Determine their percentage of whole
                                 // Derive their share of the amount
-                                // Make payment?
-                                // TODO: if miner_address is existing_offer_owner don't make this payment
+                                // Make payment
                                 token.transfer(&seller, &miner_address, &miner_amount);
 
                                 leftover_amount -= miner_amount;
@@ -146,7 +147,7 @@ pub fn offer_post(
                 }
                 // Found someone buying your sale with an Asset (meaning sell is a Glyph)
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
-                    verify_glyph_ownership(env, seller.clone(), offer.0.clone());
+                    glyph_verify_ownership(env, seller.clone(), offer.0.clone());
 
                     let token = token::Client::new(env, &offer.1);
 
@@ -165,8 +166,10 @@ pub fn offer_post(
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
+                    // TODO 
+                    // if glyph_minter is existing_offer_owner don't make this payment
+
                     // pay the glyph minter their cut
-                    // TODO: if glyph_minter is existing_offer_owner don't make this payment
                     let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
                     token.transfer(
@@ -192,10 +195,12 @@ pub fn offer_post(
                             .fixed_mul_ceil(i128::from(color_count), i128::from(glyph.length))
                             .unwrap();
 
+                        // TODO
+                        // if miner_address is existing_offer_owner don't make this payment
+
                         // Determine their percentage of whole
                         // Derive their share of the amount
-                        // Make payment?
-                        // TODO: if miner_address is existing_offer_owner don't make this payment
+                        // Make payment
                         token.transfer(
                             &env.current_contract_address(),
                             &miner_address,
@@ -231,7 +236,7 @@ pub fn offer_post(
         Err(_) => {
             match sell {
                 OfferType::Glyph(offer_hash) => {
-                    verify_glyph_ownership(env, seller.clone(), offer_hash.clone());
+                    glyph_verify_ownership(env, seller.clone(), offer_hash.clone());
 
                     // Selling a Glyph
                     let mut offers: Vec<OfferType> = env

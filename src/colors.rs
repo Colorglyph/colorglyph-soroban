@@ -45,13 +45,6 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Vec<(
 pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
     from.require_auth();
 
-    // let to = match to {
-    //     None => from.clone(),
-    //     Some(address) => address,
-    // };
-
-    // TODO: event
-
     for color in colors.iter_unchecked() {
         let MinerColorAmount(miner_address, hex, amount) = color;
         let from_color = MinerOwnerColor(miner_address.clone(), from.clone(), hex);
@@ -77,23 +70,4 @@ pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u
         .get(&MinerOwnerColor(miner, owner, color))
         .unwrap_or(Ok(0))
         .unwrap()
-}
-
-pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, mint: bool) {
-    // TODO: event
-
-    for color in colors.iter_unchecked() {
-        let MinerColorAmount(miner_address, hex, amount) = color;
-        let from_color = MinerOwnerColor(miner_address, from.clone(), hex);
-        let current_from_amount = env.storage().get(&from_color).unwrap_or(Ok(0)).unwrap();
-
-        env.storage().set(
-            &from_color,
-            &if mint {
-                current_from_amount + amount
-            } else {
-                current_from_amount - amount
-            },
-        );
-    }
 }

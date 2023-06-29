@@ -1,5 +1,8 @@
 #![no_std]
 
+// TODO
+// events
+
 mod contract;
 mod interface;
 mod storage;

@@ -1,14 +1,11 @@
 use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
-    colors::colors_mint_or_burn,
     types::{Error, Glyph, MinerColorAmount, StorageKey},
-    utils::hex_to_rgb,
+    utils::{hex_to_rgb, colors_mint_or_burn},
 };
 
-// const GLYPHS: Symbol = symbol!("GLYPHS");
-
-// TODO:
+// TODO
 // Limit number of miners
 
 pub fn glyph_mint(
@@ -24,8 +21,6 @@ pub fn glyph_mint(
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
     // TODO
-    // event
-    // mint to a specific destination address
     // better error for not enough colors
     // should we error if there's a dupe index? (will result in burned colors)
     // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
@@ -34,7 +29,7 @@ pub fn glyph_mint(
         for (hex, indexes) in colors_indexes.iter_unchecked() {
             m_palette.push_back(MinerColorAmount(miner_address.clone(), hex, indexes.len()));
 
-            // TODO:
+            // TODO
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
             // RawVal maybe?
             // Ordering is important so you can't just hash the arg directly
@@ -68,22 +63,10 @@ pub fn glyph_mint(
         }
     }
 
-    // TODO should the hash also include something with the width? Otherwise two identical palettes with different widths would clash
+    // TODO
+    // should the hash also include something with the width? Otherwise two identical palettes with different widths would clash
 
     let hash = env.crypto().sha256(&b_palette);
-
-    // made
-    // owner
-    // minter
-    // exists
-    // scraped
-    // no owner
-    // minter
-    // not exists
-    // new
-    // no owner
-    // no minter
-    // not exists
 
     let is_owned = env.storage().has(&StorageKey::GlyphOwner(hash.clone()));
 
@@ -131,7 +114,8 @@ pub fn glyph_get(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         .unwrap()
 }
 
-// TODO: transfer glyph fn
+// TODO
+// transfer glyph fn
 
 pub fn glyph_scrape(
     env: &Env,
@@ -142,9 +126,7 @@ pub fn glyph_scrape(
     from.require_auth();
 
     // TODO
-    // event
-    // scrape to a specific address
-    // Do we need to close any open sell offers (especially from the current owner)?
+    // Do we need to close any open sell offers (especially from the current owner)? `StorageKey::GlyphOffer`
 
     let owner: Address = env
         .storage()
@@ -182,7 +164,7 @@ pub fn glyph_scrape(
     Ok(())
 }
 
-// mint `colors` argument structure
+// NOTE: mint `colors` argument structure
 // [
 //     [
 //         miner_ABC,

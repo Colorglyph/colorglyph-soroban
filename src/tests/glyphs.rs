@@ -12,8 +12,8 @@ use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 const ITERS: i128 = 16i128.pow(2);
 
-// TODO re-add the tests to ensure minting and scraping send the colors to the right places
-// Maintain the test on a 16x16 glyph though
+// TODO 
+// re-add the tests to ensure minting and scraping send the colors to the right places. Maintain the test on a 16x16 glyph though
 
 #[test]
 fn test() {

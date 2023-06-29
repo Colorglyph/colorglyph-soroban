@@ -10,8 +10,8 @@ use crate::{
 
 pub struct ColorGlyph;
 
-// TODO:
-// Fine tooth comb what functions actually need to be public
+// TODO
+// Fine tooth comb what functions actually need to be public. In many cases events are the better way to track data and state
 
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
