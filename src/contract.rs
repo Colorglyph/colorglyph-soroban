@@ -4,7 +4,7 @@ use crate::{
     colors::{color_balance, colors_mine, colors_transfer},
     glyphs::{glyph_get, glyph_mint, glyph_scrape},
     interface::ColorGlyphTrait,
-    offers::{offer_delete, offer_get, offer_post},
+    offers::{offer_delete, offer_post, offers_get},
     types::{Error, Glyph, MinerColorAmount, Offer, OfferType, StorageKey},
 };
 
@@ -50,19 +50,19 @@ impl ColorGlyphTrait for ColorGlyph {
     }
     fn glyph_scrape(
         env: Env,
-        from: Address,
+        owner: Address,
         to: Option<Address>,
         hash: BytesN<32>,
     ) -> Result<(), Error> {
-        glyph_scrape(&env, from, to, hash)
+        glyph_scrape(&env, owner, to, hash)
     }
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error> {
         offer_post(&env, seller, &sell, &buy)
     }
-    fn offer_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error> {
-        offer_get(&env, &sell, &buy)
+    fn offers_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error> {
+        offers_get(&env, &sell, &buy)
     }
     fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType) {
         offer_delete(&env, seller, &sell, &buy);

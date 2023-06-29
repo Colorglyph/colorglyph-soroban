@@ -16,6 +16,7 @@ use crate::{
 // Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 // Create fn for removing all a glyph owners open sell offers
 // Ensure we can't offer to sell a glyph, scrape it, then accept a buy offer
+// What happens if we try and submit a dupe offer? (for both selling a glyph and selling an asset)
 
 const MINTER_ROYALTY_RATE: i128 = 3;
 const MINER_ROYALTY_RATE: i128 = 2;
@@ -28,23 +29,25 @@ pub fn offer_post(
 ) -> Result<(), Error> {
     seller.require_auth();
 
-    // existing counter offer
-    // yes
-    // sell glyph
-    // match is glyph
-    // take glyph, give glyph
-    // match is asset
-    // take asset, give glyph
-    // sell asset
-    // give asset, take glyph
-    // no
-    // sell glyph
-    // set glyph offer
-    // sell asset
-    // take asset into custody
-    // set asset offer (save glyph hash and asset amount)
+    /*
+    existing counter offer
+    yes
+        sell glyph
+            match is glyph
+                take glyph, give glyph
+            match is asset
+                take asset, give glyph
+        sell asset
+            give asset, take glyph
+    no
+        sell glyph
+            set glyph offer
+        sell asset
+            take asset into custody
+            set asset offer (save glyph hash and asset amount)
+    */
 
-    match offer_get(env, buy, sell) {
+    match offers_get(env, buy, sell) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Found someone buying your sale with a Glyph (meaning sell is either a Glyph or Asset)
@@ -289,7 +292,7 @@ pub fn offer_post(
     Ok(())
 }
 
-pub fn offer_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, Error> {
+pub fn offers_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, Error> {
     match sell {
         OfferType::Glyph(offer_hash) => {
             // Selling a Glyph
@@ -307,7 +310,7 @@ pub fn offer_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, 
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
-                    // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific
+                    // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific offer
                     Ok(Offer::Glyph(GlyphOfferArg(
                         offer_index,
                         offers,
@@ -340,7 +343,7 @@ pub fn offer_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, 
 pub fn offer_delete(env: &Env, seller: Address, sell: &OfferType, buy: &OfferType) {
     seller.require_auth();
 
-    match offer_get(env, sell, buy) {
+    match offers_get(env, sell, buy) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Selling a Glyph

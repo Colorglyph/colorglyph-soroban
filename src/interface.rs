@@ -28,6 +28,6 @@ pub trait ColorGlyphTrait {
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error>;
-    fn offer_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error>;
+    fn offers_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error>;
     fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType);
 }

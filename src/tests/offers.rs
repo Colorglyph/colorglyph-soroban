@@ -88,12 +88,12 @@ fn test_buy_glyph() {
     });
 
     assert_eq!(
-        client.try_offer_get(&asset, &glyph),
+        client.try_offers_get(&asset, &glyph),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_offer_get(&glyph, &asset),
+        client.try_offers_get(&glyph, &asset),
         Err(Ok(Error::NotFound))
     );
 
@@ -174,12 +174,12 @@ fn test_sell_glyph() {
     });
 
     assert_eq!(
-        client.try_offer_get(&asset, &glyph),
+        client.try_offers_get(&asset, &glyph),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_offer_get(&glyph, &asset),
+        client.try_offers_get(&glyph, &asset),
         Err(Ok(Error::NotFound))
     );
 
@@ -281,12 +281,12 @@ fn test_swap_glyph() {
     });
 
     assert_eq!(
-        client.try_offer_get(&glyph_1, &glyph_2),
+        client.try_offers_get(&glyph_1, &glyph_2),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_offer_get(&glyph_2, &glyph_1),
+        client.try_offers_get(&glyph_2, &glyph_1),
         Err(Ok(Error::NotFound))
     );
 }
@@ -349,12 +349,12 @@ fn test_rm_glyph_buy() {
 
     assert_eq!(token.balance(&u1_address), 9_989i128);
 
-    client.offer_get(&asset, &glyph);
+    client.offers_get(&asset, &glyph);
 
     client.offer_delete(&u1_address, &asset, &glyph);
 
     assert_eq!(
-        client.try_offer_get(&asset, &glyph),
+        client.try_offers_get(&asset, &glyph),
         Err(Ok(Error::NotFound))
     );
 
@@ -416,12 +416,12 @@ fn test_rm_glyph_sell() {
 
     client.offer_post(&u1_address, &glyph, &asset);
 
-    client.offer_get(&glyph, &asset);
+    client.offers_get(&glyph, &asset);
 
     client.offer_delete(&u1_address, &glyph, &asset);
 
     assert_eq!(
-        client.try_offer_get(&glyph, &asset),
+        client.try_offers_get(&glyph, &asset),
         Err(Ok(Error::NotFound))
     );
 
@@ -499,12 +499,12 @@ fn test_rm_glyph_swap() {
 
     client.offer_post(&u1_address, &glyph_a, &glyph_b);
 
-    client.offer_get(&glyph_a, &glyph_b);
+    client.offers_get(&glyph_a, &glyph_b);
 
     client.offer_delete(&u1_address, &glyph_a, &glyph_b);
 
     assert_eq!(
-        client.try_offer_get(&glyph_a, &glyph_b),
+        client.try_offers_get(&glyph_a, &glyph_b),
         Err(Ok(Error::NotFound))
     );
 
