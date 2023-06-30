@@ -11,7 +11,11 @@ pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmo
     for miner_color_amount in colors.iter_unchecked() {
         let MinerColorAmount(miner, color, amount) = miner_color_amount;
         let miner_owner_color = MinerOwnerColor(miner, from.clone(), color);
-        let current_from_amount = env.storage().get(&miner_owner_color).unwrap_or(Ok(0)).unwrap();
+        let current_from_amount = env
+            .storage()
+            .get(&miner_owner_color)
+            .unwrap_or(Ok(0))
+            .unwrap();
 
         env.storage().set(
             &miner_owner_color,
@@ -19,7 +23,7 @@ pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmo
                 current_from_amount + amount
             } else {
                 current_from_amount - amount
-            }
+            },
         );
     }
 }

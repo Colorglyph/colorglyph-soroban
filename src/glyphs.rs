@@ -2,7 +2,7 @@ use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
     types::{Error, Glyph, MinerColorAmount, StorageKey},
-    utils::{colors_mint_or_burn, color_to_rgb},
+    utils::{color_to_rgb, colors_mint_or_burn},
 };
 
 // TODO
@@ -27,7 +27,11 @@ pub fn glyph_mint(
 
     for (miner_address, color_indexes) in colors.iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(miner_address.clone(), color, indexes.len()));
+            m_palette.push_back(MinerColorAmount(
+                miner_address.clone(),
+                color,
+                indexes.len(),
+            ));
 
             // TODO
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
@@ -113,12 +117,7 @@ pub fn glyph_get(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
 // TODO
 // transfer glyph fn
 
-pub fn glyph_scrape(
-    env: &Env,
-    owner: Address,
-    to: Option<Address>,
-    hash: BytesN<32>,
-) {
+pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN<32>) {
     owner.require_auth();
 
     // TODO
@@ -139,7 +138,11 @@ pub fn glyph_scrape(
 
     for (miner_address, color_indexes) in glyph.colors.iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(miner_address.clone(), color, indexes.len()));
+            m_palette.push_back(MinerColorAmount(
+                miner_address.clone(),
+                color,
+                indexes.len(),
+            ));
         }
     }
 

@@ -5,7 +5,7 @@ extern crate std;
 
 use crate::types::AssetAmount;
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{testutils::Address as _, Address, Env, Vec, Bytes};
+use soroban_sdk::{testutils::Address as _, Address, Bytes, Env, Vec};
 
 #[test]
 fn test_bytes_stuff() {

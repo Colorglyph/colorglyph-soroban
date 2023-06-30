@@ -48,12 +48,7 @@ impl ColorGlyphTrait for ColorGlyph {
     fn glyph_get(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
         glyph_get(&env, hash)
     }
-    fn glyph_scrape(
-        env: Env,
-        owner: Address,
-        to: Option<Address>,
-        hash: BytesN<32>,
-    ) {
+    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>) {
         glyph_scrape(&env, owner, to, hash)
     }
 

@@ -19,12 +19,7 @@ pub trait ColorGlyphTrait {
         width: u32,
     ) -> BytesN<32>;
     fn glyph_get(env: Env, hash: BytesN<32>) -> Result<Glyph, Error>;
-    fn glyph_scrape(
-        env: Env,
-        owner: Address,
-        to: Option<Address>,
-        hash: BytesN<32>,
-    );
+    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>);
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error>;

@@ -20,11 +20,16 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Vec<(
         env.events()
             .publish((COLORS, Symbol::short("mine")), miner_owner_color.clone());
 
-        let current_amount: u32 = env.storage().get(&miner_owner_color).unwrap_or(Ok(0)).unwrap();
+        let current_amount: u32 = env
+            .storage()
+            .get(&miner_owner_color)
+            .unwrap_or(Ok(0))
+            .unwrap();
 
         pay_amount += i128::from(amount);
 
-        env.storage().set(&miner_owner_color, &(current_amount + amount));
+        env.storage()
+            .set(&miner_owner_color, &(current_amount + amount));
     }
 
     let token_id = env
@@ -48,7 +53,11 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerC
     for miner_color_amount in colors.iter_unchecked() {
         let MinerColorAmount(miner_address, color, amount) = miner_color_amount;
         let miner_owner_color = MinerOwnerColor(miner_address.clone(), from.clone(), color);
-        let current_from_amount: u32 = env.storage().get(&miner_owner_color).unwrap_or(Ok(0)).unwrap();
+        let current_from_amount: u32 = env
+            .storage()
+            .get(&miner_owner_color)
+            .unwrap_or(Ok(0))
+            .unwrap();
 
         env.storage()
             .set(&miner_owner_color, &(current_from_amount - amount));
