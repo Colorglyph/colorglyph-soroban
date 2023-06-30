@@ -24,7 +24,7 @@ pub trait ColorGlyphTrait {
         owner: Address,
         to: Option<Address>,
         hash: BytesN<32>,
-    ) -> Result<(), Error>;
+    );
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error>;

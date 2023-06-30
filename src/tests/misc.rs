@@ -5,7 +5,22 @@ extern crate std;
 
 use crate::types::AssetAmount;
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{testutils::Address as _, Address, Env, Vec};
+use soroban_sdk::{testutils::Address as _, Address, Env, Vec, Bytes};
+
+#[test]
+fn test_bytes_stuff() {
+    let env = Env::default();
+
+    let mut b_palette = Bytes::new(&env);
+
+    for i in 0..10 {
+        b_palette.push(i);
+    }
+
+    b_palette.copy_from_slice(0, &[255; 3]);
+
+    println!("{:?}", b_palette);
+}
 
 #[test]
 fn test_mootz_math() {

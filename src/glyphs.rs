@@ -2,11 +2,11 @@ use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
     types::{Error, Glyph, MinerColorAmount, StorageKey},
-    utils::{colors_mint_or_burn, hex_to_rgb},
+    utils::{colors_mint_or_burn, color_to_rgb},
 };
 
 // TODO
-// Limit number of miners
+// Limit number of unique miner addresses in a mint `colors` Vec
 
 pub fn glyph_mint(
     env: &Env,
@@ -25,9 +25,9 @@ pub fn glyph_mint(
     // should we error if there's a dupe index? (will result in burned colors)
     // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
 
-    for (miner_address, colors_indexes) in colors.iter_unchecked() {
-        for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(miner_address.clone(), hex, indexes.len()));
+    for (miner_address, color_indexes) in colors.iter_unchecked() {
+        for (color, indexes) in color_indexes.iter_unchecked() {
+            m_palette.push_back(MinerColorAmount(miner_address.clone(), color, indexes.len()));
 
             // TODO
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
@@ -42,22 +42,18 @@ pub fn glyph_mint(
                     for i in (b_palette.len() / 3)..=index {
                         // If this is the section we're interested in filling, just fill
                         if i == index {
-                            b_palette.insert_from_array(index * 3, &hex_to_rgb(hex));
+                            b_palette.insert_from_slice(index * 3, &color_to_rgb(color));
                         }
                         // Push empty white pixels
                         // NOTE: this is a "free" way to use white pixels atm
                         else {
-                            b_palette.extend_from_array(&[255; 3]);
+                            b_palette.extend_from_slice(&[255; 3]);
                         }
                     }
                 }
                 // If the bytes already exist just fill them in
                 else {
-                    let [r, g, b] = hex_to_rgb(hex);
-
-                    b_palette.set(index * 3, r);
-                    b_palette.set(index * 3 + 1, g);
-                    b_palette.set(index * 3 + 2, b);
+                    b_palette.copy_from_slice(index, &color_to_rgb(color));
                 }
             }
         }
@@ -119,36 +115,36 @@ pub fn glyph_get(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
 
 pub fn glyph_scrape(
     env: &Env,
-    from: Address,
+    owner: Address,
     to: Option<Address>,
     hash: BytesN<32>,
-) -> Result<(), Error> {
-    from.require_auth();
+) {
+    owner.require_auth();
 
     // TODO
     // Do we need to close any open sell offers (especially from the current owner)? `StorageKey::GlyphOffer`
 
-    let owner: Address = env
+    let glyph_owner: Address = env
         .storage()
         .get(&StorageKey::GlyphOwner(hash.clone()))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
-    if owner != from {
+    if glyph_owner != owner {
         panic_with_error!(env, Error::NotAuthorized);
     }
 
     let glyph = glyph_get(&env, hash.clone()).unwrap();
-    let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env); // [Color(hex, miner), amount]
+    let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
-    for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
-        for (hex, indexes) in colors_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(miner_address.clone(), hex, indexes.len()));
+    for (miner_address, color_indexes) in glyph.colors.iter_unchecked() {
+        for (color, indexes) in color_indexes.iter_unchecked() {
+            m_palette.push_back(MinerColorAmount(miner_address.clone(), color, indexes.len()));
         }
     }
 
     let to = match to {
-        None => from.clone(),
+        None => owner.clone(),
         Some(address) => address,
     };
 
@@ -160,44 +156,44 @@ pub fn glyph_scrape(
 
     // Remove glyph owner
     env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
-
-    Ok(())
 }
 
-// NOTE: mint `colors` argument structure
-// [
-//     [
-//         miner_ABC,
-//         [
-//             [
-//                 color_123,
-//                 [
-//                     1, 2, 3
-//                 ]
-//             ],
-//             [
-//                 color_456,
-//                 [
-//                     4, 5, 6
-//                 ]
-//             ]
-//         ]
-//     ],
-//     [
-//         miner_DEF,
-//         [
-//             [
-//                 color_123,
-//                 [
-//                     7, 8, 9
-//                 ]
-//             ],
-//             [
-//                 color_456,
-//                 [
-//                     10, 11, 12
-//                 ]
-//             ]
-//         ]
-//     ]
-// ]
+/*
+NOTE: mint `colors` argument structure
+[
+    [
+        miner_ABC,
+        [
+            [
+                color_123,
+                [
+                    1, 2, 3, ...indexes
+                ]
+            ],
+            [
+                color_456,
+                [
+                    4, 5, 6, ...indexes
+                ]
+            ]
+        ]
+    ],
+    [
+        miner_DEF,
+        [
+            [
+                color_123,
+                [
+                    7, 8, 9, ...indexes
+                ]
+            ],
+            [
+                color_456,
+                [
+                    10, 11, 12, ...indexes
+                ]
+            ]
+        ]
+    ]
+]
+*/

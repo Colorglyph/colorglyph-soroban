@@ -5,7 +5,6 @@
 
 mod contract;
 mod interface;
-mod storage;
 mod types;
 
 mod colors;
@@ -17,7 +16,7 @@ mod utils;
 mod colors_test;
 #[path = "./tests/glyphs.rs"]
 mod glyphs_test;
-#[path = "./tests/misc.rs"]
-mod misc_test;
 #[path = "./tests/offers.rs"]
 mod offers_test;
+#[path = "./tests/misc.rs"]
+mod misc_test;

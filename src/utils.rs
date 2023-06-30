@@ -1,28 +1,25 @@
 use crate::types::{Error, MinerColorAmount, MinerOwnerColor, StorageKey};
 use soroban_sdk::{panic_with_error, Address, BytesN, Env, Vec};
 
-pub fn hex_to_rgb(hex: u32) -> [u8; 3] {
-    let a: [u8; 4] = hex.to_le_bytes();
-    let mut b = [0; 3];
+pub fn color_to_rgb(color: u32) -> [u8; 3] {
+    let a = color.to_le_bytes();
 
-    b.copy_from_slice(&a[..3]);
-
-    b
+    [a[0], a[1], a[2]]
 }
 
 pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, mint: bool) {
-    for color in colors.iter_unchecked() {
-        let MinerColorAmount(miner_address, hex, amount) = color;
-        let from_color = MinerOwnerColor(miner_address, from.clone(), hex);
-        let current_from_amount = env.storage().get(&from_color).unwrap_or(Ok(0)).unwrap();
+    for miner_color_amount in colors.iter_unchecked() {
+        let MinerColorAmount(miner, color, amount) = miner_color_amount;
+        let miner_owner_color = MinerOwnerColor(miner, from.clone(), color);
+        let current_from_amount = env.storage().get(&miner_owner_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(
-            &from_color,
+            &miner_owner_color,
             &if mint {
                 current_from_amount + amount
             } else {
                 current_from_amount - amount
-            },
+            }
         );
     }
 }

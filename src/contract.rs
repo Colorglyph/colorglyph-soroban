@@ -26,10 +26,10 @@ impl ColorGlyphTrait for ColorGlyph {
 
     // Colors
     fn colors_mine(env: Env, miner: Address, to: Option<Address>, colors: Vec<(u32, u32)>) {
-        colors_mine(&env, miner, to, colors);
+        colors_mine(&env, miner, to, colors)
     }
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
-        colors_transfer(&env, from, to, colors);
+        colors_transfer(&env, from, to, colors)
     }
     fn color_balance(env: Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
         color_balance(&env, owner, miner, color)
@@ -53,7 +53,7 @@ impl ColorGlyphTrait for ColorGlyph {
         owner: Address,
         to: Option<Address>,
         hash: BytesN<32>,
-    ) -> Result<(), Error> {
+    ) {
         glyph_scrape(&env, owner, to, hash)
     }
 
@@ -65,6 +65,6 @@ impl ColorGlyphTrait for ColorGlyph {
         offers_get(&env, &sell, &buy)
     }
     fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType) {
-        offer_delete(&env, seller, &sell, &buy);
+        offer_delete(&env, seller, &sell, &buy)
     }
 }

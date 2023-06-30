@@ -14,17 +14,17 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Vec<(
 
     let mut pay_amount: i128 = 0;
 
-    for (hex, amount) in colors.iter_unchecked() {
-        let color = MinerOwnerColor(miner.clone(), to.clone(), hex);
+    for (color, amount) in colors.iter_unchecked() {
+        let miner_owner_color = MinerOwnerColor(miner.clone(), to.clone(), color);
 
         env.events()
-            .publish((COLORS, Symbol::short("mine")), color.clone());
+            .publish((COLORS, Symbol::short("mine")), miner_owner_color.clone());
 
-        let current_amount: u32 = env.storage().get(&color).unwrap_or(Ok(0)).unwrap();
+        let current_amount: u32 = env.storage().get(&miner_owner_color).unwrap_or(Ok(0)).unwrap();
 
         pay_amount += i128::from(amount);
 
-        env.storage().set(&color, &(current_amount + amount));
+        env.storage().set(&miner_owner_color, &(current_amount + amount));
     }
 
     let token_id = env
@@ -45,15 +45,15 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Vec<(
 pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
     from.require_auth();
 
-    for color in colors.iter_unchecked() {
-        let MinerColorAmount(miner_address, hex, amount) = color;
-        let from_color = MinerOwnerColor(miner_address.clone(), from.clone(), hex);
-        let current_from_amount: u32 = env.storage().get(&from_color).unwrap_or(Ok(0)).unwrap();
+    for miner_color_amount in colors.iter_unchecked() {
+        let MinerColorAmount(miner_address, color, amount) = miner_color_amount;
+        let miner_owner_color = MinerOwnerColor(miner_address.clone(), from.clone(), color);
+        let current_from_amount: u32 = env.storage().get(&miner_owner_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage()
-            .set(&from_color, &(current_from_amount - amount));
+            .set(&miner_owner_color, &(current_from_amount - amount));
 
-        let to_color = MinerOwnerColor(miner_address, to.clone(), hex);
+        let to_color = MinerOwnerColor(miner_address, to.clone(), color);
         let current_to_amount: u32 = env.storage().get(&to_color).unwrap_or(Ok(0)).unwrap();
 
         env.storage().set(&to_color, &(current_to_amount + amount));
