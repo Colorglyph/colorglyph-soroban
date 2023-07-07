@@ -2,10 +2,10 @@ use soroban_sdk::{contractimpl, panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::{
     colors::{color_balance, colors_mine, colors_transfer},
-    glyphs::{glyph_get, glyph_mint, glyph_scrape},
+    glyphs::{glyph_mint, glyph_scrape},
     interface::ColorGlyphTrait,
-    offers::{offer_delete, offer_post, offers_get},
-    types::{Error, Glyph, MinerColorAmount, Offer, OfferType, StorageKey},
+    offers::{offer_delete, offer_post},
+    types::{Error, MinerColorAmount, OfferType, StorageKey},
 };
 
 pub struct ColorGlyph;
@@ -16,12 +16,12 @@ pub struct ColorGlyph;
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
     fn initialize(env: Env, token_id: Address, fee_address: Address) {
-        if env.storage().has(&StorageKey::InitToken) {
+        if env.storage().has(&StorageKey::TokenAddress) {
             panic_with_error!(env, Error::NotEmpty);
         }
 
-        env.storage().set(&StorageKey::InitToken, &token_id);
-        env.storage().set(&StorageKey::InitFee, &fee_address);
+        env.storage().set(&StorageKey::TokenAddress, &token_id);
+        env.storage().set(&StorageKey::FeeAddress, &fee_address);
     }
 
     // Colors
@@ -45,9 +45,6 @@ impl ColorGlyphTrait for ColorGlyph {
     ) -> BytesN<32> {
         glyph_mint(&env, minter, to, colors, width)
     }
-    fn glyph_get(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
-        glyph_get(&env, hash)
-    }
     fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>) {
         glyph_scrape(&env, owner, to, hash)
     }
@@ -55,9 +52,6 @@ impl ColorGlyphTrait for ColorGlyph {
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error> {
         offer_post(&env, seller, &sell, &buy)
-    }
-    fn offers_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error> {
-        offers_get(&env, &sell, &buy)
     }
     fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType) {
         offer_delete(&env, seller, &sell, &buy)

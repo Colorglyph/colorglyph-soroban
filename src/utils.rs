@@ -13,7 +13,7 @@ pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmo
         let miner_owner_color = MinerOwnerColor(miner, from.clone(), color);
         let current_from_amount = env
             .storage()
-            .get(&miner_owner_color)
+            .get::<MinerOwnerColor, u32>(&miner_owner_color)
             .unwrap_or(Ok(0))
             .unwrap();
 
@@ -29,9 +29,9 @@ pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmo
 }
 
 pub fn glyph_verify_ownership(env: &Env, from: Address, glyph_hash: BytesN<32>) {
-    let glyph_owner: Address = env
+    let glyph_owner = env
         .storage()
-        .get(&StorageKey::GlyphOwner(glyph_hash))
+        .get::<StorageKey, Address>(&StorageKey::GlyphOwner(glyph_hash))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized))
         .unwrap();
 

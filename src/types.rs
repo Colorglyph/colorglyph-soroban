@@ -11,12 +11,10 @@ pub enum Error {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StorageKey {
-    #[default]
-    None,
-    InitToken,
-    InitFee,
+    TokenAddress,
+    FeeAddress,
     Glyph(BytesN<32>),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),

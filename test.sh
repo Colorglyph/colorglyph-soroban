@@ -2,7 +2,7 @@ make
 
 contract_id=$(soroban contract deploy --wasm target/wasm32-unknown-unknown/release/colorglyph.wasm --source Default --network Futurenet)
 echo 'contract deployed' $contract_id
-# contract_id="cb90acf8e85ae452f1057af2f09149bc4ec6e5fe8e7099ab0bd06fd8be9607d3"
+# contract_id="069023b865700a7aa0b4092f375129acdb396f276a615ff0625985dff314a2c6"
 
 # d93f5c7bb0ebc4a9c8f727c5cebc4e41194d38257e1d0d910356b43bfc528813
 token_id=CDMT6XD3WDV4JKOI64T4LTV4JZARSTJYEV7B2DMRANLLIO74KKEBHYNJ

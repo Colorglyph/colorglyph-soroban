@@ -24,6 +24,8 @@ pub fn glyph_mint(
     // better error for not enough colors
     // should we error if there's a dupe index? (will result in burned colors)
     // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
+    // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
+    // Support progressing minting
 
     for (miner_address, color_indexes) in colors.iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
@@ -107,13 +109,6 @@ pub fn glyph_mint(
     hash
 }
 
-pub fn glyph_get(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
-    env.storage()
-        .get(&StorageKey::Glyph(hash.clone()))
-        .ok_or(Error::NotFound)?
-        .unwrap()
-}
-
 // TODO
 // transfer glyph fn
 
@@ -121,11 +116,11 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
     owner.require_auth();
 
     // TODO
-    // Do we need to close any open sell offers (especially from the current owner)? `StorageKey::GlyphOffer`
+    // Support progressing scraping
 
-    let glyph_owner: Address = env
+    let glyph_owner = env
         .storage()
-        .get(&StorageKey::GlyphOwner(hash.clone()))
+        .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
@@ -133,7 +128,10 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
         panic_with_error!(env, Error::NotAuthorized);
     }
 
-    let glyph = glyph_get(&env, hash.clone()).unwrap();
+    let glyph = env.storage()
+    .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()))
+    .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+    .unwrap();
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
     for (miner_address, color_indexes) in glyph.colors.iter_unchecked() {
@@ -159,6 +157,9 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
 
     // Remove glyph owner
     env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
+
+    // remove all glyph sell offers
+    env.storage().remove(&StorageKey::GlyphOffer(hash.clone()));
 }
 
 /*

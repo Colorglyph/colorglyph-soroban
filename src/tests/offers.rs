@@ -1,14 +1,14 @@
 #![cfg(test)]
 
-// use std::println;
-// extern crate std;
+use std::println;
+extern crate std;
 
 use fixed_point_math::FixedPoint;
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{AssetAmount, Error, OfferType, StorageKey},
+    types::{AssetAmount, Error, OfferType, StorageKey, Offer, GlyphOfferArg, AssetOffer, AssetOfferArg},
 };
 
 const ITERS: i128 = 10i128;
@@ -78,9 +78,9 @@ fn test_buy_glyph() {
     // env.budget().print();
 
     env.as_contract(&contract_address, || {
-        let res: Address = env
+        let res = env
             .storage()
-            .get(&StorageKey::GlyphOwner(hash.clone()))
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
             .unwrap()
             .unwrap();
 
@@ -88,13 +88,13 @@ fn test_buy_glyph() {
     });
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(
-        client.try_offers_get(&glyph, &asset),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &glyph, &asset).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(token.balance(&contract_address), 0i128);
@@ -164,9 +164,9 @@ fn test_sell_glyph() {
     client.offer_post(&u2_address, &asset, &glyph);
 
     env.as_contract(&contract_address, || {
-        let res: Address = env
+        let res = env
             .storage()
-            .get(&StorageKey::GlyphOwner(hash.clone()))
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
             .unwrap()
             .unwrap();
 
@@ -174,13 +174,13 @@ fn test_sell_glyph() {
     });
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(
-        client.try_offers_get(&glyph, &asset),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
+        Error::NotFound
     );
 
     // env.logger().print();
@@ -198,8 +198,8 @@ fn test_swap_glyph() {
     env.mock_all_auths();
 
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -262,18 +262,18 @@ fn test_swap_glyph() {
 
     client.offer_post(&u2_address, &glyph_2, &glyph_1);
 
-    env.as_contract(&contract_id, || {
-        let res_a: Address = env
+    env.as_contract(&contract_address, || {
+        let res_a = env
             .storage()
-            .get(&StorageKey::GlyphOwner(hash_a.clone()))
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash_a.clone()))
             .unwrap()
             .unwrap();
 
         assert_eq!(res_a, u2_address);
 
-        let res_b: Address = env
+        let res_b = env
             .storage()
-            .get(&StorageKey::GlyphOwner(hash_b.clone()))
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash_b.clone()))
             .unwrap()
             .unwrap();
 
@@ -281,13 +281,13 @@ fn test_swap_glyph() {
     });
 
     assert_eq!(
-        client.try_offers_get(&glyph_1, &glyph_2),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &glyph_1, &glyph_2).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(
-        client.try_offers_get(&glyph_2, &glyph_1),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &glyph_2, &glyph_1).unwrap_err(),
+        Error::NotFound
     );
 }
 
@@ -349,13 +349,15 @@ fn test_rm_glyph_buy() {
 
     assert_eq!(token.balance(&u1_address), 9_989i128);
 
-    client.offers_get(&asset, &glyph);
+    let offer = offers_get(&env, &contract_address, &asset, &glyph);
+
+    println!("{:?}", offer);
 
     client.offer_delete(&u1_address, &asset, &glyph);
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(token.balance(&contract_address), 0i128);
@@ -416,13 +418,15 @@ fn test_rm_glyph_sell() {
 
     client.offer_post(&u1_address, &glyph, &asset);
 
-    client.offers_get(&glyph, &asset);
+    let offer = offers_get(&env, &contract_address, &glyph, &asset);
+
+    println!("{:?}", offer);
 
     client.offer_delete(&u1_address, &glyph, &asset);
 
     assert_eq!(
-        client.try_offers_get(&glyph, &asset),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &glyph, &asset).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(token.balance(&contract_address), 0i128);
@@ -499,16 +503,68 @@ fn test_rm_glyph_swap() {
 
     client.offer_post(&u1_address, &glyph_a, &glyph_b);
 
-    client.offers_get(&glyph_a, &glyph_b);
+    let offer = offers_get(&env, &contract_address, &glyph_a, &glyph_b);
+
+    println!("{:?}", offer);
 
     client.offer_delete(&u1_address, &glyph_a, &glyph_b);
 
     assert_eq!(
-        client.try_offers_get(&glyph_a, &glyph_b),
-        Err(Ok(Error::NotFound))
+        offers_get(&env, &contract_address, &glyph_a, &glyph_b).unwrap_err(),
+        Error::NotFound
     );
 
     assert_eq!(token.balance(&contract_address), 0i128);
 
     assert_eq!(token.balance(&u1_address), 9980i128);
+}
+
+fn offers_get(env: &Env, id: &Address, sell: &OfferType, buy: &OfferType) -> Result<Offer, Error> {
+    env.as_contract(id, || {
+        match sell {
+            OfferType::Glyph(offer_hash) => {
+                // Selling a Glyph
+                let offers = env
+                    .storage()
+                    .get::<StorageKey, Vec<OfferType>>(&StorageKey::GlyphOffer(offer_hash.clone()))
+                    .ok_or(Error::NotFound)?
+                    .unwrap();
+    
+                match offers.binary_search(buy) {
+                    Ok(offer_index) => {
+                        let offer_owner = env
+                            .storage()
+                            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(offer_hash.clone()))
+                            .ok_or(Error::NotFound)?
+                            .unwrap();
+    
+                        // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific offer
+                        Ok(Offer::Glyph(GlyphOfferArg(
+                            offer_index,
+                            offers,
+                            offer_owner,
+                            offer_hash.clone(),
+                        )))
+                    }
+                    _ => Err(Error::NotFound),
+                }
+            }
+            OfferType::Asset(AssetAmount(asset_hash, amount)) => {
+                // Selling an Asset
+                match buy {
+                    OfferType::Glyph(glyph_hash) => {
+                        let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
+                        let offers = env
+                            .storage()
+                            .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(offer.clone()))
+                            .ok_or(Error::NotFound)?
+                            .unwrap();
+    
+                        Ok(Offer::Asset(AssetOfferArg(offers, offer)))
+                    }
+                    _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                }
+            }
+        }
+    })
 }

@@ -1,6 +1,6 @@
 use soroban_sdk::{Address, BytesN, Env, Vec};
 
-use crate::types::{Error, Glyph, MinerColorAmount, Offer, OfferType};
+use crate::types::{Error, MinerColorAmount, OfferType};
 
 pub trait ColorGlyphTrait {
     fn initialize(env: Env, token_id: Address, fee_address: Address);
@@ -18,11 +18,9 @@ pub trait ColorGlyphTrait {
         colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
         width: u32,
     ) -> BytesN<32>;
-    fn glyph_get(env: Env, hash: BytesN<32>) -> Result<Glyph, Error>;
     fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>);
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error>;
-    fn offers_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error>;
     fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType);
 }

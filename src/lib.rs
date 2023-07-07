@@ -2,6 +2,7 @@
 
 // TODO
 // events
+// 20 storage writes is very limiting atm
 
 mod contract;
 mod interface;
