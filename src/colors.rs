@@ -74,9 +74,14 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerC
             .set(&miner_owner_color, &(current_from_amount - amount));
 
         let to_miner_owner_color = MinerOwnerColor(miner_address, to.clone(), color);
-        let current_to_amount = env.storage().get::<MinerOwnerColor, u32>(&to_miner_owner_color).unwrap_or(Ok(0)).unwrap();
+        let current_to_amount = env
+            .storage()
+            .get::<MinerOwnerColor, u32>(&to_miner_owner_color)
+            .unwrap_or(Ok(0))
+            .unwrap();
 
-        env.storage().set(&to_miner_owner_color, &(current_to_amount + amount));
+        env.storage()
+            .set(&to_miner_owner_color, &(current_to_amount + amount));
     }
 }
 

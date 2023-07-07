@@ -3,7 +3,8 @@ use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
     types::{
-        AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey, Glyph,
+        AssetAmount, AssetOffer, AssetOfferArg, Error, Glyph, GlyphOfferArg, Offer, OfferType,
+        StorageKey,
     },
     utils::glyph_verify_ownership,
 };
@@ -85,13 +86,18 @@ pub fn offer_post(
                             let mut leftover_amount = amount.clone();
 
                             // Get glyph
-                            let glyph = env.storage()
-                                .get::<StorageKey, Glyph>(&StorageKey::Glyph(existing_offer_hash.clone()))
+                            let glyph = env
+                                .storage()
+                                .get::<StorageKey, Glyph>(&StorageKey::Glyph(
+                                    existing_offer_hash.clone(),
+                                ))
                                 .ok_or(Error::NotFound)?
                                 .unwrap();
                             let glyph_minter = env
                                 .storage()
-                                .get::<StorageKey, Address>(&StorageKey::GlyphMinter(existing_offer_hash.clone()))
+                                .get::<StorageKey, Address>(&StorageKey::GlyphMinter(
+                                    existing_offer_hash.clone(),
+                                ))
                                 .ok_or(Error::NotFound)?
                                 .unwrap();
 
@@ -165,13 +171,16 @@ pub fn offer_post(
                     let mut leftover_amount = amount.clone();
 
                     // Get glyph
-                    let glyph = env.storage()
+                    let glyph = env
+                        .storage()
                         .get::<StorageKey, Glyph>(&StorageKey::Glyph(existing_offer_hash.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
                     let glyph_minter = env
                         .storage()
-                        .get::<StorageKey, Address>(&StorageKey::GlyphMinter(existing_offer_hash.clone()))
+                        .get::<StorageKey, Address>(&StorageKey::GlyphMinter(
+                            existing_offer_hash.clone(),
+                        ))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
@@ -250,13 +259,15 @@ pub fn offer_post(
                     // Selling a Glyph
                     let mut offers = env
                         .storage()
-                        .get::<StorageKey, Vec<OfferType>>(&StorageKey::GlyphOffer(offer_hash.clone()))
+                        .get::<StorageKey, Vec<OfferType>>(&StorageKey::GlyphOffer(
+                            offer_hash.clone(),
+                        ))
                         .unwrap_or(Ok(Vec::new(env)))
                         .unwrap();
 
                     match offers.binary_search(buy) {
                         Result::Err(i) => offers.insert(i, buy.clone()), // buy can be an Asset or a Glyph
-                        _ => panic_with_error!(env, Error::NotEmpty),   // dupe
+                        _ => panic_with_error!(env, Error::NotEmpty),    // dupe
                     }
 
                     env.storage()
@@ -279,7 +290,9 @@ pub fn offer_post(
 
                             let mut offers = env
                                 .storage()
-                                .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(offer.clone()))
+                                .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(
+                                    offer.clone(),
+                                ))
                                 .unwrap_or(Ok(Vec::new(env)))
                                 .unwrap();
 

@@ -5,7 +5,7 @@ extern crate std;
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Error, StorageKey, Glyph},
+    types::{Error, Glyph, StorageKey},
 };
 use fixed_point_math::FixedPoint;
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
@@ -79,7 +79,8 @@ fn test() {
     // assert_eq!(color, 0);
 
     env.as_contract(&contract_id, || {
-        let glyph = env.storage()
+        let glyph = env
+            .storage()
             .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
 
         println!("{:?}", glyph);
@@ -90,7 +91,8 @@ fn test() {
 
     env.budget().reset_default();
     env.as_contract(&contract_id, || {
-        let glyph = env.storage()
+        let glyph = env
+            .storage()
             .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
 
         assert_eq!(glyph, None);
@@ -115,7 +117,8 @@ fn test() {
 
     env.budget().reset_default();
     env.as_contract(&contract_id, || {
-        let glyph = env.storage()
+        let glyph = env
+            .storage()
             .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
 
         assert_ne!(glyph, None);

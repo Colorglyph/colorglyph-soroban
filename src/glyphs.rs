@@ -25,7 +25,7 @@ pub fn glyph_mint(
     // should we error if there's a dupe index? (will result in burned colors)
     // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
     // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
-    // Support progressing minting
+    // Support progressive minting
 
     for (miner_address, color_indexes) in colors.iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
@@ -116,7 +116,7 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
     owner.require_auth();
 
     // TODO
-    // Support progressing scraping
+    // Support progressive scraping
 
     let glyph_owner = env
         .storage()
@@ -128,10 +128,11 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
         panic_with_error!(env, Error::NotAuthorized);
     }
 
-    let glyph = env.storage()
-    .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()))
-    .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-    .unwrap();
+    let glyph = env
+        .storage()
+        .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()))
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+        .unwrap();
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
     for (miner_address, color_indexes) in glyph.colors.iter_unchecked() {

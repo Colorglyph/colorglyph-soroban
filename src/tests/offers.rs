@@ -8,7 +8,9 @@ use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{AssetAmount, Error, OfferType, StorageKey, Offer, GlyphOfferArg, AssetOffer, AssetOfferArg},
+    types::{
+        AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
+    },
 };
 
 const ITERS: i128 = 10i128;
@@ -529,7 +531,7 @@ fn offers_get(env: &Env, id: &Address, sell: &OfferType, buy: &OfferType) -> Res
                     .get::<StorageKey, Vec<OfferType>>(&StorageKey::GlyphOffer(offer_hash.clone()))
                     .ok_or(Error::NotFound)?
                     .unwrap();
-    
+
                 match offers.binary_search(buy) {
                     Ok(offer_index) => {
                         let offer_owner = env
@@ -537,7 +539,7 @@ fn offers_get(env: &Env, id: &Address, sell: &OfferType, buy: &OfferType) -> Res
                             .get::<StorageKey, Address>(&StorageKey::GlyphOwner(offer_hash.clone()))
                             .ok_or(Error::NotFound)?
                             .unwrap();
-    
+
                         // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific offer
                         Ok(Offer::Glyph(GlyphOfferArg(
                             offer_index,
@@ -559,7 +561,7 @@ fn offers_get(env: &Env, id: &Address, sell: &OfferType, buy: &OfferType) -> Res
                             .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(offer.clone()))
                             .ok_or(Error::NotFound)?
                             .unwrap();
-    
+
                         Ok(Offer::Asset(AssetOfferArg(offers, offer)))
                     }
                     _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
