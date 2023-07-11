@@ -8,9 +8,8 @@ use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{
-        AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, Offer, OfferType, StorageKey,
-    },
+    misc_test::offers_get,
+    types::{AssetAmount, Error, OfferType, StorageKey},
 };
 
 const ITERS: i128 = 10i128;
@@ -62,6 +61,8 @@ fn test_buy_glyph() {
         &Option::None,
         &vec![&env, (u3_address.clone(), colors_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     env.budget().reset_default();
@@ -99,6 +100,7 @@ fn test_buy_glyph() {
         Error::NotFound
     );
 
+    assert_eq!(token.balance(&fee_address), 10i128);
     assert_eq!(token.balance(&contract_address), 0i128);
     assert_eq!(token.balance(&u1_address), 10_098i128);
     assert_eq!(token.balance(&u2_address), 9_900i128);
@@ -152,6 +154,8 @@ fn test_sell_glyph() {
         &Option::None,
         &vec![&env, (u3_address.clone(), colors_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     env.budget().reset_default();
@@ -243,6 +247,8 @@ fn test_swap_glyph() {
         &Option::None,
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     client.colors_mine(&u2_address, &None, &colors_b_amount);
@@ -252,6 +258,8 @@ fn test_swap_glyph() {
         &Option::None,
         &vec![&env, (u2_address.clone(), colors_b_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     env.budget().reset_default();
@@ -336,6 +344,8 @@ fn test_rm_glyph_buy() {
         &Option::None,
         &vec![&env, (u1_address.clone(), colors_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     env.budget().reset_default();
@@ -410,6 +420,8 @@ fn test_rm_glyph_sell() {
         &Option::None,
         &vec![&env, (u1_address.clone(), colors_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     env.budget().reset_default();
@@ -486,6 +498,8 @@ fn test_rm_glyph_swap() {
         &Option::None,
         &vec![&env, (u1_address.clone(), colors_a_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     client.colors_mine(&u1_address, &Some(u2_address.clone()), &colors_b_amount);
@@ -495,6 +509,8 @@ fn test_rm_glyph_swap() {
         &Option::None,
         &vec![&env, (u1_address.clone(), colors_b_indexes)],
         &16,
+        &Option::None,
+        &true,
     );
 
     env.budget().reset_default();
@@ -519,54 +535,4 @@ fn test_rm_glyph_swap() {
     assert_eq!(token.balance(&contract_address), 0i128);
 
     assert_eq!(token.balance(&u1_address), 9980i128);
-}
-
-fn offers_get(env: &Env, id: &Address, sell: &OfferType, buy: &OfferType) -> Result<Offer, Error> {
-    env.as_contract(id, || {
-        match sell {
-            OfferType::Glyph(offer_hash) => {
-                // Selling a Glyph
-                let offers = env
-                    .storage()
-                    .get::<StorageKey, Vec<OfferType>>(&StorageKey::GlyphOffer(offer_hash.clone()))
-                    .ok_or(Error::NotFound)?
-                    .unwrap();
-
-                match offers.binary_search(buy) {
-                    Ok(offer_index) => {
-                        let offer_owner = env
-                            .storage()
-                            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(offer_hash.clone()))
-                            .ok_or(Error::NotFound)?
-                            .unwrap();
-
-                        // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific offer
-                        Ok(Offer::Glyph(GlyphOfferArg(
-                            offer_index,
-                            offers,
-                            offer_owner,
-                            offer_hash.clone(),
-                        )))
-                    }
-                    _ => Err(Error::NotFound),
-                }
-            }
-            OfferType::Asset(AssetAmount(asset_hash, amount)) => {
-                // Selling an Asset
-                match buy {
-                    OfferType::Glyph(glyph_hash) => {
-                        let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
-                        let offers = env
-                            .storage()
-                            .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(offer.clone()))
-                            .ok_or(Error::NotFound)?
-                            .unwrap();
-
-                        Ok(Offer::Asset(AssetOfferArg(offers, offer)))
-                    }
-                    _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
-                }
-            }
-        }
-    })
 }

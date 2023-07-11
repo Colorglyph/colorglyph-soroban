@@ -3,7 +3,10 @@
 use std::println;
 extern crate std;
 
-use crate::types::AssetAmount;
+use crate::types::{
+    AssetAmount, AssetOffer, AssetOfferArg, Error, GlyphOfferArg, MinerOwnerColor, Offer,
+    OfferType, StorageKey,
+};
 use fixed_point_math::FixedPoint;
 use soroban_sdk::{testutils::Address as _, Address, Bytes, Env, Vec};
 
@@ -139,4 +142,79 @@ fn test_binary_vs_index() {
     // - CPU Instructions: 24582
     // - Memory Bytes: 6351
     println!("index get {:?}", env.budget().print());
+}
+
+pub fn color_balance(
+    env: &Env,
+    id: &Address,
+    owner: Address,
+    miner: Option<Address>,
+    color: u32,
+) -> u32 {
+    let miner = match miner {
+        None => owner.clone(),
+        Some(address) => address,
+    };
+
+    env.as_contract(&id, || {
+        env.storage()
+            .get::<MinerOwnerColor, u32>(&MinerOwnerColor(miner, owner, color))
+            .unwrap_or(Ok(0))
+            .unwrap()
+    })
+}
+
+pub fn offers_get(
+    env: &Env,
+    id: &Address,
+    sell: &OfferType,
+    buy: &OfferType,
+) -> Result<Offer, Error> {
+    env.as_contract(id, || {
+        match sell {
+            OfferType::Glyph(offer_hash) => {
+                // Selling a Glyph
+                let offers = env
+                    .storage()
+                    .get::<StorageKey, Vec<OfferType>>(&StorageKey::GlyphOffer(offer_hash.clone()))
+                    .ok_or(Error::NotFound)?
+                    .unwrap();
+
+                match offers.binary_search(buy) {
+                    Ok(offer_index) => {
+                        let offer_owner = env
+                            .storage()
+                            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(offer_hash.clone()))
+                            .ok_or(Error::NotFound)?
+                            .unwrap();
+
+                        // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific offer
+                        Ok(Offer::Glyph(GlyphOfferArg(
+                            offer_index,
+                            offers,
+                            offer_owner,
+                            offer_hash.clone(),
+                        )))
+                    }
+                    _ => Err(Error::NotFound),
+                }
+            }
+            OfferType::Asset(AssetAmount(asset_hash, amount)) => {
+                // Selling an Asset
+                match buy {
+                    OfferType::Glyph(glyph_hash) => {
+                        let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
+                        let offers = env
+                            .storage()
+                            .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(offer.clone()))
+                            .ok_or(Error::NotFound)?
+                            .unwrap();
+
+                        Ok(Offer::Asset(AssetOfferArg(offers, offer)))
+                    }
+                    _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                }
+            }
+        }
+    })
 }

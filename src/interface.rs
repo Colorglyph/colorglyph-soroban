@@ -8,7 +8,6 @@ pub trait ColorGlyphTrait {
     // Colors
     fn colors_mine(env: Env, miner: Address, to: Option<Address>, colors: Vec<(u32, u32)>);
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<MinerColorAmount>);
-    fn color_balance(env: Env, owner: Address, miner: Option<Address>, color: u32) -> u32;
 
     // Glyphs
     fn glyph_mint(
@@ -17,6 +16,8 @@ pub trait ColorGlyphTrait {
         to: Option<Address>,
         colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
         width: u32,
+        hash: Option<BytesN<32>>,
+        mint: bool,
     ) -> BytesN<32>;
     fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>);
 

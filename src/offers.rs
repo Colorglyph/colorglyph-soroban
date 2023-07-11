@@ -2,11 +2,11 @@ use fixed_point_math::FixedPoint;
 use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
+    glyphs::glyph_verify_ownership,
     types::{
         AssetAmount, AssetOffer, AssetOfferArg, Error, Glyph, GlyphOfferArg, Offer, OfferType,
         StorageKey,
     },
-    utils::glyph_verify_ownership,
 };
 
 // TODO
@@ -47,6 +47,9 @@ pub fn offer_post(
             set asset offer (save glyph hash and asset amount)
     */
 
+    // TODO
+    // permit progressive offer matching? Only really required when processing royalties. Also it only involves miners not unique colors so the cap is less concerning. How many miners are you likely to have really? 15 is the ceiling atm which is pretty high imo
+
     match offers_get(env, buy, sell) {
         Ok(existing_offer) => {
             match existing_offer {
@@ -79,8 +82,6 @@ pub fn offer_post(
                         }
                         // sell asset now for glyph
                         OfferType::Asset(AssetAmount(offer_hash, amount)) => {
-                            let token = token::Client::new(env, offer_hash);
-
                             // START royalties
                             // Might want to make a map of payees to reduce or eliminate piecemeal payments
                             let mut leftover_amount = amount.clone();
@@ -108,11 +109,13 @@ pub fn offer_post(
                             let minter_amount =
                                 MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
+                            let token = token::Client::new(env, offer_hash);
                             token.transfer(&seller, &glyph_minter, &minter_amount);
 
                             leftover_amount -= minter_amount;
 
                             // Loop over miners
+                            // TODO currently can support 17 miners
                             for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
                                 let mut color_count: u32 = 0;
 
@@ -161,8 +164,6 @@ pub fn offer_post(
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
                     glyph_verify_ownership(env, seller.clone(), offer.0.clone());
 
-                    let token = token::Client::new(env, &offer.1);
-
                     // START royalties
                     let existing_offer_hash = &offer.0;
                     let amount = &offer.2;
@@ -190,6 +191,7 @@ pub fn offer_post(
                     // pay the glyph minter their cut
                     let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
 
+                    let token = token::Client::new(env, &offer.1);
                     token.transfer(
                         &env.current_contract_address(),
                         &glyph_minter,
@@ -199,6 +201,7 @@ pub fn offer_post(
                     leftover_amount -= minter_amount;
 
                     // Loop over miners
+                    // TODO currently can support 15 miners
                     for (miner_address, colors_indexes) in glyph.colors.iter_unchecked() {
                         let mut color_count: u32 = 0;
 
@@ -254,7 +257,7 @@ pub fn offer_post(
         Err(_) => {
             match sell {
                 OfferType::Glyph(offer_hash) => {
-                    glyph_verify_ownership(env, seller.clone(), offer_hash.clone());
+                    glyph_verify_ownership(env, seller, offer_hash.clone());
 
                     // Selling a Glyph
                     let mut offers = env

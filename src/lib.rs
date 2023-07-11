@@ -3,6 +3,7 @@
 // TODO
 // events
 // 20 storage writes is very limiting atm
+// Likely including unneccesary auth (token interface includes its own auth)
 
 mod contract;
 mod interface;
@@ -11,7 +12,6 @@ mod types;
 mod colors;
 mod glyphs;
 mod offers;
-mod utils;
 
 #[path = "./tests/colors.rs"]
 mod colors_test;

@@ -5,6 +5,7 @@
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
+    misc_test::color_balance,
     types::MinerColorAmount,
 };
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
@@ -16,8 +17,8 @@ fn test() {
     env.mock_all_auths();
 
     // Contract
-    let contract_id = env.register_contract(None, ColorGlyph);
-    let client = ColorGlyphClient::new(&env, &contract_id);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
     let token_admin = Address::random(&env);
@@ -46,15 +47,21 @@ fn test() {
     env.budget().reset_default();
     client.colors_mine(&u1_address, &None, &colors);
 
-    let color = client.color_balance(&u1_address, &Option::None, &0);
+    let color = color_balance(&env, &contract_address, u1_address.clone(), Option::None, 0);
 
     assert_eq!(color, 1);
 
     env.budget().reset_default();
     client.colors_mine(&u2_address, &Some(u1_address.clone()), &colors);
 
-    let color1 = client.color_balance(&u1_address, &Option::None, &0);
-    let color2 = client.color_balance(&u1_address, &Option::Some(u2_address.clone()), &0);
+    let color1 = color_balance(&env, &contract_address, u1_address.clone(), Option::None, 0);
+    let color2 = color_balance(
+        &env,
+        &contract_address,
+        u1_address.clone(),
+        Option::Some(u2_address.clone()),
+        0,
+    );
 
     assert_eq!(color1 + color2, 2);
 
@@ -68,8 +75,20 @@ fn test() {
         ],
     );
 
-    let color1 = client.color_balance(&u3_address, &Option::Some(u1_address.clone()), &0);
-    let color2 = client.color_balance(&u3_address, &Option::Some(u2_address.clone()), &0);
+    let color1 = color_balance(
+        &env,
+        &contract_address,
+        u3_address.clone(),
+        Option::Some(u1_address.clone()),
+        0,
+    );
+    let color2 = color_balance(
+        &env,
+        &contract_address,
+        u3_address.clone(),
+        Option::Some(u2_address.clone()),
+        0,
+    );
 
     assert_eq!(color1 + color2, 2);
 

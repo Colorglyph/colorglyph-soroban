@@ -1,8 +1,11 @@
+// use std::println;
+// extern crate std;
+
 use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Vec};
 
 use crate::{
+    colors::colors_mint_or_burn,
     types::{Error, Glyph, MinerColorAmount, StorageKey},
-    utils::{color_to_rgb, colors_mint_or_burn},
 };
 
 // TODO
@@ -12,13 +15,17 @@ pub fn glyph_mint(
     env: &Env,
     minter: Address,
     to: Option<Address>,
-    colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
+    mut colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
     width: u32,
+    hash: Option<BytesN<32>>,
+    mint: bool,
 ) -> BytesN<32> {
     minter.require_auth();
 
     let mut b_palette = Bytes::new(&env);
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
+
+    let glyph_hash: BytesN<32>;
 
     // TODO
     // better error for not enough colors
@@ -27,86 +34,90 @@ pub fn glyph_mint(
     // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
     // Support progressive minting
 
-    for (miner_address, color_indexes) in colors.iter_unchecked() {
-        for (color, indexes) in color_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(
-                miner_address.clone(),
-                color,
-                indexes.len(),
-            ));
+    match hash {
+        Some(hash) => {
+            // TODO this is potentiall a big read. Might be better to split the `colors` from the rest of the Glyph data until the final `minted: true`
+            match env
+                .storage()
+                .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()))
+            {
+                // progressive mint
+                Some(glyph_error) => {
+                    match glyph_error {
+                        Ok(glyph) => {
+                            let is_minted =
+                                env.storage().has(&StorageKey::GlyphMinter(hash.clone()));
 
-            // TODO
-            // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
-            // RawVal maybe?
-            // Ordering is important so you can't just hash the arg directly
-            // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
+                            // glyph is minted
+                            if is_minted {
+                                panic_with_error!(env, Error::NotEmpty);
+                            }
 
-            for index in indexes.iter_unchecked() {
-                // We need to extend the length of the palette
-                if (b_palette.len() / 3) <= index {
-                    // Start wherever we have data .. wherever we need data
-                    for i in (b_palette.len() / 3)..=index {
-                        // If this is the section we're interested in filling, just fill
-                        if i == index {
-                            b_palette.insert_from_slice(index * 3, &color_to_rgb(color));
+                            // add onto exisiting unminted glyph
+                            glyph_verify_ownership(env, minter.clone(), hash.clone());
+
+                            for color in glyph.colors.iter_unchecked() {
+                                colors.push_back(color);
+                            }
+
+                            // delete previous unminted glyph
+                            env.storage().remove(&StorageKey::Glyph(hash.clone()));
+
+                            // genereate glyph hash
+                            glyph_hash = generate_glyph_hash(
+                                env,
+                                &width,
+                                &mut b_palette,
+                                &mut m_palette,
+                                &colors,
+                            );
                         }
-                        // Push empty white pixels
-                        // NOTE: this is a "free" way to use white pixels atm
-                        else {
-                            b_palette.extend_from_slice(&[255; 3]);
-                        }
+                        _ => panic!(),
                     }
                 }
-                // If the bytes already exist just fill them in
-                else {
-                    b_palette.copy_from_slice(index, &color_to_rgb(color));
+                None => {
+                    panic_with_error!(env, Error::NotFound);
                 }
             }
         }
+        // new mint
+        None => {
+            // genereate glyph hash
+            glyph_hash = generate_glyph_hash(env, &width, &mut b_palette, &mut m_palette, &colors);
+        }
     }
 
-    // TODO
-    // should the hash also include something with the width? Otherwise two identical palettes with different widths would clash
+    // Save the glyph to storage {glyph hash: Glyph}
+    env.storage().set(
+        &StorageKey::Glyph(glyph_hash.clone()),
+        &Glyph {
+            width,
+            length: (b_palette.len() - 4) / 3, // -4 because we're appending width, /3 because there are 3 u8 values per u32 color
+            colors,
+        },
+    );
 
-    let hash = env.crypto().sha256(&b_palette);
-
-    let is_owned = env.storage().has(&StorageKey::GlyphOwner(hash.clone()));
-
-    if is_owned {
-        panic_with_error!(env, Error::NotEmpty);
-    } else {
-        // Save the glyph to storage {glyph hash: Glyph}
-        env.storage().set(
-            &StorageKey::Glyph(hash.clone()),
-            &Glyph {
-                width,
-                length: b_palette.len() / 3, // because there are 3 values per color
-                colors,
-            },
-        );
-
-        let to = match to {
+    // Save the glyph owner to storage {glyph hash: Address}
+    env.storage().set(
+        &StorageKey::GlyphOwner(glyph_hash.clone()),
+        &match to {
             None => minter.clone(),
             Some(address) => address,
-        };
+        },
+    );
 
-        // Save the glyph owner to storage {glyph hash: Address}
-        env.storage()
-            .set(&StorageKey::GlyphOwner(hash.clone()), &to);
-    }
+    if mint {
+        // Remove the colors from the owner
+        // NOTE this will allow folks to build unminted glyphs utilizing the same colors
+        // which is fine as long as we don't allow sales or scrapes that mint colors of unminted glyphs
+        colors_mint_or_burn(&env, &minter, &m_palette, false);
 
-    let is_made = env.storage().has(&StorageKey::GlyphMinter(hash.clone()));
-
-    if !is_made {
         // Save the glyph minter to storage {glyph hash: Address}
         env.storage()
-            .set(&StorageKey::GlyphMinter(hash.clone()), &minter);
+            .set(&StorageKey::GlyphMinter(glyph_hash.clone()), &minter);
     }
 
-    // Remove the colors from the owner
-    colors_mint_or_burn(&env, &minter, &m_palette, false);
-
-    hash
+    glyph_hash
 }
 
 // TODO
@@ -161,6 +172,72 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
 
     // remove all glyph sell offers
     env.storage().remove(&StorageKey::GlyphOffer(hash.clone()));
+}
+
+pub fn glyph_verify_ownership(env: &Env, from: Address, glyph_hash: BytesN<32>) {
+    let glyph_owner = env
+        .storage()
+        .get::<StorageKey, Address>(&StorageKey::GlyphOwner(glyph_hash))
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+        .unwrap();
+
+    if glyph_owner != from {
+        panic_with_error!(env, Error::NotAuthorized);
+    }
+}
+
+pub fn generate_glyph_hash(
+    env: &Env,
+    width: &u32,
+    b_palette: &mut Bytes,
+    m_palette: &mut Vec<MinerColorAmount>,
+    colors: &Vec<(Address, Vec<(u32, Vec<u32>)>)>,
+) -> BytesN<32> {
+    for (miner_address, color_indexes) in colors.iter_unchecked() {
+        for (color, indexes) in color_indexes.iter_unchecked() {
+            m_palette.push_back(MinerColorAmount(
+                miner_address.clone(),
+                color,
+                indexes.len(),
+            ));
+
+            // TODO
+            // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
+            // RawVal maybe?
+            // Ordering is important so you can't just hash the arg directly
+            // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
+
+            for index in indexes.iter_unchecked() {
+                // We need to extend the length of the palette
+                if (b_palette.len() / 3) <= index {
+                    // Start wherever we have data .. wherever we need data
+                    for i in (b_palette.len() / 3)..=index {
+                        // If this is the section we're interested in filling, just fill
+                        if i == index {
+                            let slice: [u8; 3] = color.to_le_bytes()[0..3].try_into().unwrap();
+                            b_palette.insert_from_slice(index * 3, &slice);
+                        }
+                        // Push empty white pixels
+                        // NOTE: this is a "free" way to use white pixels atm
+                        else {
+                            b_palette.extend_from_slice(&[255; 3]);
+                        }
+                    }
+                }
+                // If the bytes already exist just fill them in
+                else {
+                    let slice: [u8; 3] = color.to_le_bytes()[0..3].try_into().unwrap();
+                    b_palette.copy_from_slice(index, &slice);
+                }
+            }
+        }
+    }
+
+    // NOTE
+    // should the hash also include something with the width? Otherwise two identical palettes with different widths would clash
+
+    b_palette.extend_from_slice(&width.to_le_bytes());
+    env.crypto().sha256(&b_palette)
 }
 
 /*

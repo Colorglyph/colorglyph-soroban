@@ -85,14 +85,23 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerC
     }
 }
 
-pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
-    let miner = match miner {
-        None => owner.clone(),
-        Some(address) => address,
-    };
+pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, mint: bool) {
+    for miner_color_amount in colors.iter_unchecked() {
+        let MinerColorAmount(miner, color, amount) = miner_color_amount;
+        let miner_owner_color = MinerOwnerColor(miner, from.clone(), color);
+        let current_from_amount = env
+            .storage()
+            .get::<MinerOwnerColor, u32>(&miner_owner_color)
+            .unwrap_or(Ok(0))
+            .unwrap();
 
-    env.storage()
-        .get::<MinerOwnerColor, u32>(&MinerOwnerColor(miner, owner, color))
-        .unwrap_or(Ok(0))
-        .unwrap()
+        env.storage().set(
+            &miner_owner_color,
+            &if mint {
+                current_from_amount + amount
+            } else {
+                current_from_amount - amount
+            },
+        );
+    }
 }

@@ -1,7 +1,7 @@
 use soroban_sdk::{contractimpl, panic_with_error, Address, BytesN, Env, Vec};
 
 use crate::{
-    colors::{color_balance, colors_mine, colors_transfer},
+    colors::{colors_mine, colors_transfer},
     glyphs::{glyph_mint, glyph_scrape},
     interface::ColorGlyphTrait,
     offers::{offer_delete, offer_post},
@@ -31,9 +31,6 @@ impl ColorGlyphTrait for ColorGlyph {
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
         colors_transfer(&env, from, to, colors)
     }
-    fn color_balance(env: Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
-        color_balance(&env, owner, miner, color)
-    }
 
     // Glyphs
     fn glyph_mint(
@@ -42,8 +39,10 @@ impl ColorGlyphTrait for ColorGlyph {
         to: Option<Address>,
         colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
         width: u32,
+        hash: Option<BytesN<32>>,
+        mint: bool,
     ) -> BytesN<32> {
-        glyph_mint(&env, minter, to, colors, width)
+        glyph_mint(&env, minter, to, colors, width, hash, mint)
     }
     fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>) {
         glyph_scrape(&env, owner, to, hash)
