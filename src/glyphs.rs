@@ -126,33 +126,47 @@ pub fn glyph_mint(
 pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN<32>) {
     owner.require_auth();
 
-    // TODO
+    // NOTE
     // Support progressive scraping
 
-    let glyph_owner = env
-        .storage()
-        .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
-        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-        .unwrap();
+    glyph_verify_ownership(env, owner.clone(), hash.clone());
 
-    if glyph_owner != owner {
-        panic_with_error!(env, Error::NotAuthorized);
-    }
-
-    let glyph = env
+    let mut glyph = env
         .storage()
         .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
     let mut m_palette: Vec<MinerColorAmount> = Vec::new(&env);
 
-    for (miner_address, color_indexes) in glyph.colors.iter_unchecked() {
-        for (color, indexes) in color_indexes.iter_unchecked() {
-            m_palette.push_back(MinerColorAmount(
-                miner_address.clone(),
-                color,
-                indexes.len(),
-            ));
+    // this 16 number should likely be variable as it's related to the progressive scraping
+    while glyph.colors.len() > 0 && m_palette.len() < 16 {
+        match glyph.colors.pop_back() {
+            Some(result) => match result {
+                Ok((miner_address, mut color_indexes)) => {
+                    match color_indexes.pop_back() {
+                        Some(result) => match result {
+                            Ok((color, indexes)) => {
+                                m_palette.push_back(MinerColorAmount(
+                                    miner_address.clone(),
+                                    color,
+                                    indexes.len(),
+                                ));
+                            }
+                            _ => panic!(),
+                        },
+                        None => {}
+                    }
+
+                    // If we've got leftover colors push them back into the Glyph
+                    if color_indexes.len() > 0 {
+                        glyph
+                            .colors
+                            .push_back((miner_address.clone(), color_indexes));
+                    }
+                }
+                _ => panic!(),
+            },
+            None => {}
         }
     }
 
@@ -164,14 +178,19 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash: BytesN
     // Add the colors to the owner
     colors_mint_or_burn(&env, &to, &m_palette, true);
 
-    // Remove glyph
-    env.storage().remove(&StorageKey::Glyph(hash.clone()));
+    if glyph.colors.len() == 0 {
+        // Remove glyph
+        env.storage().remove(&StorageKey::Glyph(hash.clone()));
 
-    // Remove glyph owner
-    env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
+        // Remove glyph owner
+        env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
 
-    // remove all glyph sell offers
-    env.storage().remove(&StorageKey::GlyphOffer(hash.clone()));
+        // remove all glyph sell offers
+        env.storage().remove(&StorageKey::GlyphOffer(hash.clone()));
+    } else {
+        // Save the glyph to storage
+        env.storage().set(&StorageKey::Glyph(hash.clone()), &glyph);
+    }
 }
 
 pub fn glyph_verify_ownership(env: &Env, from: Address, glyph_hash: BytesN<32>) {

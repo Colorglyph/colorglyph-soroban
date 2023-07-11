@@ -57,7 +57,7 @@ fn test() {
     // color_amount.push_back((1 as u32, 2));
 
     env.budget().reset_default();
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &Option::None, &color_amount);
 
     // env.budget().reset_default();
     // let color = client.color_balance(&u1_address, &0, &u1_address);
@@ -89,8 +89,10 @@ fn test() {
         println!("{:?}", glyph);
     });
 
-    env.budget().reset_default();
-    client.glyph_scrape(&u1_address, &Option::None, &hash);
+    for _ in 0..16 {
+        env.budget().reset_default();
+        client.glyph_scrape(&u1_address, &Option::None, &hash);
+    }
 
     env.budget().reset_default();
     env.as_contract(&contract_address, || {
@@ -171,7 +173,7 @@ fn test_progressive_mint() {
     }
 
     env.budget().reset_default();
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &Option::None, &color_amount);
 
     let mut hash: Option<BytesN<32>> = Option::None;
 
@@ -196,8 +198,29 @@ fn test_progressive_mint() {
     env.as_contract(&contract_address, || {
         let glyph = env
             .storage()
-            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.unwrap()));
+            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone().unwrap()));
 
         println!("{:?}", glyph);
     });
+
+    for _ in 0..16 {
+        env.budget().reset_default();
+        client.glyph_scrape(&u1_address, &Option::None, &hash.clone().unwrap());
+
+        env.as_contract(&contract_address, || {
+            let glyph = env
+                .storage()
+                .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone().unwrap()));
+
+            match glyph {
+                Some(glyph_error) => match glyph_error {
+                    Ok(glyph) => {
+                        println!("{:?}", glyph.colors.len());
+                    }
+                    _ => {}
+                },
+                None => {}
+            }
+        });
+    }
 }
