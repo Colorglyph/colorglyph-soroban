@@ -3,10 +3,7 @@
 // use std::println;
 // extern crate std;
 
-use crate::{
-    contract::{ColorGlyph, ColorGlyphClient},
-    types::MinerColorAmount,
-};
+use crate::contract::{ColorGlyph, ColorGlyphClient};
 use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Map};
 
 #[test]
@@ -63,8 +60,8 @@ fn test() {
         &u3_address,
         &vec![
             &env,
-            MinerColorAmount(u1_address.clone(), 0, 1),
-            MinerColorAmount(u2_address.clone(), 0, 1),
+            (u1_address.clone(), 0, 1),
+            (u2_address.clone(), 0, 1),
         ],
     );
 

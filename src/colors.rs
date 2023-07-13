@@ -7,7 +7,7 @@ use soroban_sdk::{
     Vec,
 };
 
-use crate::types::{MinerColorAmount, MinerOwnerColor, StorageKey};
+use crate::types::StorageKey;
 
 // const COLORS: Symbol = Symbol::short("COLORS");
 
@@ -24,14 +24,13 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
     let mut pay_amount: u32 = 0;
 
     for (color, amount) in colors.iter_unchecked() {
-        let miner_owner_color = MinerOwnerColor(miner.clone(), to.clone(), color);
-
+        let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
         // env.events()
         //     .publish((COLORS, Symbol::short("mine")), miner_owner_color.clone());
 
         let current_amount = env
             .storage()
-            .get::<MinerOwnerColor, u32>(&miner_owner_color)
+            .get::<StorageKey, u32>(&miner_owner_color)
             .unwrap_or(Ok(0))
             .unwrap();
 
@@ -56,26 +55,26 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
     token.transfer(&miner, &fee_address, &i128::from(pay_amount));
 }
 
-pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
+pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {
     from.require_auth();
 
     // TODO
-    // Consider allowing Miner in MinerColorAmount to be Option<Address> and assume the from address in order to reduce the size of the argument being sent
+    // Consider allowing the miner Address in `colors` to be Option<Address> and assume the from address in order to reduce the size of the argument being sent
 
     for miner_color_amount in colors.iter_unchecked() {
-        let MinerColorAmount(miner_address, color, amount) = miner_color_amount;
+        let (miner_address, color, amount) = miner_color_amount;
 
-        let from_miner_owner_color = MinerOwnerColor(miner_address.clone(), from.clone(), color);
-        let to_miner_owner_color = MinerOwnerColor(miner_address, to.clone(), color);
+        let from_miner_owner_color = StorageKey::Color(miner_address.clone(), from.clone(), color);
+        let to_miner_owner_color = StorageKey::Color(miner_address, to.clone(), color);
 
         let current_from_amount = env
             .storage()
-            .get::<MinerOwnerColor, u32>(&from_miner_owner_color)
+            .get::<StorageKey, u32>(&from_miner_owner_color)
             .unwrap_or(Ok(0))
             .unwrap();
         let current_to_amount = env
             .storage()
-            .get::<MinerOwnerColor, u32>(&to_miner_owner_color)
+            .get::<StorageKey, u32>(&to_miner_owner_color)
             .unwrap_or(Ok(0))
             .unwrap();
 
@@ -93,7 +92,7 @@ pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u
     };
 
     env.storage()
-        .get::<MinerOwnerColor, u32>(&MinerOwnerColor(miner, owner, color))
+        .get::<StorageKey, u32>(&StorageKey::Color(miner, owner, color))
         .unwrap_or(Ok(0))
         .unwrap()
 }

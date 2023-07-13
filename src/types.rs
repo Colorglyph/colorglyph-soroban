@@ -15,29 +15,28 @@ pub enum Error {
 pub enum StorageKey {
     TokenAddress,
     FeeAddress,
+    Colors(u64),
     Glyph(BytesN<32>),
-    GlyphBox(u64),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),
     GlyphOffer(BytesN<32>),
-    AssetOffer(AssetOffer),
+    AssetOffer(BytesN<32>, Address, i128),
+    Color(Address, Address, u32)
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MinerColorAmount(
-    pub Address, // miner
-    pub u32,     // color
-    pub u32,     // amount
-);
+pub enum HashId {
+    Hash(BytesN<32>),
+    Id(u64),
+}
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct MinerOwnerColor(
-    pub Address, // miner
-    pub Address, // owner
-    pub u32,     // color
-);
+pub enum GlyphType {
+    Glyph(Glyph),
+    Colors(Map<Address, Map<u32, Vec<u32>>>),
+}
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,60 +48,14 @@ pub struct Glyph {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GlyphTypeArg {
-    Hash(BytesN<32>),
-    Id(u64),
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum GlyphType {
-    Glyph(Glyph),
-    GlyphBox(Map<Address, Map<u32, Vec<u32>>>),
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OfferType {
     Glyph(BytesN<32>),
-    Asset(AssetAmount),
+    Asset(Address, i128),
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Offer {
-    Glyph(GlyphOfferArg),
-    Asset(AssetOfferArg),
+    Glyph(u32, Vec<OfferType>, Address, BytesN<32>),
+    Asset(Vec<Address>, BytesN<32>, Address, i128),
 }
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct GlyphOfferArg(
-    pub u32,            // offer index
-    pub Vec<OfferType>, // all glyph sell offers
-    pub Address,        // offer (and glyph) owner
-    pub BytesN<32>,     // glyph hash
-);
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssetOfferArg(
-    pub Vec<Address>, // all asset sell offers
-    pub AssetOffer,
-);
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssetOffer(
-    // This first arg is needed as we store asset sell offers off the whole buy and sell side of the offer
-    pub BytesN<32>, // glyph hash
-    pub Address,    // asset address
-    pub i128,       // amount
-);
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AssetAmount(
-    pub Address, // asset address
-    pub i128,    // amount
-);

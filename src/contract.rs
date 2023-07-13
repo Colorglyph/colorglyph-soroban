@@ -1,11 +1,11 @@
 use soroban_sdk::{contractimpl, panic_with_error, Address, BytesN, Env, Map, Vec};
 
 use crate::{
+    interface::ColorGlyphTrait,
     colors::{color_balance, colors_mine, colors_transfer},
     glyphs::{glyph_build, glyph_get, glyph_mint, glyph_scrape, glyph_transfer},
-    interface::ColorGlyphTrait,
     offers::{offer_delete, offer_post, offers_get},
-    types::{Error, GlyphType, GlyphTypeArg, MinerColorAmount, Offer, OfferType, StorageKey},
+    types::{Error, Offer, OfferType, StorageKey, GlyphType, HashId},
 };
 
 pub struct ColorGlyph;
@@ -28,7 +28,7 @@ impl ColorGlyphTrait for ColorGlyph {
     fn colors_mine(env: Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
         colors_mine(&env, miner, to, colors)
     }
-    fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<MinerColorAmount>) {
+    fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {
         colors_transfer(&env, from, to, colors)
     }
     fn color_balance(env: Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
@@ -53,18 +53,18 @@ impl ColorGlyphTrait for ColorGlyph {
     ) -> BytesN<32> {
         glyph_mint(&env, minter, to, width, id)
     }
-    fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: GlyphTypeArg) {
+    fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: HashId) {
         glyph_transfer(&env, from, to, hash_id)
     }
     fn glyph_scrape(
         env: Env,
         owner: Address,
         to: Option<Address>,
-        hash_id: GlyphTypeArg,
+        hash_id: HashId,
     ) -> Option<u64> {
         glyph_scrape(&env, owner, to, hash_id)
     }
-    fn glyph_get(env: Env, hash_id: GlyphTypeArg) -> Result<GlyphType, Error> {
+    fn glyph_get(env: Env, hash_id: HashId) -> Result<GlyphType, Error> {
         glyph_get(&env, hash_id)
     }
 

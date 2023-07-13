@@ -8,7 +8,7 @@ use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env, Map, V
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{AssetAmount, Error, GlyphTypeArg, OfferType, StorageKey},
+    types::{Error, OfferType, StorageKey},
 };
 
 const ITERS: i128 = 10i128;
@@ -74,7 +74,7 @@ fn test_buy_glyph() {
     // Real Tests
     let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
+    let asset = OfferType::Asset(token_id.clone(), amount);
 
     env.budget().reset_default();
 
@@ -171,7 +171,7 @@ fn test_sell_glyph() {
     // Real Tests
     let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
+    let asset = OfferType::Asset(token_id.clone(), amount);
 
     client.offer_post(&u1_address, &glyph, &asset);
 
@@ -373,7 +373,7 @@ fn test_rm_glyph_buy() {
     // Real Tests
     let amount: i128 = 1;
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
+    let asset = OfferType::Asset(token_id.clone(), amount);
 
     client.offer_post(&u1_address, &asset, &glyph);
 
@@ -452,7 +452,7 @@ fn test_rm_glyph_sell() {
 
     // Real Tests
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(AssetAmount(token_id.clone(), 1i128));
+    let asset = OfferType::Asset(token_id.clone(), 1i128);
 
     client.offer_post(&u1_address, &glyph, &asset);
 

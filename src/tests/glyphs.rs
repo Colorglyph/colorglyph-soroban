@@ -7,7 +7,7 @@ use chrono::Utc;
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Glyph, GlyphTypeArg, StorageKey},
+    types::{Glyph, StorageKey, HashId},
 };
 use soroban_sdk::{
     map,
@@ -131,7 +131,7 @@ fn test() {
         &Some(id),
     );
 
-    println!("{:?}\n", client.glyph_get(&GlyphTypeArg::Id(id.clone())));
+    println!("{:?}\n", client.glyph_get(&HashId::Id(id.clone())));
 
     client.glyph_build(
         &u1_address,
@@ -203,9 +203,9 @@ fn test() {
     env.as_contract(&contract_address, || {
         let res = env
             .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(id));
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id));
 
-        // println!("{:?}", res);
+        println!("{:?}", res);
     });
 
     let hash = client.glyph_mint(&u1_address, &Option::None, &14, &id);
@@ -223,7 +223,7 @@ fn test() {
     let id = client.glyph_scrape(
         &u1_address,
         &Option::None,
-        &GlyphTypeArg::Hash(hash.clone()),
+        &HashId::Hash(hash.clone()),
     );
 
     env.as_contract(&contract_address, || {
@@ -233,7 +233,7 @@ fn test() {
 
         let res2 = env
             .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                 id.unwrap(),
             ));
 
@@ -244,14 +244,14 @@ fn test() {
     // println!("{:?}", id);
 
     assert_eq!(
-        client.glyph_scrape(&u1_address, &Option::None, &GlyphTypeArg::Id(id.unwrap())),
+        client.glyph_scrape(&u1_address, &Option::None, &HashId::Id(id.unwrap())),
         None
     );
 
     env.as_contract(&contract_address, || {
         let res2 = env
             .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                 id.unwrap(),
             ));
 

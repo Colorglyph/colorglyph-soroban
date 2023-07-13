@@ -1,7 +1,7 @@
-use std::println;
-extern crate std;
+// use std::println;
+// extern crate std;
 
-use crate::types::{Error, Glyph, GlyphType, GlyphTypeArg, MinerOwnerColor, StorageKey};
+use crate::types::{Error, Glyph, StorageKey, HashId, GlyphType};
 use soroban_sdk::{panic_with_error, xdr::ToXdr, Address, Bytes, BytesN, Env, Map, Vec};
 
 // TODO
@@ -36,7 +36,7 @@ pub fn glyph_build(
         Some(id_) => {
             miners_colors_indexes = env
                 .storage()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(id_))
+                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id_))
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
                 .unwrap();
 
@@ -47,10 +47,10 @@ pub fn glyph_build(
     // spend colors
     for (miner, color_indexes) in colors.iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
-            let miner_owner_color = MinerOwnerColor(miner.clone(), minter.clone(), color);
+            let miner_owner_color = StorageKey::Color(miner.clone(), minter.clone(), color);
             let current_amount = env
                 .storage()
-                .get::<MinerOwnerColor, u32>(&miner_owner_color)
+                .get::<StorageKey, u32>(&miner_owner_color)
                 .unwrap_or(Ok(0))
                 .unwrap();
 
@@ -92,7 +92,7 @@ pub fn glyph_build(
 
     // save glyph
     env.storage()
-        .set(&StorageKey::GlyphBox(id.unwrap()), &miners_colors_indexes);
+        .set(&StorageKey::Colors(id.unwrap()), &miners_colors_indexes);
 
     id.unwrap()
 }
@@ -108,7 +108,7 @@ pub fn glyph_mint(
 
     let colors = env
         .storage()
-        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(id))
+        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id))
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
         .unwrap();
 
@@ -191,35 +191,35 @@ pub fn glyph_mint(
     );
 
     // Remove the temp GlyphBox
-    env.storage().remove(&StorageKey::GlyphBox(id));
+    env.storage().remove(&StorageKey::Colors(id));
 
     hash
 }
 
 // TODO support transfering GlyphBox as well
-pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash_id: GlyphTypeArg) {
+pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash_id: HashId) {
     from.require_auth();
 
     match hash_id {
-        GlyphTypeArg::Hash(hash) => {
+        HashId::Hash(hash) => {
             glyph_verify_ownership(env, from.clone(), hash.clone());
 
             env.storage()
                 .set(&StorageKey::GlyphOwner(hash.clone()), &to);
         }
-        GlyphTypeArg::Id(id) => {
+        HashId::Id(id) => {
             let miners_colors_indexes = env
                 .storage()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(
+                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                     id.clone(),
                 ))
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
                 .unwrap();
 
-            env.storage().remove(&StorageKey::GlyphBox(id));
+            env.storage().remove(&StorageKey::Colors(id));
 
             env.storage()
-                .set(&StorageKey::GlyphBox(id.clone()), &miners_colors_indexes);
+                .set(&StorageKey::Colors(id.clone()), &miners_colors_indexes);
         }
     }
 }
@@ -228,7 +228,7 @@ pub fn glyph_scrape(
     env: &Env,
     owner: Address,
     to: Option<Address>,
-    hash_id: GlyphTypeArg,
+    hash_id: HashId,
 ) -> Option<u64> {
     owner.require_auth();
 
@@ -237,7 +237,7 @@ pub fn glyph_scrape(
     let id: Option<u64>;
 
     match &hash_id {
-        GlyphTypeArg::Hash(hash) => {
+        HashId::Hash(hash) => {
             glyph_verify_ownership(env, owner.clone(), hash.clone());
 
             let glyph = env
@@ -263,10 +263,10 @@ pub fn glyph_scrape(
                 id_u64 = id_u64.wrapping_add(byte as u64);
             }
         }
-        GlyphTypeArg::Id(id_) => {
+        HashId::Id(id_) => {
             miners_colors_indexes = env
                 .storage()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(
+                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                     id_.clone(),
                 ))
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
@@ -289,7 +289,7 @@ pub fn glyph_scrape(
                 break;
             }
 
-            let miner_owner_color = MinerOwnerColor(
+            let miner_owner_color = StorageKey::Color(
                 miner.clone(),
                 match to.clone() {
                     None => owner.clone(),
@@ -299,7 +299,7 @@ pub fn glyph_scrape(
             );
             let current_amount = env
                 .storage()
-                .get::<MinerOwnerColor, u32>(&miner_owner_color)
+                .get::<StorageKey, u32>(&miner_owner_color)
                 .unwrap_or(Ok(0))
                 .unwrap();
 
@@ -320,8 +320,8 @@ pub fn glyph_scrape(
 
     if miners_colors_indexes.len() == 0 {
         match &hash_id {
-            GlyphTypeArg::Id(id) => {
-                env.storage().remove(&StorageKey::GlyphBox(id.clone()));
+            HashId::Id(id) => {
+                env.storage().remove(&StorageKey::Colors(id.clone()));
             }
             _ => {}
         }
@@ -330,7 +330,7 @@ pub fn glyph_scrape(
     } else {
         // save glyph
         env.storage()
-            .set(&StorageKey::GlyphBox(id_u64), &miners_colors_indexes);
+            .set(&StorageKey::Colors(id_u64), &miners_colors_indexes);
 
         id = Some(id_u64);
     }
@@ -338,9 +338,9 @@ pub fn glyph_scrape(
     id
 }
 
-pub fn glyph_get(env: &Env, hash_id: GlyphTypeArg) -> Result<GlyphType, Error> {
+pub fn glyph_get(env: &Env, hash_id: HashId) -> Result<GlyphType, Error> {
     match hash_id {
-        GlyphTypeArg::Hash(hash) => {
+        HashId::Hash(hash) => {
             let glyph = env
                 .storage()
                 .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash))
@@ -349,14 +349,14 @@ pub fn glyph_get(env: &Env, hash_id: GlyphTypeArg) -> Result<GlyphType, Error> {
 
             Ok(GlyphType::Glyph(glyph))
         }
-        GlyphTypeArg::Id(id) => {
-            let glyph = env
+        HashId::Id(id) => {
+            let colors = env
                 .storage()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(id))
+                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id))
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
                 .unwrap();
 
-            Ok(GlyphType::GlyphBox(glyph))
+            Ok(GlyphType::Colors(colors))
         }
     }
 }
