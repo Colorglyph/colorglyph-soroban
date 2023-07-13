@@ -5,10 +5,9 @@
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    misc_test::color_balance,
     types::MinerColorAmount,
 };
-use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Vec};
+use soroban_sdk::{testutils::Address as _, token, vec, Address, Env, Map};
 
 #[test]
 fn test() {
@@ -38,30 +37,24 @@ fn test() {
     client.initialize(&token_id, &fee_address);
 
     // Tests
-    let mut colors: Vec<(u32, u32)> = Vec::new(&env);
+    let mut colors: Map<u32, u32> = Map::new(&env);
 
     for i in 0..=255 {
-        colors.push_back((i, 1));
+        colors.set(i, 1);
     }
 
     env.budget().reset_default();
     client.colors_mine(&u1_address, &None, &colors);
 
-    let color = color_balance(&env, &contract_address, u1_address.clone(), Option::None, 0);
+    let color = client.color_balance(&u1_address.clone(), &Option::None, &0);
 
     assert_eq!(color, 1);
 
     env.budget().reset_default();
     client.colors_mine(&u2_address, &Some(u1_address.clone()), &colors);
 
-    let color1 = color_balance(&env, &contract_address, u1_address.clone(), Option::None, 0);
-    let color2 = color_balance(
-        &env,
-        &contract_address,
-        u1_address.clone(),
-        Option::Some(u2_address.clone()),
-        0,
-    );
+    let color1 = client.color_balance(&u1_address.clone(), &Option::None, &0);
+    let color2 = client.color_balance(&u1_address.clone(), &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
 
@@ -75,20 +68,8 @@ fn test() {
         ],
     );
 
-    let color1 = color_balance(
-        &env,
-        &contract_address,
-        u3_address.clone(),
-        Option::Some(u1_address.clone()),
-        0,
-    );
-    let color2 = color_balance(
-        &env,
-        &contract_address,
-        u3_address.clone(),
-        Option::Some(u2_address.clone()),
-        0,
-    );
+    let color1 = client.color_balance(&u3_address.clone(), &Option::Some(u1_address.clone()), &0);
+    let color2 = client.color_balance(&u3_address.clone(), &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
 

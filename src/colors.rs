@@ -2,6 +2,7 @@ use soroban_sdk::{
     token,
     Address,
     Env,
+    Map,
     // Symbol,
     Vec,
 };
@@ -10,14 +11,14 @@ use crate::types::{MinerColorAmount, MinerOwnerColor, StorageKey};
 
 // const COLORS: Symbol = Symbol::short("COLORS");
 
-pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Vec<(u32, u32)>) {
+pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
     miner.require_auth();
 
     // TODO this seems slightly inneficient atm as you can only mine ~15 different colors per invocation
 
     let to = match to {
-        None => miner.clone(),
         Some(address) => address,
+        None => miner.clone(),
     };
 
     let mut pay_amount: u32 = 0;
@@ -63,17 +64,15 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerC
 
     for miner_color_amount in colors.iter_unchecked() {
         let MinerColorAmount(miner_address, color, amount) = miner_color_amount;
-        let miner_owner_color = MinerOwnerColor(miner_address.clone(), from.clone(), color);
+
+        let from_miner_owner_color = MinerOwnerColor(miner_address.clone(), from.clone(), color);
+        let to_miner_owner_color = MinerOwnerColor(miner_address, to.clone(), color);
+
         let current_from_amount = env
             .storage()
-            .get::<MinerOwnerColor, u32>(&miner_owner_color)
+            .get::<MinerOwnerColor, u32>(&from_miner_owner_color)
             .unwrap_or(Ok(0))
             .unwrap();
-
-        env.storage()
-            .set(&miner_owner_color, &(current_from_amount - amount));
-
-        let to_miner_owner_color = MinerOwnerColor(miner_address, to.clone(), color);
         let current_to_amount = env
             .storage()
             .get::<MinerOwnerColor, u32>(&to_miner_owner_color)
@@ -81,27 +80,20 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<MinerC
             .unwrap();
 
         env.storage()
+            .set(&from_miner_owner_color, &(current_from_amount - amount));
+        env.storage()
             .set(&to_miner_owner_color, &(current_to_amount + amount));
     }
 }
 
-pub fn colors_mint_or_burn(env: &Env, from: &Address, colors: &Vec<MinerColorAmount>, mint: bool) {
-    for miner_color_amount in colors.iter_unchecked() {
-        let MinerColorAmount(miner, color, amount) = miner_color_amount;
-        let miner_owner_color = MinerOwnerColor(miner, from.clone(), color);
-        let current_from_amount = env
-            .storage()
-            .get::<MinerOwnerColor, u32>(&miner_owner_color)
-            .unwrap_or(Ok(0))
-            .unwrap();
+pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
+    let miner = match miner {
+        None => owner.clone(),
+        Some(address) => address,
+    };
 
-        env.storage().set(
-            &miner_owner_color,
-            &if mint {
-                current_from_amount + amount
-            } else {
-                current_from_amount - amount
-            },
-        );
-    }
+    env.storage()
+        .get::<MinerOwnerColor, u32>(&MinerOwnerColor(miner, owner, color))
+        .unwrap_or(Ok(0))
+        .unwrap()
 }

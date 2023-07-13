@@ -24,8 +24,8 @@ const MINER_ROYALTY_RATE: i128 = 2;
 pub fn offer_post(
     env: &Env,
     seller: Address,
-    sell: &OfferType,
-    buy: &OfferType,
+    sell: OfferType,
+    buy: OfferType,
 ) -> Result<(), Error> {
     seller.require_auth();
 
@@ -50,7 +50,7 @@ pub fn offer_post(
     // TODO
     // permit progressive offer matching? Only really required when processing royalties. Also it only involves miners not unique colors so the cap is less concerning. How many miners are you likely to have really? 15 is the ceiling atm which is pretty high imo
 
-    match offers_get(env, buy, sell) {
+    match offers_get(env, buy.clone(), sell.clone()) {
         Ok(existing_offer) => {
             match existing_offer {
                 // Found someone buying your sale with a Glyph (meaning sell is either a Glyph or Asset)
@@ -73,8 +73,7 @@ pub fn offer_post(
                             );
 
                             // remove all glyph seller offers
-                            env.storage()
-                                .remove(&StorageKey::GlyphOffer(offer_hash.clone()));
+                            env.storage().remove(&StorageKey::GlyphOffer(offer_hash));
 
                             // remove all glyph buyer offers
                             env.storage()
@@ -84,7 +83,7 @@ pub fn offer_post(
                         OfferType::Asset(AssetAmount(offer_hash, amount)) => {
                             // START royalties
                             // Might want to make a map of payees to reduce or eliminate piecemeal payments
-                            let mut leftover_amount = amount.clone();
+                            let mut leftover_amount = amount;
 
                             // Get glyph
                             let glyph = env
@@ -107,9 +106,9 @@ pub fn offer_post(
 
                             // pay the glyph minter their cut
                             let minter_amount =
-                                MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                                MINTER_ROYALTY_RATE.fixed_mul_ceil(amount, 100).unwrap();
 
-                            let token = token::Client::new(env, offer_hash);
+                            let token = token::Client::new(env, &offer_hash);
                             token.transfer(&seller, &glyph_minter, &minter_amount);
 
                             leftover_amount -= minter_amount;
@@ -125,7 +124,7 @@ pub fn offer_post(
                                 }
 
                                 let miner_amount = MINER_ROYALTY_RATE
-                                    .fixed_mul_ceil(*amount, 100)
+                                    .fixed_mul_ceil(amount, 100)
                                     .unwrap()
                                     .fixed_mul_ceil(
                                         i128::from(color_count),
@@ -162,14 +161,14 @@ pub fn offer_post(
                 }
                 // Found someone buying your sale with an Asset (meaning sell is a Glyph)
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
-                    glyph_verify_ownership(env, seller.clone(), offer.0.clone());
+                    let existing_offer_hash = offer.0.clone();
+                    let amount = offer.2;
+
+                    glyph_verify_ownership(env, seller.clone(), existing_offer_hash.clone());
 
                     // START royalties
-                    let existing_offer_hash = &offer.0;
-                    let amount = &offer.2;
-
                     // Might want to make a map of payees to reduce or eliminate piecemeal payments
-                    let mut leftover_amount = amount.clone();
+                    let mut leftover_amount = amount;
 
                     // Get glyph
                     let glyph = env
@@ -189,7 +188,7 @@ pub fn offer_post(
                     // if glyph_minter is existing_offer_owner don't make this payment
 
                     // pay the glyph minter their cut
-                    let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                    let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(amount, 100).unwrap();
 
                     let token = token::Client::new(env, &offer.1);
                     token.transfer(
@@ -211,7 +210,7 @@ pub fn offer_post(
                         }
 
                         let miner_amount = MINER_ROYALTY_RATE
-                            .fixed_mul_ceil(*amount, 100)
+                            .fixed_mul_ceil(amount, 100)
                             .unwrap()
                             .fixed_mul_ceil(i128::from(color_count), i128::from(glyph.length))
                             .unwrap();
@@ -246,11 +245,14 @@ pub fn offer_post(
                     }
 
                     // transfer ownership of Glyph from glyph giver to Glyph taker
-                    env.storage()
-                        .set(&StorageKey::GlyphOwner(offer.0.clone()), &offer_owner);
+                    env.storage().set(
+                        &StorageKey::GlyphOwner(existing_offer_hash.clone()),
+                        &offer_owner,
+                    );
 
                     // remove all other sell offers for this glyph
-                    env.storage().remove(&StorageKey::GlyphOffer(offer.0));
+                    env.storage()
+                        .remove(&StorageKey::GlyphOffer(existing_offer_hash));
                 }
             }
         }
@@ -268,13 +270,13 @@ pub fn offer_post(
                         .unwrap_or(Ok(Vec::new(env)))
                         .unwrap();
 
-                    match offers.binary_search(buy) {
-                        Result::Err(i) => offers.insert(i, buy.clone()), // buy can be an Asset or a Glyph
-                        _ => panic_with_error!(env, Error::NotEmpty),    // dupe
+                    match offers.binary_search(&buy) {
+                        Result::Err(i) => offers.insert(i, buy), // buy can be an Asset or a Glyph
+                        _ => panic_with_error!(env, Error::NotEmpty), // dupe
                     }
 
                     env.storage()
-                        .set(&StorageKey::GlyphOffer(offer_hash.clone()), &offers);
+                        .set(&StorageKey::GlyphOffer(offer_hash), &offers);
                 }
                 OfferType::Asset(AssetAmount(asset_hash, amount)) => {
                     // Buying a Glyph
@@ -289,7 +291,7 @@ pub fn offer_post(
 
                             token.transfer(&seller, &env.current_contract_address(), &amount);
 
-                            let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
+                            let offer = AssetOffer(glyph_hash, asset_hash, amount);
 
                             let mut offers = env
                                 .storage()
@@ -313,7 +315,7 @@ pub fn offer_post(
     Ok(())
 }
 
-pub fn offer_delete(env: &Env, seller: Address, sell: &OfferType, buy: &OfferType) {
+pub fn offer_delete(env: &Env, seller: Address, sell: OfferType, buy: OfferType) {
     seller.require_auth();
 
     match offers_get(env, sell, buy) {
@@ -329,7 +331,7 @@ pub fn offer_delete(env: &Env, seller: Address, sell: &OfferType, buy: &OfferTyp
                     offers.remove(offer_index);
 
                     env.storage()
-                        .set(&StorageKey::GlyphOffer(offer_hash.clone()), &offers);
+                        .set(&StorageKey::GlyphOffer(offer_hash), &offers);
                 }
                 // Selling an Asset
                 Offer::Asset(AssetOfferArg(mut offers, offer)) => {
@@ -356,7 +358,7 @@ pub fn offer_delete(env: &Env, seller: Address, sell: &OfferType, buy: &OfferTyp
     }
 }
 
-fn offers_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, Error> {
+pub fn offers_get(env: &Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error> {
     match sell {
         OfferType::Glyph(offer_hash) => {
             // Selling a Glyph
@@ -379,7 +381,7 @@ fn offers_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, Err
                         offer_index,
                         offers,
                         offer_owner,
-                        offer_hash.clone(),
+                        offer_hash,
                     )))
                 }
                 _ => Err(Error::NotFound),
@@ -389,7 +391,7 @@ fn offers_get(env: &Env, sell: &OfferType, buy: &OfferType) -> Result<Offer, Err
             // Selling an Asset
             match buy {
                 OfferType::Glyph(glyph_hash) => {
-                    let offer = AssetOffer(glyph_hash.clone(), asset_hash.clone(), *amount);
+                    let offer = AssetOffer(glyph_hash, asset_hash, amount);
                     let offers = env
                         .storage()
                         .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(offer.clone()))

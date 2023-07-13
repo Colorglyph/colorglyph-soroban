@@ -1,4 +1,4 @@
-use soroban_sdk::{contracterror, contracttype, Address, BytesN, Vec};
+use soroban_sdk::{contracterror, contracttype, Address, BytesN, Map, Vec};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -16,6 +16,7 @@ pub enum StorageKey {
     TokenAddress,
     FeeAddress,
     Glyph(BytesN<32>),
+    GlyphBox(u64),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),
     GlyphOffer(BytesN<32>),
@@ -43,7 +44,21 @@ pub struct MinerOwnerColor(
 pub struct Glyph {
     pub width: u32,
     pub length: u32,
-    pub colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>, // [[miner, [[color, [index]]]]
+    pub colors: Map<Address, Map<u32, Vec<u32>>>, // [[miner, [[color, [index]]]]
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GlyphTypeArg {
+    Hash(BytesN<32>),
+    Id(u64),
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GlyphType {
+    Glyph(Glyph),
+    GlyphBox(Map<Address, Map<u32, Vec<u32>>>),
 }
 
 #[contracttype]

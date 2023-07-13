@@ -1,27 +1,42 @@
-use soroban_sdk::{Address, BytesN, Env, Vec};
+use soroban_sdk::{Address, BytesN, Env, Map, Vec};
 
-use crate::types::{Error, MinerColorAmount, OfferType};
+use crate::types::{Error, GlyphType, GlyphTypeArg, MinerColorAmount, Offer, OfferType};
+
+// TODO add back get color, glyph and offer functions due to cross contract call needs
 
 pub trait ColorGlyphTrait {
     fn initialize(env: Env, token_id: Address, fee_address: Address);
 
     // Colors
-    fn colors_mine(env: Env, miner: Address, to: Option<Address>, colors: Vec<(u32, u32)>);
+    fn colors_mine(env: Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>);
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<MinerColorAmount>);
+    fn color_balance(env: Env, owner: Address, miner: Option<Address>, color: u32) -> u32;
 
     // Glyphs
+    fn glyph_build(
+        env: Env,
+        minter: Address,
+        colors: Map<Address, Map<u32, Vec<u32>>>,
+        id: Option<u64>,
+    ) -> u64;
     fn glyph_mint(
         env: Env,
         minter: Address,
         to: Option<Address>,
-        colors: Vec<(Address, Vec<(u32, Vec<u32>)>)>,
         width: u32,
-        hash: Option<BytesN<32>>,
-        mint: bool,
+        id: u64,
     ) -> BytesN<32>;
-    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash: BytesN<32>);
+    fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: GlyphTypeArg);
+    fn glyph_scrape(
+        env: Env,
+        owner: Address,
+        to: Option<Address>,
+        hash_id: GlyphTypeArg,
+    ) -> Option<u64>;
+    fn glyph_get(env: Env, hash_id: GlyphTypeArg) -> Result<GlyphType, Error>;
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error>;
     fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType);
+    fn offers_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error>;
 }

@@ -3,17 +3,27 @@
 use std::println;
 extern crate std;
 
+use chrono::Utc;
+
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Error, Glyph, StorageKey},
+    types::{Glyph, GlyphTypeArg, StorageKey},
 };
-use fixed_point_math::FixedPoint;
-use soroban_sdk::{testutils::Address as _, token, vec, Address, BytesN, Env, Vec};
-
-const ITERS: i128 = 16i128.pow(2) - 1;
+use soroban_sdk::{
+    map,
+    testutils::{Address as _, Ledger, LedgerInfo},
+    token, vec, Address, Env, Map, Vec,
+};
 
 // TODO
-// re-add the tests to ensure minting and scraping send the colors to the right places. Maintain the test on a 16x16 glyph though
+// test scrape of a never minted glyph
+// test partial scrape to mint
+// test partial scrape to build then remint
+// test full scrape to remint
+// test mint to `to` account
+// test scrape to `to` account
+// test glyph transfer
+// test glyphbox transfer
 
 #[test]
 fn test() {
@@ -21,16 +31,13 @@ fn test() {
 
     env.mock_all_auths();
 
-    // Contract
     let contract_address = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, &contract_address);
 
-    // Token
     let token_admin = Address::random(&env);
     let token_id = env.register_stellar_asset_contract(token_admin.clone());
     let token = token::Client::new(&env, &token_id);
 
-    // Accounts
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
     let fee_address = Address::random(&env);
@@ -40,187 +47,216 @@ fn test() {
 
     client.initialize(&token_id, &fee_address);
 
-    // Tests
-    let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
-
-    for i in 0..=ITERS {
-        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
-
-        colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
-        color_amount.push_back((hex as u32, 1));
-    }
-
-    // colors_indexes.push_back((0 as u32, vec![&env, 0, 2]));
-    // colors_indexes.push_back((1 as u32, vec![&env, 1, 3]));
-    // color_amount.push_back((0 as u32, 2));
-    // color_amount.push_back((1 as u32, 2));
-
-    env.budget().reset_default();
-    client.colors_mine(&u1_address, &Option::None, &color_amount);
-
-    // env.budget().reset_default();
-    // let color = client.color_balance(&u1_address, &0, &u1_address);
-
-    // assert_eq!(color, 1);
-    // assert_eq!(color, 2);
-
-    // Real Test
-    env.budget().reset_default();
-    let hash = client.glyph_mint(
+    client.colors_mine(
         &u1_address,
         &Option::None,
-        &vec![&env, (u1_address.clone(), colors_indexes.clone())],
-        &16,
-        &Option::None,
-        &true,
+        &map![
+            &env,
+            (0, 100),
+            (1, 100),
+            (2, 100),
+            (3, 100),
+            (4, 100),
+            (5, 100),
+            (6, 100),
+            (7, 100),
+            (8, 100),
+            (9, 100)
+        ],
     );
-
-    // env.budget().reset_default();
-    // let color = client.color_balance(&u1_address, &0, &u1_address);
-
-    // assert_eq!(color, 0);
-
-    env.as_contract(&contract_address, || {
-        let glyph = env
-            .storage()
-            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
-
-        println!("{:?}", glyph);
-    });
-
-    for _ in 0..16 {
-        env.budget().reset_default();
-        client.glyph_scrape(&u1_address, &Option::None, &hash);
-    }
-
-    env.budget().reset_default();
-    env.as_contract(&contract_address, || {
-        let glyph = env
-            .storage()
-            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
-
-        assert_eq!(glyph, None);
-    });
-
-    // env.budget().reset_default();
-    // let color = client.color_balance(&u1_address, &0, &u1_address);
-
-    // assert_eq!(color, 1);
-    // assert_eq!(color, 2);
-
-    env.budget().reset_default();
-    client.colors_mine(&u1_address, &Some(u2_address.clone()), &color_amount);
-
-    env.budget().reset_default();
-    let hash = client.glyph_mint(
+    client.colors_mine(
         &u2_address,
-        &Option::None,
-        &vec![&env, (u1_address.clone(), colors_indexes.clone())],
-        &16,
-        &Option::None,
-        &true,
+        &Some(u1_address.clone()),
+        &map![
+            &env,
+            (10, 100),
+            (11, 100),
+            (12, 100),
+            (13, 100),
+            (14, 100),
+            (15, 100),
+            (16, 100),
+            (17, 100),
+            (18, 100),
+            (19, 100)
+        ],
     );
 
+    env.ledger().set(LedgerInfo {
+        timestamp: Utc::now().timestamp() as u64,
+        protocol_version: Default::default(),
+        sequence_number: Default::default(),
+        network_id: Default::default(),
+        base_reserve: Default::default(),
+    });
+
     env.budget().reset_default();
+    let id = client.glyph_build(
+        &u1_address,
+        &map![
+            &env,
+            (
+                u1_address.clone(),
+                map![
+                    &env,
+                    (0, vec![&env, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+                    (1, vec![&env, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]),
+                    (2, vec![&env, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]),
+                    (3, vec![&env, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]),
+                    (4, vec![&env, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]),
+                ]
+            )
+        ],
+        &Option::None,
+    );
+
+    // println!("{:?}", id);
+
+    client.glyph_build(
+        &u1_address,
+        &map![
+            &env,
+            (
+                u1_address.clone(),
+                map![
+                    &env,
+                    (5, vec![&env, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]),
+                    (6, vec![&env, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]),
+                    (7, vec![&env, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]),
+                    (8, vec![&env, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89]),
+                    (9, vec![&env, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]),
+                ]
+            )
+        ],
+        &Some(id),
+    );
+
+    println!("{:?}\n", client.glyph_get(&GlyphTypeArg::Id(id.clone())));
+
+    client.glyph_build(
+        &u1_address,
+        &map![
+            &env,
+            (
+                u2_address.clone(),
+                map![
+                    &env,
+                    (
+                        10,
+                        vec![&env, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+                    ),
+                    (
+                        11,
+                        vec![&env, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119]
+                    ),
+                    (
+                        12,
+                        vec![&env, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129]
+                    ),
+                    (
+                        13,
+                        vec![&env, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139]
+                    ),
+                    (
+                        14,
+                        vec![&env, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149]
+                    ),
+                ]
+            )
+        ],
+        &Some(id),
+    );
+    client.glyph_build(
+        &u1_address,
+        &map![
+            &env,
+            (
+                u2_address.clone(),
+                map![
+                    &env,
+                    (
+                        15,
+                        vec![&env, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159]
+                    ),
+                    (
+                        16,
+                        vec![&env, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169]
+                    ),
+                    (
+                        17,
+                        vec![&env, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179]
+                    ),
+                    (
+                        18,
+                        vec![&env, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189]
+                    ),
+                    (
+                        19,
+                        vec![&env, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199]
+                    ),
+                ]
+            )
+        ],
+        &Some(id),
+    );
+
     env.as_contract(&contract_address, || {
-        let glyph = env
+        let res = env
+            .storage()
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(id));
+
+        // println!("{:?}", res);
+    });
+
+    let hash = client.glyph_mint(&u1_address, &Option::None, &14, &id);
+
+    // println!("{:?}", hash);
+
+    env.as_contract(&contract_address, || {
+        let res = env
             .storage()
             .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
 
-        assert_ne!(glyph, None);
+        println!("{:?}", res.unwrap().unwrap().length);
     });
 
-    env.budget().reset_default();
-    assert_eq!(
-        client.try_glyph_scrape(&u1_address, &Option::None, &hash),
-        Err(Ok(Error::NotAuthorized.into()))
+    let id = client.glyph_scrape(
+        &u1_address,
+        &Option::None,
+        &GlyphTypeArg::Hash(hash.clone()),
     );
-}
-
-#[test]
-fn test_progressive_mint() {
-    let env = Env::default();
-
-    env.mock_all_auths();
-
-    // Contract
-    let contract_address = env.register_contract(None, ColorGlyph);
-    let client = ColorGlyphClient::new(&env, &contract_address);
-
-    // Token
-    let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token = token::Client::new(&env, &token_id);
-
-    // Accounts
-    let u1_address = Address::random(&env);
-    let fee_address = Address::random(&env);
-
-    token.mint(&u1_address, &10_000);
-
-    client.initialize(&token_id, &fee_address);
-
-    // Tests
-    let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-    let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
-
-    for i in 0..=ITERS {
-        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
-
-        colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
-        color_amount.push_back((hex as u32, 1));
-    }
-
-    env.budget().reset_default();
-    client.colors_mine(&u1_address, &Option::None, &color_amount);
-
-    let mut hash: Option<BytesN<32>> = Option::None;
-
-    for i in 0..16 {
-        env.budget().reset_default();
-        hash = Some(client.glyph_mint(
-            &u1_address,
-            &Option::None,
-            &vec![
-                &env,
-                (
-                    u1_address.clone(),
-                    colors_indexes.slice((i * 16)..(i * 16 + 16)),
-                ),
-            ],
-            &16,
-            &hash,
-            &if i == 15 { true } else { false },
-        ));
-    }
 
     env.as_contract(&contract_address, || {
-        let glyph = env
+        let res1 = env
             .storage()
-            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone().unwrap()));
+            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
 
-        println!("{:?}", glyph);
+        let res2 = env
+            .storage()
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(
+                id.unwrap(),
+            ));
+
+        assert_eq!(res1, None);
+        assert_ne!(res2, None);
     });
 
-    for _ in 0..16 {
-        env.budget().reset_default();
-        client.glyph_scrape(&u1_address, &Option::None, &hash.clone().unwrap());
+    // println!("{:?}", id);
 
-        env.as_contract(&contract_address, || {
-            let glyph = env
-                .storage()
-                .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone().unwrap()));
+    assert_eq!(
+        client.glyph_scrape(&u1_address, &Option::None, &GlyphTypeArg::Id(id.unwrap())),
+        None
+    );
 
-            match glyph {
-                Some(glyph_error) => match glyph_error {
-                    Ok(glyph) => {
-                        println!("{:?}", glyph.colors.len());
-                    }
-                    _ => {}
-                },
-                None => {}
-            }
-        });
-    }
+    env.as_contract(&contract_address, || {
+        let res2 = env
+            .storage()
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::GlyphBox(
+                id.unwrap(),
+            ));
+
+        assert_eq!(res2, None);
+    });
+
+    // println!("{:?}", env.budget().print());
 }

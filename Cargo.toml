@@ -15,6 +15,7 @@ fixed-point-math = { version = "0.0.2"}
 
 [dev_dependencies]
 soroban-sdk = { version = "0.8.4", features = ["testutils"] }
+chrono = { version = "0.4.26" }
 
 [features]
 testutils = ["soroban-sdk/testutils"]
