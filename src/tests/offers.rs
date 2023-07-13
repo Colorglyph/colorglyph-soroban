@@ -111,432 +111,460 @@ fn test_buy_glyph() {
     assert_eq!(token.balance(&u3_address), 9_992i128);
 }
 
-// #[test]
-// fn test_sell_glyph() {
-//     let env = Env::default();
+#[test]
+fn test_sell_glyph() {
+    let env = Env::default();
 
-//     env.mock_all_auths();
+    env.mock_all_auths();
 
-//     // Contract
-//     let contract_address = env.register_contract(None, ColorGlyph);
-//     let client = ColorGlyphClient::new(&env, &contract_address);
-
-//     // Token
-//     let token_admin = Address::random(&env);
-//     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-//     let token = token::Client::new(&env, &token_id);
+    // Contract
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
-//     // Accounts
-//     let u1_address = Address::random(&env);
-//     let u2_address = Address::random(&env);
-//     let u3_address = Address::random(&env);
-//     let fee_address = Address::random(&env);
+    // Token
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
 
-//     token.mint(&u1_address, &10_000);
-//     token.mint(&u2_address, &10_000);
-//     token.mint(&u3_address, &10_000);
+    // Accounts
+    let u1_address = Address::random(&env);
+    let u2_address = Address::random(&env);
+    let u3_address = Address::random(&env);
+    let fee_address = Address::random(&env);
 
-//     client.initialize(&token_id, &fee_address);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
+    token.mint(&u3_address, &10_000);
 
-//     // Tests
-//     env.budget().reset_default();
+    client.initialize(&token_id, &fee_address);
 
-//     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    // Tests
+    env.budget().reset_default();
 
-//     for i in 0..ITERS {
-//         let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+    let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut color_amount: Map<u32, u32> = Map::new(&env);
 
-//         colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
-//         color_amount.push_back((hex as u32, 1));
-//     }
+    for i in 0..ITERS {
+        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
 
-//     client.colors_mine(&u3_address, &Some(u1_address.clone()), &color_amount);
-
-//     let hash = client.glyph_mint(
-//         &u1_address,
-//         &Option::None,
-//         &vec![&env, (u3_address.clone(), colors_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
-
-//     env.budget().reset_default();
-
-//     // Real Tests
-//     let amount: i128 = 100;
-//     let glyph = OfferType::Glyph(hash.clone());
-//     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
-
-//     client.offer_post(&u1_address, &glyph, &asset);
-
-//     client.offer_post(&u2_address, &asset, &glyph);
-
-//     env.as_contract(&contract_address, || {
-//         let res = env
-//             .storage()
-//             .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
-//             .unwrap()
-//             .unwrap();
+        colors_indexes.set(hex as u32, vec![&env, i as u32]);
+        color_amount.set(hex as u32, 1);
+    }
 
-//         assert_eq!(res, u2_address);
-//     });
-
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
-//         Error::NotFound
-//     );
+    client.colors_mine(&u3_address, &Some(u1_address.clone()), &color_amount);
 
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
-//         Error::NotFound
-//     );
-
-//     // env.logger().print();
+    let id = client.glyph_build(
+        &u1_address,
+        &map![&env, (u3_address.clone(), colors_indexes)],
+        &Option::None,
+    );
 
-//     assert_eq!(token.balance(&contract_address), 0i128);
-//     assert_eq!(token.balance(&u1_address), 10_098i128);
-//     assert_eq!(token.balance(&u2_address), 9_900i128);
-//     assert_eq!(token.balance(&u3_address), 9_992i128);
-// }
-
-// #[test]
-// fn test_swap_glyph() {
-//     let env = Env::default();
-
-//     env.mock_all_auths();
-
-//     // Contract
-//     let contract_address = env.register_contract(None, ColorGlyph);
-//     let client = ColorGlyphClient::new(&env, &contract_address);
-
-//     // Token
-//     let token_admin = Address::random(&env);
-//     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-//     let token = token::Client::new(&env, &token_id);
-
-//     // Accounts
-//     let u1_address = Address::random(&env);
-//     let u2_address = Address::random(&env);
-//     let fee_address = Address::random(&env);
-
-//     token.mint(&u1_address, &10_000);
-//     token.mint(&u2_address, &10_000);
-
-//     client.initialize(&token_id, &fee_address);
-
-//     // Tests
-//     env.budget().reset_default();
-
-//     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut colors_a_amount: Vec<(u32, u32)> = Vec::new(&env);
-//     let mut colors_b_amount: Vec<(u32, u32)> = Vec::new(&env);
-
-//     for i in 0..ITERS {
-//         let hex_a = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
-//         let hex_b = 16777215i128.fixed_div_floor(ITERS, i + 1).unwrap();
+    let hash = client.glyph_mint(
+        &u1_address,
+        &Option::None,
+        &16,
+        &id
+    );
 
-//         colors_a_indexes.push_back((hex_a as u32, vec![&env, i as u32]));
-//         colors_b_indexes.push_back((hex_b as u32, vec![&env, i as u32]));
-//         colors_a_amount.push_back((hex_a as u32, 1));
-//         colors_b_amount.push_back((hex_b as u32, 1));
-//     }
+    env.budget().reset_default();
 
-//     client.colors_mine(&u1_address, &None, &colors_a_amount);
+    // Real Tests
+    let amount: i128 = 100;
+    let glyph = OfferType::Glyph(hash.clone());
+    let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
+
+    client.offer_post(&u1_address, &glyph, &asset);
+
+    client.offer_post(&u2_address, &asset, &glyph);
+
+    env.as_contract(&contract_address, || {
+        let res = env
+            .storage()
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(res, u2_address);
+    });
 
-//     let hash_a = client.glyph_mint(
-//         &u1_address,
-//         &Option::None,
-//         &vec![&env, (u1_address.clone(), colors_a_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
+    assert_eq!(
+        client.try_offers_get(&asset, &glyph),
+        Err(Ok(Error::NotFound))
+    );
 
-//     client.colors_mine(&u2_address, &None, &colors_b_amount);
-
-//     let hash_b = client.glyph_mint(
-//         &u2_address,
-//         &Option::None,
-//         &vec![&env, (u2_address.clone(), colors_b_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
+    assert_eq!(
+        client.try_offers_get(&asset, &glyph),
+        Err(Ok(Error::NotFound))
+    );
+
+    // env.logger().print();
 
-//     env.budget().reset_default();
+    assert_eq!(token.balance(&contract_address), 0i128);
+    assert_eq!(token.balance(&u1_address), 10_098i128);
+    assert_eq!(token.balance(&u2_address), 9_900i128);
+    assert_eq!(token.balance(&u3_address), 9_992i128);
+}
+
+#[test]
+fn test_swap_glyph() {
+    let env = Env::default();
+
+    env.mock_all_auths();
+
+    // Contract
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
+
+    // Token
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
+
+    // Accounts
+    let u1_address = Address::random(&env);
+    let u2_address = Address::random(&env);
+    let fee_address = Address::random(&env);
+
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
+
+    client.initialize(&token_id, &fee_address);
+
+    // Tests
+    env.budget().reset_default();
+
+    let mut colors_a_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut colors_b_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut colors_a_amount: Map<u32, u32> = Map::new(&env);
+    let mut colors_b_amount: Map<u32, u32> = Map::new(&env);
+
+    for i in 0..ITERS {
+        let hex_a = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+        let hex_b = 16777215i128.fixed_div_floor(ITERS, i + 1).unwrap();
+
+        colors_a_indexes.set(hex_a as u32, vec![&env, i as u32]);
+        colors_b_indexes.set(hex_b as u32, vec![&env, i as u32]);
+        colors_a_amount.set(hex_a as u32, 1);
+        colors_b_amount.set(hex_b as u32, 1);
+    }
 
-//     // Real Tests
-//     let glyph_1 = OfferType::Glyph(hash_a.clone());
-//     let glyph_2 = OfferType::Glyph(hash_b.clone());
+    client.colors_mine(&u1_address, &None, &colors_a_amount);
 
-//     client.offer_post(&u1_address, &glyph_1, &glyph_2);
+    let id_a = client.glyph_build(
+        &u1_address,
+        &map![&env, (u1_address.clone(), colors_a_indexes)],
+        &Option::None,
+    );
 
-//     client.offer_post(&u2_address, &glyph_2, &glyph_1);
+    let hash_a = client.glyph_mint(
+        &u1_address,
+        &Option::None,
+        &16,
+        &id_a
+    );
 
-//     env.as_contract(&contract_address, || {
-//         let res_a = env
-//             .storage()
-//             .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash_a.clone()))
-//             .unwrap()
-//             .unwrap();
+    client.colors_mine(&u2_address, &None, &colors_b_amount);
+
+    let id_b = client.glyph_build(
+        &u2_address,
+        &map![&env, (u2_address.clone(), colors_b_indexes)],
+        &Option::None,
+    );
 
-//         assert_eq!(res_a, u2_address);
+    let hash_b = client.glyph_mint(
+        &u2_address,
+        &Option::None,
+        &16,
+        &id_b
+    );
 
-//         let res_b = env
-//             .storage()
-//             .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash_b.clone()))
-//             .unwrap()
-//             .unwrap();
+    env.budget().reset_default();
 
-//         assert_eq!(res_b, u1_address);
-//     });
+    // Real Tests
+    let glyph_1 = OfferType::Glyph(hash_a.clone());
+    let glyph_2 = OfferType::Glyph(hash_b.clone());
 
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &glyph_1, &glyph_2).unwrap_err(),
-//         Error::NotFound
-//     );
+    client.offer_post(&u1_address, &glyph_1, &glyph_2);
 
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &glyph_2, &glyph_1).unwrap_err(),
-//         Error::NotFound
-//     );
-// }
+    client.offer_post(&u2_address, &glyph_2, &glyph_1);
 
-// #[test]
-// fn test_rm_glyph_buy() {
-//     let env = Env::default();
+    env.as_contract(&contract_address, || {
+        let res_a = env
+            .storage()
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash_a.clone()))
+            .unwrap()
+            .unwrap();
 
-//     env.mock_all_auths();
+        assert_eq!(res_a, u2_address);
 
-//     // Contract
-//     let contract_address = env.register_contract(None, ColorGlyph);
-//     let client = ColorGlyphClient::new(&env, &contract_address);
+        let res_b = env
+            .storage()
+            .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash_b.clone()))
+            .unwrap()
+            .unwrap();
 
-//     // Token
-//     let token_admin = Address::random(&env);
-//     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-//     let token = token::Client::new(&env, &token_id);
+        assert_eq!(res_b, u1_address);
+    });
 
-//     // Accounts
-//     let u1_address = Address::random(&env);
-//     let fee_address = Address::random(&env);
+    assert_eq!(
+        client.try_offers_get(&glyph_1, &glyph_2),
+        Err(Ok(Error::NotFound))
+    );
 
-//     token.mint(&u1_address, &10_000);
+    assert_eq!(
+        client.try_offers_get(&glyph_2, &glyph_1),
+        Err(Ok(Error::NotFound))
+    );
+}
 
-//     client.initialize(&token_id, &fee_address);
+#[test]
+fn test_rm_glyph_buy() {
+    let env = Env::default();
 
-//     // Tests
-//     env.budget().reset_default();
+    env.mock_all_auths();
 
-//     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    // Contract
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
-//     for i in 0..ITERS {
-//         let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+    // Token
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
 
-//         colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
-//         color_amount.push_back((hex as u32, 1));
-//     }
+    // Accounts
+    let u1_address = Address::random(&env);
+    let fee_address = Address::random(&env);
 
-//     client.colors_mine(&u1_address, &None, &color_amount);
+    token.mint(&u1_address, &10_000);
 
-//     let hash = client.glyph_mint(
-//         &u1_address,
-//         &Option::None,
-//         &vec![&env, (u1_address.clone(), colors_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
+    client.initialize(&token_id, &fee_address);
 
-//     env.budget().reset_default();
+    // Tests
+    env.budget().reset_default();
 
-//     // Real Tests
-//     let amount: i128 = 1;
-//     let glyph = OfferType::Glyph(hash.clone());
-//     let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
+    let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut color_amount: Map<u32, u32> = Map::new(&env);
 
-//     client.offer_post(&u1_address, &asset, &glyph);
+    for i in 0..ITERS {
+        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
 
-//     assert_eq!(token.balance(&contract_address), 1i128);
+        colors_indexes.set(hex as u32, vec![&env, i as u32]);
+        color_amount.set(hex as u32, 1);
+    }
 
-//     assert_eq!(token.balance(&u1_address), 9_989i128);
+    client.colors_mine(&u1_address, &None, &color_amount);
 
-//     let offer = offers_get(&env, &contract_address, &asset, &glyph);
+    let id = client.glyph_build(
+        &u1_address,
+        &map![&env, (u1_address.clone(), colors_indexes)],
+        &Option::None,
+    );
 
-//     println!("{:?}", offer);
+    let hash = client.glyph_mint(
+        &u1_address,
+        &Option::None,
+        &16,
+        &id
+    );
 
-//     client.offer_delete(&u1_address, &asset, &glyph);
+    env.budget().reset_default();
 
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &asset, &glyph).unwrap_err(),
-//         Error::NotFound
-//     );
+    // Real Tests
+    let amount: i128 = 1;
+    let glyph = OfferType::Glyph(hash.clone());
+    let asset = OfferType::Asset(AssetAmount(token_id.clone(), amount));
 
-//     assert_eq!(token.balance(&contract_address), 0i128);
+    client.offer_post(&u1_address, &asset, &glyph);
 
-//     assert_eq!(token.balance(&u1_address), 9990i128);
-// }
+    assert_eq!(token.balance(&contract_address), 1i128);
 
-// #[test]
-// fn test_rm_glyph_sell() {
-//     let env = Env::default();
+    assert_eq!(token.balance(&u1_address), 9_989i128);
 
-//     env.mock_all_auths();
+    let offer = client.offers_get(&asset, &glyph);
 
-//     // Contract
-//     let contract_address = env.register_contract(None, ColorGlyph);
-//     let client = ColorGlyphClient::new(&env, &contract_address);
+    println!("{:?}", offer);
 
-//     // Token
-//     let token_admin = Address::random(&env);
-//     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-//     let token = token::Client::new(&env, &token_id);
+    client.offer_delete(&u1_address, &asset, &glyph);
 
-//     // Accounts
-//     let u1_address = Address::random(&env);
-//     let fee_address = Address::random(&env);
+    assert_eq!(
+        client.try_offers_get(&asset, &glyph),
+        Err(Ok(Error::NotFound))
+    );
 
-//     token.mint(&u1_address, &10_000);
+    assert_eq!(token.balance(&contract_address), 0i128);
 
-//     client.initialize(&token_id, &fee_address);
+    assert_eq!(token.balance(&u1_address), 9990i128);
+}
 
-//     // Tests
-//     env.budget().reset_default();
+#[test]
+fn test_rm_glyph_sell() {
+    let env = Env::default();
 
-//     let mut colors_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut color_amount: Vec<(u32, u32)> = Vec::new(&env);
+    env.mock_all_auths();
 
-//     for i in 0..ITERS {
-//         let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+    // Contract
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
-//         colors_indexes.push_back((hex as u32, vec![&env, i as u32]));
-//         color_amount.push_back((hex as u32, 1));
-//     }
+    // Token
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
 
-//     client.colors_mine(&u1_address, &None, &color_amount);
+    // Accounts
+    let u1_address = Address::random(&env);
+    let fee_address = Address::random(&env);
 
-//     let hash = client.glyph_mint(
-//         &u1_address,
-//         &Option::None,
-//         &vec![&env, (u1_address.clone(), colors_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
+    token.mint(&u1_address, &10_000);
 
-//     env.budget().reset_default();
+    client.initialize(&token_id, &fee_address);
 
-//     // Real Tests
-//     let glyph = OfferType::Glyph(hash.clone());
-//     let asset = OfferType::Asset(AssetAmount(token_id.clone(), 1i128));
+    // Tests
+    env.budget().reset_default();
 
-//     client.offer_post(&u1_address, &glyph, &asset);
+    let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut color_amount: Map<u32, u32> = Map::new(&env);
 
-//     let offer = offers_get(&env, &contract_address, &glyph, &asset);
+    for i in 0..ITERS {
+        let hex = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
 
-//     println!("{:?}", offer);
+        colors_indexes.set(hex as u32, vec![&env, i as u32]);
+        color_amount.set(hex as u32, 1);
+    }
 
-//     client.offer_delete(&u1_address, &glyph, &asset);
+    client.colors_mine(&u1_address, &None, &color_amount);
 
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &glyph, &asset).unwrap_err(),
-//         Error::NotFound
-//     );
+    let id = client.glyph_build(
+        &u1_address,
+        &map![&env, (u1_address.clone(), colors_indexes)],
+        &Option::None,
+    );
 
-//     assert_eq!(token.balance(&contract_address), 0i128);
+    let hash = client.glyph_mint(
+        &u1_address,
+        &Option::None,
+        &16,
+        &id
+    );
 
-//     assert_eq!(token.balance(&u1_address), 9990i128);
-// }
+    env.budget().reset_default();
 
-// #[test]
-// fn test_rm_glyph_swap() {
-//     let env = Env::default();
+    // Real Tests
+    let glyph = OfferType::Glyph(hash.clone());
+    let asset = OfferType::Asset(AssetAmount(token_id.clone(), 1i128));
 
-//     env.mock_all_auths();
+    client.offer_post(&u1_address, &glyph, &asset);
 
-//     // Contract
-//     let contract_address = env.register_contract(None, ColorGlyph);
-//     let client = ColorGlyphClient::new(&env, &contract_address);
+    let offer = client.offers_get(&glyph, &asset);
 
-//     // Token
-//     let token_admin = Address::random(&env);
-//     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-//     let token = token::Client::new(&env, &token_id);
+    println!("{:?}", offer);
 
-//     // Accounts
-//     let u1_address = Address::random(&env);
-//     let u2_address = Address::random(&env);
-//     let fee_address = Address::random(&env);
+    client.offer_delete(&u1_address, &glyph, &asset);
 
-//     token.mint(&u1_address, &10_000);
-//     token.mint(&u2_address, &10_000);
+    assert_eq!(
+        client.try_offers_get(&glyph, &asset),
+        Err(Ok(Error::NotFound))
+    );
 
-//     client.initialize(&token_id, &fee_address);
+    assert_eq!(token.balance(&contract_address), 0i128);
 
-//     // Tests
-//     env.budget().reset_default();
+    assert_eq!(token.balance(&u1_address), 9990i128);
+}
 
-//     let mut colors_a_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut colors_b_indexes: Vec<(u32, Vec<u32>)> = Vec::new(&env);
-//     let mut colors_a_amount: Vec<(u32, u32)> = Vec::new(&env);
-//     let mut colors_b_amount: Vec<(u32, u32)> = Vec::new(&env);
+#[test]
+fn test_rm_glyph_swap() {
+    let env = Env::default();
 
-//     for i in 0..ITERS {
-//         let hex_a = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
-//         let hex_b = 16777215i128.fixed_div_floor(ITERS, i + 1).unwrap();
+    env.mock_all_auths();
 
-//         colors_a_indexes.push_back((hex_a as u32, vec![&env, i as u32]));
-//         colors_b_indexes.push_back((hex_b as u32, vec![&env, i as u32]));
-//         colors_a_amount.push_back((hex_a as u32, 1));
-//         colors_b_amount.push_back((hex_b as u32, 1));
-//     }
+    // Contract
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
-//     client.colors_mine(&u1_address, &None, &colors_a_amount);
+    // Token
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
 
-//     let hash_a = client.glyph_mint(
-//         &u1_address,
-//         &Option::None,
-//         &vec![&env, (u1_address.clone(), colors_a_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
+    // Accounts
+    let u1_address = Address::random(&env);
+    let u2_address = Address::random(&env);
+    let fee_address = Address::random(&env);
 
-//     client.colors_mine(&u1_address, &Some(u2_address.clone()), &colors_b_amount);
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
 
-//     let hash_b = client.glyph_mint(
-//         &u2_address,
-//         &Option::None,
-//         &vec![&env, (u1_address.clone(), colors_b_indexes)],
-//         &16,
-//         &Option::None,
-//         &true,
-//     );
+    client.initialize(&token_id, &fee_address);
 
-//     env.budget().reset_default();
+    // Tests
+    env.budget().reset_default();
 
-//     // Real Tests
-//     let glyph_a = OfferType::Glyph(hash_a.clone());
-//     let glyph_b = OfferType::Glyph(hash_b.clone());
+    let mut colors_a_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut colors_b_indexes: Map<u32, Vec<u32>> = Map::new(&env);
+    let mut colors_a_amount: Map<u32, u32> = Map::new(&env);
+    let mut colors_b_amount: Map<u32, u32> = Map::new(&env);
 
-//     client.offer_post(&u1_address, &glyph_a, &glyph_b);
+    for i in 0..ITERS {
+        let hex_a = 16777215i128.fixed_div_floor(ITERS, i).unwrap(); // 0 - 16777215 (black to white)
+        let hex_b = 16777215i128.fixed_div_floor(ITERS, i + 1).unwrap();
 
-//     let offer = offers_get(&env, &contract_address, &glyph_a, &glyph_b);
+        colors_a_indexes.set(hex_a as u32, vec![&env, i as u32]);
+        colors_b_indexes.set(hex_b as u32, vec![&env, i as u32]);
+        colors_a_amount.set(hex_a as u32, 1);
+        colors_b_amount.set(hex_b as u32, 1);
+    }
 
-//     println!("{:?}", offer);
+    client.colors_mine(&u1_address, &None, &colors_a_amount);
 
-//     client.offer_delete(&u1_address, &glyph_a, &glyph_b);
+    let id_a = client.glyph_build(
+        &u1_address,
+        &map![&env, (u1_address.clone(), colors_a_indexes)],
+        &Option::None,
+    );
 
-//     assert_eq!(
-//         offers_get(&env, &contract_address, &glyph_a, &glyph_b).unwrap_err(),
-//         Error::NotFound
-//     );
+    let hash_a = client.glyph_mint(
+        &u1_address,
+        &Option::None,
+        &16,
+        &id_a
+    );
 
-//     assert_eq!(token.balance(&contract_address), 0i128);
+    client.colors_mine(&u1_address, &Some(u2_address.clone()), &colors_b_amount);
 
-//     assert_eq!(token.balance(&u1_address), 9980i128);
-// }
+    let id_b = client.glyph_build(
+        &u2_address,
+        &map![&env, (u1_address.clone(), colors_b_indexes)],
+        &Option::None,
+    );
+
+    let hash_b = client.glyph_mint(
+        &u2_address,
+        &Option::None,
+        &16,
+        &id_b
+    );
+
+    env.budget().reset_default();
+
+    // Real Tests
+    let glyph_a = OfferType::Glyph(hash_a.clone());
+    let glyph_b = OfferType::Glyph(hash_b.clone());
+
+    client.offer_post(&u1_address, &glyph_a, &glyph_b);
+
+    let offer = client.offers_get(&glyph_a, &glyph_b);
+
+    println!("{:?}", offer);
+
+    client.offer_delete(&u1_address, &glyph_a, &glyph_b);
+
+    assert_eq!(
+        client.try_offers_get(&glyph_a, &glyph_b),
+        Err(Ok(Error::NotFound))
+    );
+
+    assert_eq!(token.balance(&contract_address), 0i128);
+
+    assert_eq!(token.balance(&u1_address), 9980i128);
+}
