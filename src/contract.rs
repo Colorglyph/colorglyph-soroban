@@ -1,4 +1,4 @@
-use soroban_sdk::{contractimpl, panic_with_error, Address, Env, Map, Vec};
+use soroban_sdk::{contractimpl, panic_with_error, Address, Env, Map, Vec, contract};
 
 use crate::{
     colors::{color_balance, colors_mine, colors_transfer},
@@ -8,6 +8,7 @@ use crate::{
     types::{Error, GlyphType, HashId, Offer, OfferType, StorageKey},
 };
 
+#[contract]
 pub struct ColorGlyph;
 
 // TODO
@@ -16,12 +17,12 @@ pub struct ColorGlyph;
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
     fn initialize(env: Env, token_id: Address, fee_address: Address) {
-        if env.storage().has(&StorageKey::TokenAddress) {
+        if env.storage().persistent().has(&StorageKey::TokenAddress) {
             panic_with_error!(env, Error::NotEmpty);
         }
 
-        env.storage().set(&StorageKey::TokenAddress, &token_id);
-        env.storage().set(&StorageKey::FeeAddress, &fee_address);
+        env.storage().persistent().set(&StorageKey::TokenAddress, &token_id);
+        env.storage().persistent().set(&StorageKey::FeeAddress, &fee_address);
     }
 
     // Colors

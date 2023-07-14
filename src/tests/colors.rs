@@ -11,6 +11,7 @@ fn test() {
     let env = Env::default();
 
     env.mock_all_auths();
+    env.budget().reset_unlimited();
 
     // Contract
     let contract_address = env.register_contract(None, ColorGlyph);
@@ -19,7 +20,8 @@ fn test() {
     // Token
     let token_admin = Address::random(&env);
     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token = token::Client::new(&env, &token_id);
+    let token_admin_client = token::AdminClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -27,9 +29,9 @@ fn test() {
     let u3_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&u1_address, &10_000);
-    token.mint(&u2_address, &10_000);
-    token.mint(&u3_address, &10_000);
+    token_admin_client.mint(&u1_address, &10_000);
+    token_admin_client.mint(&u2_address, &10_000);
+    token_admin_client.mint(&u3_address, &10_000);
 
     client.initialize(&token_id, &fee_address);
 
@@ -40,14 +42,12 @@ fn test() {
         colors.set(i, 1);
     }
 
-    env.budget().reset_default();
     client.colors_mine(&u1_address, &None, &colors);
 
     let color = client.color_balance(&u1_address.clone(), &None, &0);
 
     assert_eq!(color, 1);
 
-    env.budget().reset_default();
     client.colors_mine(&u2_address, &Some(u1_address.clone()), &colors);
 
     let color1 = client.color_balance(&u1_address.clone(), &None, &0);
@@ -66,7 +66,9 @@ fn test() {
 
     assert_eq!(color1 + color2, 2);
 
-    assert_eq!(token.balance(&u1_address), 10_000 - 256);
-    assert_eq!(token.balance(&u2_address), 10_000 - 256);
-    assert_eq!(token.balance(&fee_address), 512);
+    assert_eq!(token_client.balance(&u1_address), 10_000 - 256);
+    assert_eq!(token_client.balance(&u2_address), 10_000 - 256);
+    assert_eq!(token_client.balance(&fee_address), 512);
+
+    // println!("{:?}", env.budget().print());
 }

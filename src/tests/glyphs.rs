@@ -7,12 +7,12 @@ use chrono::Utc;
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Glyph, HashId, StorageKey},
+    types::{HashId, GlyphType, Error, StorageKey},
 };
 use soroban_sdk::{
     map,
     testutils::{Address as _, Ledger, LedgerInfo},
-    token, vec, Address, Env, Map, Vec,
+    token, vec, Address, Env
 };
 
 // TODO
@@ -30,20 +30,21 @@ fn test_quick_mint() {
     let env = Env::default();
 
     env.mock_all_auths();
+    env.budget().reset_unlimited();
 
     let contract_address = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::random(&env);
     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token = token::Client::new(&env, &token_id);
+    let token_admin_client = token::AdminClient::new(&env, &token_id);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&u1_address, &10_000);
-    token.mint(&u2_address, &10_000);
+    token_admin_client.mint(&u1_address, &10_000);
+    token_admin_client.mint(&u2_address, &10_000);
 
     client.initialize(&token_id, &fee_address);
 
@@ -63,7 +64,6 @@ fn test_quick_mint() {
         ],
     );
 
-    env.budget().reset_default();
     let id = client.glyph_mint(
         &u1_address,
         &None,
@@ -89,7 +89,6 @@ fn test_quick_mint() {
         _ => panic!(),
     };
 
-    env.budget().reset_default();
     let hash = client.glyph_mint(
         &u1_address,
         &None,
@@ -113,6 +112,21 @@ fn test_quick_mint() {
     println!("{:?}\n", hash);
 
     println!("{:?}\n", client.glyph_get(&hash));
+
+    match hash {
+        HashId::Hash(hash) => {
+            env.as_contract(&contract_address, || {
+                let res = env
+                    .storage()
+                    .persistent()
+                    .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
+                    .unwrap();
+        
+                assert_eq!(res, u1_address);
+            });
+        },
+        _ => panic!(),
+    };
 }
 
 #[test]
@@ -120,20 +134,21 @@ fn test() {
     let env = Env::default();
 
     env.mock_all_auths();
+    env.budget().reset_unlimited();
 
     let contract_address = env.register_contract(None, ColorGlyph);
     let client = ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::random(&env);
     let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token = token::Client::new(&env, &token_id);
+    let token_admin_client = token::AdminClient::new(&env, &token_id);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
     let fee_address = Address::random(&env);
 
-    token.mint(&u1_address, &10_000);
-    token.mint(&u2_address, &10_000);
+    token_admin_client.mint(&u1_address, &10_000);
+    token_admin_client.mint(&u2_address, &10_000);
 
     client.initialize(&token_id, &fee_address);
 
@@ -178,9 +193,11 @@ fn test() {
         sequence_number: Default::default(),
         network_id: Default::default(),
         base_reserve: Default::default(),
+        min_temp_entry_expiration: Default::default(),
+        min_persistent_entry_expiration: Default::default(),
+        max_entry_expiration: Default::default(),
     });
 
-    env.budget().reset_default();
     let id = client.glyph_mint(
         &u1_address,
         &None,
@@ -229,7 +246,6 @@ fn test() {
         &None,
         &Some(id),
     );
-
     client.glyph_mint(
         &u1_address,
         &None,
@@ -312,41 +328,34 @@ fn test() {
 
     println!("{:?}", hash);
 
-    env.as_contract(&contract_address, || {
-        let res = env
-            .storage()
-            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
-
-        println!("{:?}", res.unwrap().unwrap().length);
-    });
+    match client.glyph_get(&HashId::Hash(hash.clone())) {
+        GlyphType::Glyph(glyph) => {
+            println!("{:?}", glyph.length);
+        },
+        _ => panic!(),
+    }
 
     let id = client.glyph_scrape(&u1_address, &None, &HashId::Hash(hash.clone()));
+    
+    assert_eq!(
+        client.try_glyph_get(&HashId::Hash(hash.clone())), 
+        Err(Ok(Error::NotFound))
+    );
 
-    env.as_contract(&contract_address, || {
-        let res1 = env
-            .storage()
-            .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()));
-
-        let res2 = env
-            .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id.unwrap()));
-
-        assert_eq!(res1, None);
-        assert_ne!(res2, None);
-    });
+    assert_ne!(
+        client.try_glyph_get(&HashId::Id(id.unwrap())), 
+        Err(Ok(Error::NotFound))
+    );
 
     assert_eq!(
         client.glyph_scrape(&u1_address, &None, &HashId::Id(id.unwrap())),
         None
     );
 
-    env.as_contract(&contract_address, || {
-        let res2 = env
-            .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id.unwrap()));
-
-        assert_eq!(res2, None);
-    });
+    assert_eq!(
+        client.try_glyph_get(&HashId::Id(id.unwrap())), 
+        Err(Ok(Error::NotFound))
+    );
 
     // println!("{:?}", env.budget().print());
 }

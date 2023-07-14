@@ -4,6 +4,8 @@
 // events
 // 20 storage writes is very limiting atm
 // Likely including unneccesary auth (token interface includes its own auth)
+// Implement bump logic
+// Ensure we're appropriately using the 3 different storage types
 
 mod contract;
 mod interface;

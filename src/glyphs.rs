@@ -94,9 +94,9 @@ fn glyph_craft(
         Some(id_) => {
             glyph_colors = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id_))
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                .unwrap();
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
             if store {
                 id = Some(id_)
@@ -105,31 +105,31 @@ fn glyph_craft(
     }
 
     // spend colors
-    for (miner, color_indexes) in colors.iter_unchecked() {
-        for (color, indexes) in color_indexes.iter_unchecked() {
+    for (miner, color_indexes) in colors.iter() {
+        for (color, indexes) in color_indexes.iter() {
             let miner_minter_color = StorageKey::Color(miner.clone(), minter.clone(), color);
             let current_amount = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, u32>(&miner_minter_color)
-                .unwrap_or(Ok(0))
-                .unwrap();
+                .unwrap_or(0);
 
             env.storage()
+                .persistent()
                 .set(&miner_minter_color, &(current_amount - indexes.len()));
 
             match glyph_colors.get(miner.clone()) {
                 Some(result) => match result {
-                    Ok(mut color_indexes_) => match color_indexes_.get(color) {
+                    mut color_indexes_ => match color_indexes_.get(color) {
                         // Exising miner and color
                         Some(result) => match result {
-                            Ok(mut indexes_) => {
-                                for index in indexes.iter_unchecked() {
+                            mut indexes_ => {
+                                for index in indexes.iter() {
                                     indexes_.push_back(index);
                                 }
                                 color_indexes_.set(color, indexes_);
                                 glyph_colors.set(miner.clone(), color_indexes_);
                             }
-                            _ => panic_with_error!(&env, Error::GroguDown),
                         },
                         // No color
                         None => {
@@ -137,7 +137,6 @@ fn glyph_craft(
                             glyph_colors.set(miner.clone(), color_indexes_);
                         }
                     },
-                    _ => panic_with_error!(&env, Error::GroguDown),
                 },
                 // No miner (or not exisiting glyphbox)
                 None => {
@@ -152,7 +151,7 @@ fn glyph_craft(
     if store {
         let id_ = id.unwrap();
 
-        env.storage().set(&StorageKey::Colors(id_), &glyph_colors);
+        env.storage().persistent().set(&StorageKey::Colors(id_), &glyph_colors);
 
         GlyphCraftType::Id(id_)
     } else {
@@ -173,11 +172,11 @@ fn glyph_store(
             Some(id) => {
                 colors = Some(
                     env.storage()
+                        .persistent()
                         .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                             id,
                         ))
-                        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                        .unwrap(),
+                        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound)),
                 );
             }
             None => panic_with_error!(env, Error::MissingId),
@@ -192,15 +191,15 @@ fn glyph_store(
     // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
     // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
 
-    for (_, color_indexes) in colors.clone().unwrap().iter_unchecked() {
-        for (color, indexes) in color_indexes.iter_unchecked() {
+    for (_, color_indexes) in colors.clone().unwrap().iter() {
+        for (color, indexes) in color_indexes.iter() {
             // TODO
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
             // RawVal maybe?
             // Ordering is important so you can't just hash the arg directly
             // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
 
-            for index in indexes.iter_unchecked() {
+            for index in indexes.iter() {
                 // We need to extend the length of the palette
                 if (hash_data.len() / 3) <= index {
                     // Start wherever we have data .. wherever we need data
@@ -233,12 +232,12 @@ fn glyph_store(
     let hash = env.crypto().sha256(&hash_data);
 
     // Glyph has already been minted and is currently owned (not scraped)
-    if env.storage().has(&StorageKey::GlyphOwner(hash.clone())) {
+    if env.storage().persistent().has(&StorageKey::GlyphOwner(hash.clone())) {
         panic_with_error!(env, Error::NotEmpty);
     }
 
     // Save the glyph owner to storage
-    env.storage().set(
+    env.storage().persistent().set(
         &StorageKey::GlyphOwner(hash.clone()),
         &match to {
             None => minter.clone(),
@@ -247,13 +246,14 @@ fn glyph_store(
     );
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
-    if !env.storage().has(&StorageKey::GlyphMinter(hash.clone())) {
+    if !env.storage().persistent().has(&StorageKey::GlyphMinter(hash.clone())) {
         env.storage()
+            .persistent()
             .set(&StorageKey::GlyphMinter(hash.clone()), &minter);
     }
 
     // Save the glyph to storage
-    env.storage().set(
+    env.storage().persistent().set(
         &StorageKey::Glyph(hash.clone()),
         &Glyph {
             width,
@@ -264,7 +264,7 @@ fn glyph_store(
 
     // Remove the temp GlyphBox
     if id.is_some() {
-        env.storage().remove(&StorageKey::Colors(id.unwrap()));
+        env.storage().persistent().remove(&StorageKey::Colors(id.unwrap()));
     }
 
     HashId::Hash(hash)
@@ -278,22 +278,24 @@ pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash_id: HashId) {
             glyph_verify_ownership(env, from.clone(), hash.clone());
 
             env.storage()
+                .persistent()
                 .set(&StorageKey::GlyphOwner(hash.clone()), &to);
         }
         HashId::Id(id) => {
             let miners_colors_indexes = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                     id.clone(),
                 ))
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                .unwrap();
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
             // TODO This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
 
-            env.storage().remove(&StorageKey::Colors(id));
+            env.storage().persistent().remove(&StorageKey::Colors(id));
 
             env.storage()
+                .persistent()
                 .set(&StorageKey::Colors(id.clone()), &miners_colors_indexes);
         }
     }
@@ -317,18 +319,21 @@ pub fn glyph_scrape(
 
             let glyph = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash.clone()))
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                .unwrap();
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
+
+            // TODO remove these `has` checks in the next release. `remove` should not break
+            // https://discord.com/channels/897514728459468821/1129494558829465671
 
             // Remove glyph
-            env.storage().remove(&StorageKey::Glyph(hash.clone()));
+            env.storage().persistent().remove(&StorageKey::Glyph(hash.clone()));
 
             // Remove glyph owner
-            env.storage().remove(&StorageKey::GlyphOwner(hash.clone()));
+            env.storage().persistent().remove(&StorageKey::GlyphOwner(hash.clone()));
 
             // Remove all glyph sell offers
-            env.storage().remove(&StorageKey::GlyphOffer(hash.clone()));
+            env.storage().persistent().remove(&StorageKey::GlyphOffer(hash.clone()));
 
             miners_colors_indexes = glyph.colors;
 
@@ -341,11 +346,11 @@ pub fn glyph_scrape(
         HashId::Id(id_) => {
             miners_colors_indexes = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
                     id_.clone(),
                 ))
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                .unwrap();
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
             id_u64 = id_.clone();
         }
@@ -354,12 +359,12 @@ pub fn glyph_scrape(
     // loop through the glyph colors and send them to `to`
     let mut payment_count: u8 = 0;
 
-    for (miner, mut colors_indexes) in miners_colors_indexes.iter_unchecked() {
+    for (miner, mut colors_indexes) in miners_colors_indexes.iter() {
         if payment_count >= MAX_PAYMENT_COUNT {
             break;
         }
 
-        for (color, indexes) in colors_indexes.iter_unchecked() {
+        for (color, indexes) in colors_indexes.iter() {
             if payment_count >= MAX_PAYMENT_COUNT {
                 break;
             }
@@ -374,11 +379,12 @@ pub fn glyph_scrape(
             );
             let current_amount = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, u32>(&miner_owner_color)
-                .unwrap_or(Ok(0))
-                .unwrap();
+                .unwrap_or(0);
 
             env.storage()
+                .persistent()
                 .set(&miner_owner_color, &(current_amount + indexes.len()));
 
             colors_indexes.remove(color);
@@ -396,7 +402,7 @@ pub fn glyph_scrape(
     if miners_colors_indexes.len() == 0 {
         match &hash_id {
             HashId::Id(id) => {
-                env.storage().remove(&StorageKey::Colors(id.clone()));
+                env.storage().persistent().remove(&StorageKey::Colors(id.clone()));
             }
             _ => {}
         }
@@ -405,6 +411,7 @@ pub fn glyph_scrape(
     } else {
         // save glyph
         env.storage()
+            .persistent()
             .set(&StorageKey::Colors(id_u64), &miners_colors_indexes);
 
         id = Some(id_u64);
@@ -418,18 +425,18 @@ pub fn glyph_get(env: &Env, hash_id: HashId) -> Result<GlyphType, Error> {
         HashId::Hash(hash) => {
             let glyph = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, Glyph>(&StorageKey::Glyph(hash))
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                .unwrap();
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
             Ok(GlyphType::Glyph(glyph))
         }
         HashId::Id(id) => {
             let colors = env
                 .storage()
+                .persistent()
                 .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id))
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-                .unwrap();
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
             Ok(GlyphType::Colors(colors))
         }
@@ -439,9 +446,9 @@ pub fn glyph_get(env: &Env, hash_id: HashId) -> Result<GlyphType, Error> {
 pub fn glyph_verify_ownership(env: &Env, from: Address, glyph_hash: BytesN<32>) {
     let glyph_owner = env
         .storage()
+        .persistent()
         .get::<StorageKey, Address>(&StorageKey::GlyphOwner(glyph_hash))
-        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-        .unwrap();
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
     if glyph_owner != from {
         panic_with_error!(env, Error::NotAuthorized);
