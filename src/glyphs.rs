@@ -1,8 +1,10 @@
 // use std::println;
 // extern crate std;
 
-use crate::types::{Error, Glyph, StorageKey, HashId, GlyphType};
-use soroban_sdk::{panic_with_error, xdr::ToXdr, Address, Bytes, BytesN, Env, Map, Vec};
+use crate::types::{Error, Glyph, GlyphType, HashId, StorageKey};
+use soroban_sdk::{
+    contracttype, panic_with_error, xdr::ToXdr, Address, Bytes, BytesN, Env, Map, Vec,
+};
 
 // TODO
 // Limit number of unique miner addresses in a mint `colors` Vec
@@ -13,51 +15,109 @@ pub const MAX_PAYMENT_COUNT: u8 = 15;
 // Then use that id to hold the colors and add an additional store to hold the GlyphBox owner
 // Note this really only helps GlyphBox transfers which is likely a rare case so probably not worth it
 
-pub fn glyph_build(
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum GlyphCraftType {
+    Id(u64),
+    Colors(Map<Address, Map<u32, Vec<u32>>>),
+}
+
+pub fn glyph_mint(
+    env: &Env,
+    minter: Address,
+    to: Option<Address>,
+    colors: Option<Map<Address, Map<u32, Vec<u32>>>>,
+    width: Option<u32>,
+    id: Option<u64>,
+) -> HashId {
+    minter.require_auth();
+
+    // TODO allow for craft and build in a single call
+
+    /*
+    if `colors` we have some crafting to do
+        if `width` we're also storing
+            if `id` we're continuing a craft
+    else we're just storing
+        requires width and id
+    */
+
+    match colors {
+        Some(colors) => {
+            match width {
+                // Craft and Store (quick mint)
+                Some(width) => match glyph_craft(env, minter.clone(), colors, id, false) {
+                    GlyphCraftType::Colors(colors) => {
+                        glyph_store(env, minter, to, Some(colors), width, None)
+                    }
+                    _ => panic_with_error!(&env, Error::GroguDown),
+                },
+                // Craft (start or continue mint of Colors)
+                None => match glyph_craft(env, minter, colors, id, true) {
+                    GlyphCraftType::Id(id) => HashId::Id(id),
+                    _ => panic_with_error!(&env, Error::GroguDown),
+                },
+            }
+        }
+        // Store (mint of crafted colors)
+        None => match id {
+            Some(id) => match width {
+                Some(width) => glyph_store(env, minter, to, None, width, Some(id)),
+                None => panic_with_error!(&env, Error::MissingWidth),
+            },
+            None => panic_with_error!(&env, Error::MissingId),
+        },
+    }
+}
+
+fn glyph_craft(
     env: &Env,
     minter: Address,
     colors: Map<Address, Map<u32, Vec<u32>>>,
     mut id: Option<u64>,
-) -> u64 {
-    minter.require_auth();
-
-    let mut miners_colors_indexes: Map<Address, Map<u32, Vec<u32>>> = Map::new(&env);
+    store: bool,
+) -> GlyphCraftType {
+    let mut glyph_colors: Map<Address, Map<u32, Vec<u32>>> = Map::new(&env);
 
     match id {
         None => {
-            let mut id_ = env.ledger().timestamp();
+            if store {
+                let mut id_ = env.ledger().timestamp();
 
-            for byte in minter.clone().to_xdr(&env).into_iter() {
-                id_ = id_.wrapping_add(byte as u64);
+                for byte in minter.clone().to_xdr(&env).iter() {
+                    id_ = id_.wrapping_add(byte as u64);
+                }
+
+                id = Some(id_);
             }
-
-            id = Some(id_);
         }
         Some(id_) => {
-            miners_colors_indexes = env
+            glyph_colors = env
                 .storage()
                 .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id_))
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
                 .unwrap();
 
-            id = Some(id_);
+            if store {
+                id = Some(id_)
+            }
         }
     }
 
     // spend colors
     for (miner, color_indexes) in colors.iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
-            let miner_owner_color = StorageKey::Color(miner.clone(), minter.clone(), color);
+            let miner_minter_color = StorageKey::Color(miner.clone(), minter.clone(), color);
             let current_amount = env
                 .storage()
-                .get::<StorageKey, u32>(&miner_owner_color)
+                .get::<StorageKey, u32>(&miner_minter_color)
                 .unwrap_or(Ok(0))
                 .unwrap();
 
             env.storage()
-                .set(&miner_owner_color, &(current_amount - indexes.len()));
+                .set(&miner_minter_color, &(current_amount - indexes.len()));
 
-            match miners_colors_indexes.get(miner.clone()) {
+            match glyph_colors.get(miner.clone()) {
                 Some(result) => match result {
                     Ok(mut color_indexes_) => match color_indexes_.get(color) {
                         // Exising miner and color
@@ -67,50 +127,62 @@ pub fn glyph_build(
                                     indexes_.push_back(index);
                                 }
                                 color_indexes_.set(color, indexes_);
-                                miners_colors_indexes.set(miner.clone(), color_indexes_);
+                                glyph_colors.set(miner.clone(), color_indexes_);
                             }
-                            _ => panic!(),
+                            _ => panic_with_error!(&env, Error::GroguDown),
                         },
                         // No color
                         None => {
                             color_indexes_.set(color, indexes);
-                            miners_colors_indexes.set(miner.clone(), color_indexes_);
+                            glyph_colors.set(miner.clone(), color_indexes_);
                         }
                     },
-                    _ => panic!(),
+                    _ => panic_with_error!(&env, Error::GroguDown),
                 },
                 // No miner (or not exisiting glyphbox)
                 None => {
-                    miners_colors_indexes.set(miner.clone(), color_indexes.clone());
+                    glyph_colors.set(miner.clone(), color_indexes.clone());
                     break; // we need to break here otherwise we continue looping inside this nested color loop which we've already fully added
                 }
             }
         }
     }
 
-    // println!("{:?}", miners_colors_indexes);
+    // store glyph
+    if store {
+        let id_ = id.unwrap();
 
-    // save glyph
-    env.storage()
-        .set(&StorageKey::Colors(id.unwrap()), &miners_colors_indexes);
+        env.storage().set(&StorageKey::Colors(id_), &glyph_colors);
 
-    id.unwrap()
+        GlyphCraftType::Id(id_)
+    } else {
+        GlyphCraftType::Colors(glyph_colors)
+    }
 }
 
-pub fn glyph_mint(
+fn glyph_store(
     env: &Env,
     minter: Address,
     to: Option<Address>,
+    mut colors: Option<Map<Address, Map<u32, Vec<u32>>>>,
     width: u32,
-    id: u64,
-) -> BytesN<32> {
-    minter.require_auth();
-
-    let colors = env
-        .storage()
-        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id))
-        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
-        .unwrap();
+    id: Option<u64>,
+) -> HashId {
+    if colors.is_none() {
+        match id {
+            Some(id) => {
+                colors = Some(
+                    env.storage()
+                        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
+                            id,
+                        ))
+                        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+                        .unwrap(),
+                );
+            }
+            None => panic_with_error!(env, Error::MissingId),
+        }
+    }
 
     let mut hash_data = Bytes::new(&env);
 
@@ -120,7 +192,7 @@ pub fn glyph_mint(
     // Need to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
     // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
 
-    for (_, color_indexes) in colors.iter_unchecked() {
+    for (_, color_indexes) in colors.clone().unwrap().iter_unchecked() {
         for (color, indexes) in color_indexes.iter_unchecked() {
             // TODO
             // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
@@ -186,17 +258,18 @@ pub fn glyph_mint(
         &Glyph {
             width,
             length: (hash_data.len() - 4) / 3, // -4 because we're appending width, /3 because there are 3 u8 values per u32 color
-            colors,
+            colors: colors.clone().unwrap(),
         },
     );
 
     // Remove the temp GlyphBox
-    env.storage().remove(&StorageKey::Colors(id));
+    if id.is_some() {
+        env.storage().remove(&StorageKey::Colors(id.unwrap()));
+    }
 
-    hash
+    HashId::Hash(hash)
 }
 
-// TODO support transfering GlyphBox as well
 pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash_id: HashId) {
     from.require_auth();
 
@@ -215,6 +288,8 @@ pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash_id: HashId) {
                 ))
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
                 .unwrap();
+
+            // TODO This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
 
             env.storage().remove(&StorageKey::Colors(id));
 
@@ -259,7 +334,7 @@ pub fn glyph_scrape(
 
             id_u64 = env.ledger().timestamp();
 
-            for byte in owner.clone().to_xdr(&env).into_iter() {
+            for byte in owner.clone().to_xdr(&env).iter() {
                 id_u64 = id_u64.wrapping_add(byte as u64);
             }
         }

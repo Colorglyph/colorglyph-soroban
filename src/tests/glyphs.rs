@@ -7,7 +7,7 @@ use chrono::Utc;
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Glyph, StorageKey, HashId},
+    types::{Glyph, HashId, StorageKey},
 };
 use soroban_sdk::{
     map,
@@ -24,6 +24,96 @@ use soroban_sdk::{
 // test scrape to `to` account
 // test glyph transfer
 // test glyphbox transfer
+
+#[test]
+fn test_quick_mint() {
+    let env = Env::default();
+
+    env.mock_all_auths();
+
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
+
+    let token_admin = Address::random(&env);
+    let token_id = env.register_stellar_asset_contract(token_admin.clone());
+    let token = token::Client::new(&env, &token_id);
+
+    let u1_address = Address::random(&env);
+    let u2_address = Address::random(&env);
+    let fee_address = Address::random(&env);
+
+    token.mint(&u1_address, &10_000);
+    token.mint(&u2_address, &10_000);
+
+    client.initialize(&token_id, &fee_address);
+
+    client.colors_mine(
+        &u1_address,
+        &None,
+        &map![
+            &env,
+            (0, 100),
+            (1, 100),
+            (2, 100),
+            (3, 100),
+            (4, 100),
+            (5, 100),
+            (6, 100),
+            (7, 100)
+        ],
+    );
+
+    env.budget().reset_default();
+    let id = client.glyph_mint(
+        &u1_address,
+        &None,
+        &Some(map![
+            &env,
+            (
+                u1_address.clone(),
+                map![
+                    &env,
+                    (0, vec![&env, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+                    (1, vec![&env, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]),
+                    (2, vec![&env, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]),
+                    (3, vec![&env, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]),
+                ]
+            )
+        ]),
+        &None,
+        &None,
+    );
+
+    let id = match id {
+        HashId::Id(id) => id,
+        _ => panic!(),
+    };
+
+    env.budget().reset_default();
+    let hash = client.glyph_mint(
+        &u1_address,
+        &None,
+        &Some(map![
+            &env,
+            (
+                u1_address.clone(),
+                map![
+                    &env,
+                    (4, vec![&env, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]),
+                    (5, vec![&env, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]),
+                    (6, vec![&env, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]),
+                    (7, vec![&env, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]),
+                ]
+            )
+        ]),
+        &Some(8),
+        &Some(id),
+    );
+
+    println!("{:?}\n", hash);
+
+    println!("{:?}\n", client.glyph_get(&hash));
+}
 
 #[test]
 fn test() {
@@ -49,7 +139,7 @@ fn test() {
 
     client.colors_mine(
         &u1_address,
-        &Option::None,
+        &None,
         &map![
             &env,
             (0, 100),
@@ -91,9 +181,10 @@ fn test() {
     });
 
     env.budget().reset_default();
-    let id = client.glyph_build(
+    let id = client.glyph_mint(
         &u1_address,
-        &map![
+        &None,
+        &Some(map![
             &env,
             (
                 u1_address.clone(),
@@ -106,15 +197,22 @@ fn test() {
                     (4, vec![&env, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]),
                 ]
             )
-        ],
-        &Option::None,
+        ]),
+        &None,
+        &None,
     );
 
-    // println!("{:?}", id);
+    let id = match id {
+        HashId::Id(id) => id,
+        _ => panic!(),
+    };
 
-    client.glyph_build(
+    println!("{:?}", id);
+
+    client.glyph_mint(
         &u1_address,
-        &map![
+        &None,
+        &Some(map![
             &env,
             (
                 u1_address.clone(),
@@ -127,15 +225,15 @@ fn test() {
                     (9, vec![&env, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]),
                 ]
             )
-        ],
+        ]),
+        &None,
         &Some(id),
     );
 
-    println!("{:?}\n", client.glyph_get(&HashId::Id(id.clone())));
-
-    client.glyph_build(
+    client.glyph_mint(
         &u1_address,
-        &map![
+        &None,
+        &Some(map![
             &env,
             (
                 u2_address.clone(),
@@ -163,12 +261,14 @@ fn test() {
                     ),
                 ]
             )
-        ],
+        ]),
+        &None,
         &Some(id),
     );
-    client.glyph_build(
+    client.glyph_mint(
         &u1_address,
-        &map![
+        &None,
+        &Some(map![
             &env,
             (
                 u2_address.clone(),
@@ -196,21 +296,21 @@ fn test() {
                     ),
                 ]
             )
-        ],
+        ]),
+        &None,
         &Some(id),
     );
 
-    env.as_contract(&contract_address, || {
-        let res = env
-            .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id));
+    println!("{:?}\n", client.glyph_get(&HashId::Id(id.clone())));
 
-        println!("{:?}", res);
-    });
+    let hash = client.glyph_mint(&u1_address, &None, &None, &Some(14), &Some(id));
 
-    let hash = client.glyph_mint(&u1_address, &Option::None, &14, &id);
+    let hash = match hash {
+        HashId::Hash(hash) => hash,
+        _ => panic!(),
+    };
 
-    // println!("{:?}", hash);
+    println!("{:?}", hash);
 
     env.as_contract(&contract_address, || {
         let res = env
@@ -220,11 +320,7 @@ fn test() {
         println!("{:?}", res.unwrap().unwrap().length);
     });
 
-    let id = client.glyph_scrape(
-        &u1_address,
-        &Option::None,
-        &HashId::Hash(hash.clone()),
-    );
+    let id = client.glyph_scrape(&u1_address, &None, &HashId::Hash(hash.clone()));
 
     env.as_contract(&contract_address, || {
         let res1 = env
@@ -233,27 +329,21 @@ fn test() {
 
         let res2 = env
             .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
-                id.unwrap(),
-            ));
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id.unwrap()));
 
         assert_eq!(res1, None);
         assert_ne!(res2, None);
     });
 
-    // println!("{:?}", id);
-
     assert_eq!(
-        client.glyph_scrape(&u1_address, &Option::None, &HashId::Id(id.unwrap())),
+        client.glyph_scrape(&u1_address, &None, &HashId::Id(id.unwrap())),
         None
     );
 
     env.as_contract(&contract_address, || {
         let res2 = env
             .storage()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(
-                id.unwrap(),
-            ));
+            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&StorageKey::Colors(id.unwrap()));
 
         assert_eq!(res2, None);
     });

@@ -43,14 +43,14 @@ fn test() {
     env.budget().reset_default();
     client.colors_mine(&u1_address, &None, &colors);
 
-    let color = client.color_balance(&u1_address.clone(), &Option::None, &0);
+    let color = client.color_balance(&u1_address.clone(), &None, &0);
 
     assert_eq!(color, 1);
 
     env.budget().reset_default();
     client.colors_mine(&u2_address, &Some(u1_address.clone()), &colors);
 
-    let color1 = client.color_balance(&u1_address.clone(), &Option::None, &0);
+    let color1 = client.color_balance(&u1_address.clone(), &None, &0);
     let color2 = client.color_balance(&u1_address.clone(), &Option::Some(u2_address.clone()), &0);
 
     assert_eq!(color1 + color2, 2);
@@ -58,11 +58,7 @@ fn test() {
     client.colors_transfer(
         &u1_address,
         &u3_address,
-        &vec![
-            &env,
-            (u1_address.clone(), 0, 1),
-            (u2_address.clone(), 0, 1),
-        ],
+        &vec![&env, (u1_address.clone(), 0, 1), (u2_address.clone(), 0, 1)],
     );
 
     let color1 = client.color_balance(&u3_address.clone(), &Option::Some(u1_address.clone()), &0);

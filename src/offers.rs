@@ -3,10 +3,7 @@ use soroban_sdk::{panic_with_error, token, Address, Env, Vec};
 
 use crate::{
     glyphs::glyph_verify_ownership,
-    types::{
-        Error, Glyph, Offer, OfferType,
-        StorageKey,
-    },
+    types::{Error, Glyph, Offer, OfferType, StorageKey},
 };
 
 // TODO
@@ -178,9 +175,7 @@ pub fn offer_post(
                         .unwrap();
                     let glyph_minter = env
                         .storage()
-                        .get::<StorageKey, Address>(&StorageKey::GlyphMinter(
-                            glyph_hash.clone(),
-                        ))
+                        .get::<StorageKey, Address>(&StorageKey::GlyphMinter(glyph_hash.clone()))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 
@@ -238,21 +233,24 @@ pub fn offer_post(
                     let offer_owner = offers.pop_front().unwrap().unwrap();
 
                     if offers.is_empty() {
-                        env.storage().remove(&StorageKey::AssetOffer(glyph_hash.clone(), asset_address, amount));
+                        env.storage().remove(&StorageKey::AssetOffer(
+                            glyph_hash.clone(),
+                            asset_address,
+                            amount,
+                        ));
                     } else {
-                        env.storage()
-                            .set(&StorageKey::AssetOffer(glyph_hash.clone(), asset_address, amount), &offers);
+                        env.storage().set(
+                            &StorageKey::AssetOffer(glyph_hash.clone(), asset_address, amount),
+                            &offers,
+                        );
                     }
 
                     // transfer ownership of Glyph from glyph giver to Glyph taker
-                    env.storage().set(
-                        &StorageKey::GlyphOwner(glyph_hash.clone()),
-                        &offer_owner,
-                    );
+                    env.storage()
+                        .set(&StorageKey::GlyphOwner(glyph_hash.clone()), &offer_owner);
 
                     // remove all other sell offers for this glyph
-                    env.storage()
-                        .remove(&StorageKey::GlyphOffer(glyph_hash));
+                    env.storage().remove(&StorageKey::GlyphOffer(glyph_hash));
                 }
             }
         }
@@ -295,13 +293,20 @@ pub fn offer_post(
 
                             let mut offers = env
                                 .storage()
-                                .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(glyph_hash.clone(), asset_hash.clone(), amount))
+                                .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(
+                                    glyph_hash.clone(),
+                                    asset_hash.clone(),
+                                    amount,
+                                ))
                                 .unwrap_or(Ok(Vec::new(env)))
                                 .unwrap();
 
                             offers.push_back(seller);
 
-                            env.storage().set(&StorageKey::AssetOffer(glyph_hash, asset_hash, amount), &offers);
+                            env.storage().set(
+                                &StorageKey::AssetOffer(glyph_hash, asset_hash, amount),
+                                &offers,
+                            );
                         }
                         _ => panic_with_error!(env, Error::NotPermitted), // You cannot sell an Asset for an Asset
                     }
@@ -342,9 +347,16 @@ pub fn offer_delete(env: &Env, seller: Address, sell: OfferType, buy: OfferType)
                             offers.remove(offer_index);
 
                             if offers.is_empty() {
-                                env.storage().remove(&StorageKey::AssetOffer(glyph_hash, asset_address, amount));
+                                env.storage().remove(&StorageKey::AssetOffer(
+                                    glyph_hash,
+                                    asset_address,
+                                    amount,
+                                ));
                             } else {
-                                env.storage().set(&StorageKey::AssetOffer(glyph_hash, asset_address, amount), &offers);
+                                env.storage().set(
+                                    &StorageKey::AssetOffer(glyph_hash, asset_address, amount),
+                                    &offers,
+                                );
                             }
                         }
                         None => panic_with_error!(env, Error::NotFound),
@@ -375,12 +387,7 @@ pub fn offers_get(env: &Env, sell: OfferType, buy: OfferType) -> Result<Offer, E
                         .unwrap();
 
                     // We don't always use glyph_offers & offer_index but they're necessary to lookup here as it's how we look for a specific offer
-                    Ok(Offer::Glyph(
-                        offer_index,
-                        offers,
-                        offer_owner,
-                        offer_hash,
-                    ))
+                    Ok(Offer::Glyph(offer_index, offers, offer_owner, offer_hash))
                 }
                 _ => Err(Error::NotFound),
             }
@@ -391,7 +398,11 @@ pub fn offers_get(env: &Env, sell: OfferType, buy: OfferType) -> Result<Offer, E
                 OfferType::Glyph(glyph_hash) => {
                     let offers = env
                         .storage()
-                        .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(glyph_hash.clone(), asset_hash.clone(), amount))
+                        .get::<StorageKey, Vec<Address>>(&StorageKey::AssetOffer(
+                            glyph_hash.clone(),
+                            asset_hash.clone(),
+                            amount,
+                        ))
                         .ok_or(Error::NotFound)?
                         .unwrap();
 

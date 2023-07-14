@@ -1,8 +1,6 @@
-use soroban_sdk::{Address, BytesN, Env, Map, Vec};
+use soroban_sdk::{Address, Env, Map, Vec};
 
-use crate::types::{Error, Offer, OfferType, HashId, GlyphType};
-
-// TODO add back get color, glyph and offer functions due to cross contract call needs
+use crate::types::{Error, GlyphType, HashId, Offer, OfferType};
 
 pub trait ColorGlyphTrait {
     fn initialize(env: Env, token_id: Address, fee_address: Address);
@@ -13,26 +11,16 @@ pub trait ColorGlyphTrait {
     fn color_balance(env: Env, owner: Address, miner: Option<Address>, color: u32) -> u32;
 
     // Glyphs
-    fn glyph_build(
-        env: Env,
-        minter: Address,
-        colors: Map<Address, Map<u32, Vec<u32>>>,
-        id: Option<u64>,
-    ) -> u64;
     fn glyph_mint(
         env: Env,
         minter: Address,
         to: Option<Address>,
-        width: u32,
-        id: u64,
-    ) -> BytesN<32>;
+        colors: Option<Map<Address, Map<u32, Vec<u32>>>>,
+        width: Option<u32>,
+        id: Option<u64>,
+    ) -> HashId;
     fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: HashId);
-    fn glyph_scrape(
-        env: Env,
-        owner: Address,
-        to: Option<Address>,
-        hash_id: HashId,
-    ) -> Option<u64>;
+    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash_id: HashId) -> Option<u64>;
     fn glyph_get(env: Env, hash_id: HashId) -> Result<GlyphType, Error>;
 
     // Offers

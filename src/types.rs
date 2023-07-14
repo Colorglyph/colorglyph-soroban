@@ -4,10 +4,13 @@ use soroban_sdk::{contracterror, contracttype, Address, BytesN, Map, Vec};
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(u32)]
 pub enum Error {
+    GroguDown = 0,
     NotFound = 1,
     NotEmpty = 2,
     NotAuthorized = 3,
     NotPermitted = 4,
+    MissingWidth = 5,
+    MissingId = 6,
 }
 
 #[contracttype]
@@ -21,14 +24,14 @@ pub enum StorageKey {
     GlyphMinter(BytesN<32>),
     GlyphOffer(BytesN<32>),
     AssetOffer(BytesN<32>, Address, i128),
-    Color(Address, Address, u32)
+    Color(Address, Address, u32),
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HashId {
-    Hash(BytesN<32>),
     Id(u64),
+    Hash(BytesN<32>),
 }
 
 #[contracttype]
