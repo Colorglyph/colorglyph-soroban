@@ -151,7 +151,9 @@ fn glyph_craft(
     if store {
         let id_ = id.unwrap();
 
-        env.storage().persistent().set(&StorageKey::Colors(id_), &glyph_colors);
+        env.storage()
+            .persistent()
+            .set(&StorageKey::Colors(id_), &glyph_colors);
 
         GlyphCraftType::Id(id_)
     } else {
@@ -232,7 +234,11 @@ fn glyph_store(
     let hash = env.crypto().sha256(&hash_data);
 
     // Glyph has already been minted and is currently owned (not scraped)
-    if env.storage().persistent().has(&StorageKey::GlyphOwner(hash.clone())) {
+    if env
+        .storage()
+        .persistent()
+        .has(&StorageKey::GlyphOwner(hash.clone()))
+    {
         panic_with_error!(env, Error::NotEmpty);
     }
 
@@ -246,7 +252,11 @@ fn glyph_store(
     );
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
-    if !env.storage().persistent().has(&StorageKey::GlyphMinter(hash.clone())) {
+    if !env
+        .storage()
+        .persistent()
+        .has(&StorageKey::GlyphMinter(hash.clone()))
+    {
         env.storage()
             .persistent()
             .set(&StorageKey::GlyphMinter(hash.clone()), &minter);
@@ -264,7 +274,9 @@ fn glyph_store(
 
     // Remove the temp GlyphBox
     if id.is_some() {
-        env.storage().persistent().remove(&StorageKey::Colors(id.unwrap()));
+        env.storage()
+            .persistent()
+            .remove(&StorageKey::Colors(id.unwrap()));
     }
 
     HashId::Hash(hash)
@@ -327,13 +339,19 @@ pub fn glyph_scrape(
             // https://discord.com/channels/897514728459468821/1129494558829465671
 
             // Remove glyph
-            env.storage().persistent().remove(&StorageKey::Glyph(hash.clone()));
+            env.storage()
+                .persistent()
+                .remove(&StorageKey::Glyph(hash.clone()));
 
             // Remove glyph owner
-            env.storage().persistent().remove(&StorageKey::GlyphOwner(hash.clone()));
+            env.storage()
+                .persistent()
+                .remove(&StorageKey::GlyphOwner(hash.clone()));
 
             // Remove all glyph sell offers
-            env.storage().persistent().remove(&StorageKey::GlyphOffer(hash.clone()));
+            env.storage()
+                .persistent()
+                .remove(&StorageKey::GlyphOffer(hash.clone()));
 
             miners_colors_indexes = glyph.colors;
 
@@ -402,7 +420,9 @@ pub fn glyph_scrape(
     if miners_colors_indexes.len() == 0 {
         match &hash_id {
             HashId::Id(id) => {
-                env.storage().persistent().remove(&StorageKey::Colors(id.clone()));
+                env.storage()
+                    .persistent()
+                    .remove(&StorageKey::Colors(id.clone()));
             }
             _ => {}
         }

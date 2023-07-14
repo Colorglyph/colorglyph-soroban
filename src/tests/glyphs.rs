@@ -7,12 +7,12 @@ use chrono::Utc;
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{HashId, GlyphType, Error, StorageKey},
+    types::{Error, GlyphType, HashId, StorageKey},
 };
 use soroban_sdk::{
     map,
     testutils::{Address as _, Ledger, LedgerInfo},
-    token, vec, Address, Env
+    token, vec, Address, Env,
 };
 
 // TODO
@@ -121,10 +121,10 @@ fn test_quick_mint() {
                     .persistent()
                     .get::<StorageKey, Address>(&StorageKey::GlyphOwner(hash.clone()))
                     .unwrap();
-        
+
                 assert_eq!(res, u1_address);
             });
-        },
+        }
         _ => panic!(),
     };
 }
@@ -331,19 +331,19 @@ fn test() {
     match client.glyph_get(&HashId::Hash(hash.clone())) {
         GlyphType::Glyph(glyph) => {
             println!("{:?}", glyph.length);
-        },
+        }
         _ => panic!(),
     }
 
     let id = client.glyph_scrape(&u1_address, &None, &HashId::Hash(hash.clone()));
-    
+
     assert_eq!(
-        client.try_glyph_get(&HashId::Hash(hash.clone())), 
+        client.try_glyph_get(&HashId::Hash(hash.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_ne!(
-        client.try_glyph_get(&HashId::Id(id.unwrap())), 
+        client.try_glyph_get(&HashId::Id(id.unwrap())),
         Err(Ok(Error::NotFound))
     );
 
@@ -353,7 +353,7 @@ fn test() {
     );
 
     assert_eq!(
-        client.try_glyph_get(&HashId::Id(id.unwrap())), 
+        client.try_glyph_get(&HashId::Id(id.unwrap())),
         Err(Ok(Error::NotFound))
     );
 

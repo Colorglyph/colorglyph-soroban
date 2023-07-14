@@ -1,11 +1,4 @@
-use soroban_sdk::{
-    token,
-    Address,
-    Env,
-    Map,
-    // Symbol,
-    Vec,
-};
+use soroban_sdk::{token, Address, Env, Map, Vec};
 
 use crate::types::StorageKey;
 
@@ -25,7 +18,7 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
 
     for (color, amount) in colors.iter() {
         let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
-        
+
         // env.events()
         //     .publish((COLORS, Symbol::short("mine")), miner_owner_color.clone());
 

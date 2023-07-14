@@ -1,4 +1,4 @@
-use soroban_sdk::{contractimpl, panic_with_error, Address, Env, Map, Vec, contract};
+use soroban_sdk::{contract, contractimpl, panic_with_error, Address, Env, Map, Vec};
 
 use crate::{
     colors::{color_balance, colors_mine, colors_transfer},
@@ -21,8 +21,12 @@ impl ColorGlyphTrait for ColorGlyph {
             panic_with_error!(env, Error::NotEmpty);
         }
 
-        env.storage().instance().set(&StorageKey::TokenAddress, &token_id);
-        env.storage().instance().set(&StorageKey::FeeAddress, &fee_address);
+        env.storage()
+            .instance()
+            .set(&StorageKey::TokenAddress, &token_id);
+        env.storage()
+            .instance()
+            .set(&StorageKey::FeeAddress, &fee_address);
     }
 
     // Colors

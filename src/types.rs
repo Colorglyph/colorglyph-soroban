@@ -16,14 +16,14 @@ pub enum Error {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StorageKey {
-    TokenAddress, // instance
-    FeeAddress, // instance
-    Colors(u64), // permanent
-    Glyph(BytesN<32>), // permanent
-    GlyphOwner(BytesN<32>), // permanent
-    GlyphMinter(BytesN<32>), // permanent
-    Color(Address, Address, u32), // permanent
-    GlyphOffer(BytesN<32>), // permanent
+    TokenAddress,                          // instance
+    FeeAddress,                            // instance
+    Colors(u64),                           // permanent
+    Glyph(BytesN<32>),                     // permanent
+    GlyphOwner(BytesN<32>),                // permanent
+    GlyphMinter(BytesN<32>),               // permanent
+    Color(Address, Address, u32),          // permanent
+    GlyphOffer(BytesN<32>),                // permanent
     AssetOffer(BytesN<32>, Address, i128), // permanent
 }
 

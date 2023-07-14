@@ -73,10 +73,14 @@ pub fn offer_post(
                             );
 
                             // remove all glyph seller offers
-                            env.storage().persistent().remove(&StorageKey::GlyphOffer(offer_hash));
+                            env.storage()
+                                .persistent()
+                                .remove(&StorageKey::GlyphOffer(offer_hash));
 
                             // remove all glyph buyer offers
-                            env.storage().persistent().remove(&StorageKey::GlyphOffer(existing_offer_hash));
+                            env.storage()
+                                .persistent()
+                                .remove(&StorageKey::GlyphOffer(existing_offer_hash));
                         }
                         // sell asset now for glyph
                         OfferType::Asset(offer_hash, amount) => {
@@ -153,7 +157,9 @@ pub fn offer_post(
                             );
 
                             // remove all other sell offers for this glyph
-                            env.storage().persistent().remove(&StorageKey::GlyphOffer(existing_offer_hash));
+                            env.storage()
+                                .persistent()
+                                .remove(&StorageKey::GlyphOffer(existing_offer_hash));
                         }
                     }
                 }
@@ -249,7 +255,9 @@ pub fn offer_post(
                         .set(&StorageKey::GlyphOwner(glyph_hash.clone()), &offer_owner);
 
                     // remove all other sell offers for this glyph
-                    env.storage().persistent().remove(&StorageKey::GlyphOffer(glyph_hash));
+                    env.storage()
+                        .persistent()
+                        .remove(&StorageKey::GlyphOffer(glyph_hash));
                 }
             }
         }
