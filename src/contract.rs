@@ -17,12 +17,12 @@ pub struct ColorGlyph;
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
     fn initialize(env: Env, token_id: Address, fee_address: Address) {
-        if env.storage().persistent().has(&StorageKey::TokenAddress) {
+        if env.storage().instance().has(&StorageKey::TokenAddress) {
             panic_with_error!(env, Error::NotEmpty);
         }
 
-        env.storage().persistent().set(&StorageKey::TokenAddress, &token_id);
-        env.storage().persistent().set(&StorageKey::FeeAddress, &fee_address);
+        env.storage().instance().set(&StorageKey::TokenAddress, &token_id);
+        env.storage().instance().set(&StorageKey::FeeAddress, &fee_address);
     }
 
     // Colors

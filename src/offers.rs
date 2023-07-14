@@ -282,7 +282,7 @@ pub fn offer_post(
                         OfferType::Glyph(glyph_hash) => {
                             let token_id = env
                                 .storage()
-                                .persistent()
+                                .instance()
                                 .get::<StorageKey, Address>(&StorageKey::TokenAddress)
                                 .unwrap();
                             let token = token::Client::new(env, &token_id);

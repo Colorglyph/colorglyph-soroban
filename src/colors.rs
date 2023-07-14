@@ -25,6 +25,7 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
 
     for (color, amount) in colors.iter() {
         let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
+        
         // env.events()
         //     .publish((COLORS, Symbol::short("mine")), miner_owner_color.clone());
 
@@ -43,13 +44,13 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
 
     let token_id = env
         .storage()
-        .persistent()
+        .instance()
         .get::<StorageKey, Address>(&StorageKey::TokenAddress)
         .unwrap();
     let token = token::Client::new(env, &token_id);
     let fee_address = env
         .storage()
-        .persistent()
+        .instance()
         .get::<StorageKey, Address>(&StorageKey::FeeAddress)
         .unwrap();
 
