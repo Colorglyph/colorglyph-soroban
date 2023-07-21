@@ -19,9 +19,9 @@ fn test() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
-    let token_client = token::Client::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -33,7 +33,7 @@ fn test() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     let mut colors: Map<u32, u32> = Map::new(&env);
@@ -61,9 +61,15 @@ fn test() {
         &vec![&env, (u1_address.clone(), 0, 1), (u2_address.clone(), 0, 1)],
     );
 
+    let color0 = client.color_balance(
+        &u3_address.clone(),
+        &Option::Some(u1_address.clone()),
+        &u32::MAX,
+    );
     let color1 = client.color_balance(&u3_address.clone(), &Option::Some(u1_address.clone()), &0);
     let color2 = client.color_balance(&u3_address.clone(), &Option::Some(u2_address.clone()), &0);
 
+    assert_eq!(color0, 0); // ensure we test for colors that don't exist (getting and bumping non-existent values)
     assert_eq!(color1 + color2, 2);
 
     assert_eq!(token_client.balance(&u1_address), 10_000 - 256);

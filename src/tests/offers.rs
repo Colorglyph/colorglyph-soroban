@@ -26,9 +26,9 @@ fn test_buy_glyph() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
-    let token_client = token::Client::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -40,7 +40,7 @@ fn test_buy_glyph() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -82,7 +82,7 @@ fn test_buy_glyph() {
     // Real Tests
     let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(token_id.clone(), amount);
+    let asset = OfferType::Asset(token_address.clone(), amount);
 
     client.offer_post(&u2_address, &asset, &glyph);
 
@@ -129,9 +129,9 @@ fn test_sell_glyph() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
-    let token_client = token::Client::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -143,7 +143,7 @@ fn test_sell_glyph() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -185,7 +185,7 @@ fn test_sell_glyph() {
     // Real Tests
     let amount: i128 = 100;
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(token_id.clone(), amount);
+    let asset = OfferType::Asset(token_address.clone(), amount);
 
     client.offer_post(&u1_address, &glyph, &asset);
 
@@ -231,8 +231,8 @@ fn test_swap_glyph() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -242,7 +242,7 @@ fn test_swap_glyph() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -357,9 +357,9 @@ fn test_rm_glyph_buy() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
-    let token_client = token::Client::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -367,7 +367,7 @@ fn test_rm_glyph_buy() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -409,7 +409,7 @@ fn test_rm_glyph_buy() {
     // Real Tests
     let amount: i128 = 1;
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(token_id.clone(), amount);
+    let asset = OfferType::Asset(token_address.clone(), amount);
 
     client.offer_post(&u1_address, &asset, &glyph);
 
@@ -445,9 +445,9 @@ fn test_rm_glyph_sell() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
-    let token_client = token::Client::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -455,7 +455,7 @@ fn test_rm_glyph_sell() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -496,7 +496,7 @@ fn test_rm_glyph_sell() {
 
     // Real Tests
     let glyph = OfferType::Glyph(hash.clone());
-    let asset = OfferType::Asset(token_id.clone(), 1i128);
+    let asset = OfferType::Asset(token_address.clone(), 1i128);
 
     client.offer_post(&u1_address, &glyph, &asset);
 
@@ -528,9 +528,9 @@ fn test_rm_glyph_swap() {
 
     // Token
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
-    let token_client = token::Client::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -540,7 +540,7 @@ fn test_rm_glyph_swap() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();

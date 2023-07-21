@@ -8,6 +8,8 @@ use crate::{
     types::{Error, GlyphType, HashId, Offer, OfferType, StorageKey},
 };
 
+pub const MAX_ENTRY_LIFETIME: u32 = 6_312_000;
+
 #[contract]
 pub struct ColorGlyph;
 
@@ -16,17 +18,19 @@ pub struct ColorGlyph;
 
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
-    fn initialize(env: Env, token_id: Address, fee_address: Address) {
+    fn initialize(env: Env, token_address: Address, fee_address: Address) {
         if env.storage().instance().has(&StorageKey::TokenAddress) {
             panic_with_error!(env, Error::NotEmpty);
         }
 
         env.storage()
             .instance()
-            .set(&StorageKey::TokenAddress, &token_id);
+            .set(&StorageKey::TokenAddress, &token_address);
         env.storage()
             .instance()
             .set(&StorageKey::FeeAddress, &fee_address);
+
+        env.storage().instance().bump(MAX_ENTRY_LIFETIME);
     }
 
     // Colors
@@ -51,7 +55,7 @@ impl ColorGlyphTrait for ColorGlyph {
     ) -> HashId {
         glyph_mint(&env, minter, to, colors, width, id)
     }
-    fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: HashId) {
+    fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: HashId) -> Option<u64> {
         glyph_transfer(&env, from, to, hash_id)
     }
     fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash_id: HashId) -> Option<u64> {

@@ -1,6 +1,6 @@
 use soroban_sdk::{token, Address, Env, Map, Vec};
 
-use crate::types::StorageKey;
+use crate::{contract::MAX_ENTRY_LIFETIME, types::StorageKey};
 
 // const COLORS: Symbol = Symbol::short("COLORS");
 
@@ -33,19 +33,25 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
         env.storage()
             .persistent()
             .set(&miner_owner_color, &(current_amount + amount));
+
+        env.storage()
+            .persistent()
+            .bump(&miner_owner_color, MAX_ENTRY_LIFETIME);
     }
 
-    let token_id = env
+    let token_address = env
         .storage()
         .instance()
         .get::<StorageKey, Address>(&StorageKey::TokenAddress)
         .unwrap();
-    let token = token::Client::new(env, &token_id);
     let fee_address = env
         .storage()
         .instance()
         .get::<StorageKey, Address>(&StorageKey::FeeAddress)
         .unwrap();
+    let token = token::Client::new(env, &token_address);
+
+    env.storage().instance().bump(MAX_ENTRY_LIFETIME);
 
     token.transfer(&miner, &fee_address, &i128::from(pay_amount));
 }
@@ -79,6 +85,13 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Addre
         env.storage()
             .persistent()
             .set(&to_miner_owner_color, &(current_to_amount + amount));
+
+        env.storage()
+            .persistent()
+            .bump(&from_miner_owner_color, MAX_ENTRY_LIFETIME);
+        env.storage()
+            .persistent()
+            .bump(&to_miner_owner_color, MAX_ENTRY_LIFETIME);
     }
 }
 
@@ -87,9 +100,17 @@ pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u
         None => owner.clone(),
         Some(address) => address,
     };
+    let color_key = StorageKey::Color(miner, owner, color);
+
+    let color = env
+        .storage()
+        .persistent()
+        .get::<StorageKey, u32>(&color_key)
+        .unwrap_or(0);
 
     env.storage()
         .persistent()
-        .get::<StorageKey, u32>(&StorageKey::Color(miner, owner, color))
-        .unwrap_or(0)
+        .bump(&color_key, MAX_ENTRY_LIFETIME);
+
+    color
 }

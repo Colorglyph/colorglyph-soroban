@@ -36,8 +36,8 @@ fn test_quick_mint() {
     let client = ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
@@ -46,7 +46,7 @@ fn test_quick_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     client.colors_mine(
         &u1_address,
@@ -140,8 +140,8 @@ fn test() {
     let client = ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::random(&env);
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_id);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
@@ -150,7 +150,7 @@ fn test() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_id, &fee_address);
+    client.initialize(&token_address, &fee_address);
 
     client.colors_mine(
         &u1_address,
