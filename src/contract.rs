@@ -8,7 +8,7 @@ use crate::{
     types::{Error, GlyphType, HashId, Offer, OfferType, StorageKey},
 };
 
-pub const MAX_ENTRY_LIFETIME: u32 = 6_312_000;
+pub const MAX_ENTRY_LIFETIME: u32 = 526_000; // 6_312_000;
 
 #[contract]
 pub struct ColorGlyph;

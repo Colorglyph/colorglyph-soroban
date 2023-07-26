@@ -30,15 +30,15 @@ pub enum StorageKey {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HashId {
-    Id(u64),
     Hash(BytesN<32>),
+    Id(u64),
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GlyphType {
-    Glyph(Glyph),
     Colors(Map<Address, Map<u32, Vec<u32>>>),
+    Glyph(Glyph),
 }
 
 #[contracttype]
@@ -46,7 +46,7 @@ pub enum GlyphType {
 pub struct Glyph {
     pub width: u32,
     pub length: u32,
-    pub colors: Map<Address, Map<u32, Vec<u32>>>, // [[miner, [[color, [index]]]]
+    pub colors: Map<Address, Map<u32, Vec<u32>>>,
 }
 
 #[contracttype]

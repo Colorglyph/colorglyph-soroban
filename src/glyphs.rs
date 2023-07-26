@@ -14,9 +14,10 @@ use soroban_sdk::{
 
 pub const MAX_PAYMENT_COUNT: u8 = 15;
 
-// TODO use PRNG to generate random ids vs using `env.ledger().timestamp()`
+// TODO use PRNG to generate random ids
 // Then use that id to hold the colors and add an additional store to hold the GlyphBox owner
 // Note this really only helps GlyphBox transfers which is likely a rare case so probably not worth it
+// Not fully verifying ownership atm
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -106,15 +107,13 @@ fn glyph_craft(
             env.storage()
                 .persistent()
                 .bump(&colors_key, MAX_ENTRY_LIFETIME);
-
-            if store {
-                id = Some(id_)
-            }
         }
     }
 
     // spend colors
     for (miner, color_indexes) in colors.iter() {
+        let mut skip = false;
+
         for (color, indexes) in color_indexes.iter() {
             let miner_minter_color = StorageKey::Color(miner.clone(), minter.clone(), color);
             let current_amount = env
@@ -131,30 +130,33 @@ fn glyph_craft(
                 .persistent()
                 .bump(&miner_minter_color, MAX_ENTRY_LIFETIME);
 
-            match glyph_colors.get(miner.clone()) {
-                Some(result) => match result {
-                    mut color_indexes_ => match color_indexes_.get(color) {
-                        // Exising miner and color
-                        Some(result) => match result {
-                            mut indexes_ => {
-                                for index in indexes.iter() {
-                                    indexes_.push_back(index);
+            if !skip {
+                match glyph_colors.get(miner.clone()) {
+                    Some(result) => match result {
+                        mut color_indexes_ => match color_indexes_.get(color) {
+                            // Exising miner and color
+                            Some(result) => match result {
+                                mut indexes_ => {
+                                    for index in indexes.iter() {
+                                        indexes_.push_back(index);
+                                    }
+                                    color_indexes_.set(color, indexes_);
+                                    glyph_colors.set(miner.clone(), color_indexes_);
                                 }
-                                color_indexes_.set(color, indexes_);
+                            },
+                            // No color
+                            None => {
+                                color_indexes_.set(color, indexes);
                                 glyph_colors.set(miner.clone(), color_indexes_);
                             }
                         },
-                        // No color
-                        None => {
-                            color_indexes_.set(color, indexes);
-                            glyph_colors.set(miner.clone(), color_indexes_);
-                        }
                     },
-                },
-                // No miner (or not exisiting glyphbox)
-                None => {
-                    glyph_colors.set(miner.clone(), color_indexes.clone());
-                    break; // we need to break here otherwise we continue looping inside this nested color loop which we've already fully added
+                    // No miner (or no exisiting glyphbox)
+                    None => {
+                        glyph_colors.set(miner.clone(), color_indexes.clone());
+                        // We set a skip vs using break to ensure we continue to bill for the spent colors
+                        skip = true; // we need to break here otherwise we continue looping inside this nested color loop which we've already fully added
+                    }
                 }
             }
         }
@@ -240,7 +242,7 @@ fn glyph_store(
                 // If the bytes already exist just fill them in
                 else {
                     let slice: [u8; 3] = color.to_le_bytes()[..3].try_into().unwrap();
-                    hash_data.copy_from_slice(index, &slice);
+                    hash_data.copy_from_slice(index * 3, &slice);
                 }
             }
         }

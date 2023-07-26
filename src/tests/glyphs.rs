@@ -26,6 +26,110 @@ use soroban_sdk::{
 // test glyphbox transfer
 
 #[test]
+fn test() {
+    let env = Env::default();
+
+    env.mock_all_auths();
+    env.budget().reset_unlimited();
+
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
+
+    let token_admin = Address::random(&env);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+
+    let u1_address = Address::random(&env);
+    let fee_address = Address::random(&env);
+
+    token_admin_client.mint(&u1_address, &10_000);
+
+    client.initialize(&token_address, &fee_address);
+
+    client.colors_mine(&u1_address, &None, &map![&env, (0, 100), (16777215, 100),]);
+
+    let id = client.glyph_mint(
+        &u1_address,
+        &None,
+        &Some(map![
+            &env,
+            (
+                u1_address.clone(),
+                map![&env, (0, vec![&env, 0, 1]), (16777215, vec![&env, 2, 3]),]
+            )
+        ]),
+        &None,
+        &None,
+    );
+
+    let id = match id {
+        HashId::Id(id) => id,
+        _ => panic!(),
+    };
+
+    println!("{:?}", id);
+}
+
+#[test]
+fn test_dupe_mint() {
+    let env = Env::default();
+
+    env.mock_all_auths();
+    env.budget().reset_unlimited();
+
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
+
+    let token_admin = Address::random(&env);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+
+    let u1_address = Address::random(&env);
+    let u2_address = Address::random(&env);
+    let fee_address = Address::random(&env);
+
+    token_admin_client.mint(&u1_address, &10_000);
+    token_admin_client.mint(&u2_address, &10_000);
+
+    client.initialize(&token_address, &fee_address);
+
+    client.colors_mine(&u1_address, &None, &map![&env, (0, 100), (16777215, 100),]);
+
+    let hash = client.glyph_mint(
+        &u1_address,
+        &None,
+        &Some(map![
+            &env,
+            (
+                u1_address.clone(),
+                map![&env, (0, vec![&env, 3, 1]), (16777215, vec![&env, 2, 0]),]
+            )
+        ]),
+        &Some(2),
+        &None,
+    );
+
+    println!("{:?}\n", hash);
+
+    assert_eq!(
+        client.try_glyph_mint(
+            &u1_address,
+            &None,
+            &Some(map![
+                &env,
+                (
+                    u1_address.clone(),
+                    map![&env, (16777215, vec![&env, 0, 2]), (0, vec![&env, 1, 3]),]
+                )
+            ]),
+            &Some(2),
+            &None,
+        ),
+        Err(Ok(soroban_sdk::Error::from(Error::NotEmpty)))
+    );
+}
+
+#[test]
 fn test_quick_mint() {
     let env = Env::default();
 
@@ -130,7 +234,7 @@ fn test_quick_mint() {
 }
 
 #[test]
-fn test() {
+fn test_partial_mint() {
     let env = Env::default();
 
     env.mock_all_auths();
