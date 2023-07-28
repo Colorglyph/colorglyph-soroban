@@ -1,20 +1,17 @@
-use soroban_sdk::{contract, contractimpl, panic_with_error, Address, Env, Map, Vec};
+use soroban_sdk::{contract, contractimpl, panic_with_error, Address, BytesN, Env, Map, Vec};
 
 use crate::{
     colors::{color_balance, colors_mine, colors_transfer},
     glyphs::{glyph_get, glyph_mint, glyph_scrape, glyph_transfer},
     interface::ColorGlyphTrait,
     offers::{offer_delete, offer_post, offers_get},
-    types::{Error, GlyphType, HashId, Offer, OfferType, StorageKey},
+    types::{Error, GlyphType, HashType, Offer, OfferType, StorageKey},
 };
 
-pub const MAX_ENTRY_LIFETIME: u32 = 526_000; // 6_312_000;
+pub const MAX_ENTRY_LIFETIME: u32 = 6_312_000; // A year's worth of ledgers
 
 #[contract]
 pub struct ColorGlyph;
-
-// TODO
-// Fine tooth comb what functions actually need to be public. In many cases events are the better way to track data and state
 
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
@@ -49,30 +46,33 @@ impl ColorGlyphTrait for ColorGlyph {
         env: Env,
         minter: Address,
         to: Option<Address>,
-        colors: Option<Map<Address, Map<u32, Vec<u32>>>>,
+        colors: Map<Address, Map<u32, Vec<u32>>>,
         width: Option<u32>,
-        id: Option<u64>,
-    ) -> HashId {
-        glyph_mint(&env, minter, to, colors, width, id)
+    ) -> Option<BytesN<32>> {
+        glyph_mint(&env, minter, to, colors, width)
     }
-    fn glyph_transfer(env: Env, from: Address, to: Address, hash_id: HashId) -> Option<u64> {
-        glyph_transfer(&env, from, to, hash_id)
+    fn glyph_transfer(env: Env, from: Address, to: Address, hash: Option<BytesN<32>>) {
+        glyph_transfer(&env, from, to, hash)
     }
-    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash_id: HashId) -> Option<u64> {
-        glyph_scrape(&env, owner, to, hash_id)
+    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash_type: HashType) {
+        glyph_scrape(&env, owner, to, &hash_type)
     }
-    fn glyph_get(env: Env, hash_id: HashId) -> Result<GlyphType, Error> {
-        glyph_get(&env, hash_id)
+    fn glyph_get(
+        env: Env,
+        address: Option<Address>,
+        hash_type: HashType,
+    ) -> Result<GlyphType, Error> {
+        glyph_get(&env, address, hash_type)
     }
 
     // Offers
     fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error> {
         offer_post(&env, seller, sell, buy)
     }
-    fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: OfferType) {
-        offer_delete(&env, seller, sell, buy)
+    fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: Option<OfferType>) {
+        offer_delete(&env, seller, sell, &buy)
     }
-    fn offers_get(env: Env, sell: OfferType, buy: OfferType) -> Result<Offer, Error> {
-        offers_get(&env, sell, buy)
+    fn offers_get(env: Env, sell: OfferType, buy: Option<OfferType>) -> Result<Offer, Error> {
+        offers_get(&env, sell, &buy)
     }
 }

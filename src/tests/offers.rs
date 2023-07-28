@@ -8,8 +8,11 @@ use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env, Map, V
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Error, HashId, OfferType, StorageKey},
+    types::{Error, OfferType, StorageKey},
 };
+
+// TODO
+// Ensure we can't offer to sell a glyph, scrape it, then accept a buy offer
 
 const ITERS: i128 = 10i128;
 
@@ -57,25 +60,16 @@ fn test_buy_glyph() {
 
     // println!("{:?}\n", colors_indexes);
 
-    let id = client.glyph_mint(
+    client.glyph_mint(
         &u1_address,
         &None,
-        &Some(map![&env, (u3_address.clone(), colors_indexes)]),
-        &None,
+        &map![&env, (u3_address.clone(), colors_indexes)],
         &None,
     );
 
-    let id = match id {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash = client.glyph_mint(&u1_address, &None, &None, &Some(16), &Some(id));
-
-    let hash = match hash {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     println!("{:?}\n", hash);
 
@@ -101,12 +95,12 @@ fn test_buy_glyph() {
     });
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
+        client.try_offers_get(&asset, &Some(glyph.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_offers_get(&glyph, &asset),
+        client.try_offers_get(&glyph, &Some(asset)),
         Err(Ok(Error::NotFound))
     );
 
@@ -160,25 +154,16 @@ fn test_sell_glyph() {
 
     client.colors_mine(&u3_address, &Some(u1_address.clone()), &color_amount);
 
-    let id = client.glyph_mint(
+    client.glyph_mint(
         &u1_address,
         &None,
-        &Some(map![&env, (u3_address.clone(), colors_indexes)]),
-        &None,
+        &map![&env, (u3_address.clone(), colors_indexes)],
         &None,
     );
 
-    let id = match id {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash = client.glyph_mint(&u1_address, &None, &None, &Some(16), &Some(id));
-
-    let hash = match hash {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     env.budget().reset_default();
 
@@ -202,12 +187,12 @@ fn test_sell_glyph() {
     });
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
+        client.try_offers_get(&asset, &Some(glyph.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
+        client.try_offers_get(&asset, &Some(glyph.clone())),
         Err(Ok(Error::NotFound))
     );
 
@@ -264,47 +249,29 @@ fn test_swap_glyph() {
 
     client.colors_mine(&u1_address, &None, &colors_a_amount);
 
-    let id_a = client.glyph_mint(
+    client.glyph_mint(
         &u1_address,
         &None,
-        &Some(map![&env, (u1_address.clone(), colors_a_indexes)]),
-        &None,
+        &map![&env, (u1_address.clone(), colors_a_indexes)],
         &None,
     );
 
-    let id_a = match id_a {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash_a = client.glyph_mint(&u1_address, &None, &None, &Some(16), &Some(id_a));
-
-    let hash_a = match hash_a {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash_a = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     client.colors_mine(&u2_address, &None, &colors_b_amount);
 
-    let id_b = client.glyph_mint(
+    client.glyph_mint(
         &u2_address,
         &None,
-        &Some(map![&env, (u2_address.clone(), colors_b_indexes)]),
-        &None,
+        &map![&env, (u2_address.clone(), colors_b_indexes)],
         &None,
     );
 
-    let id_b = match id_b {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash_b = client.glyph_mint(&u2_address, &None, &None, &Some(16), &Some(id_b));
-
-    let hash_b = match hash_b {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash_b = client
+        .glyph_mint(&u2_address, &None, &map!(&env), &Some(16))
+        .unwrap();
 
     env.budget().reset_default();
 
@@ -335,12 +302,12 @@ fn test_swap_glyph() {
     });
 
     assert_eq!(
-        client.try_offers_get(&glyph_1, &glyph_2),
+        client.try_offers_get(&glyph_1, &Some(glyph_2.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_offers_get(&glyph_2, &glyph_1),
+        client.try_offers_get(&glyph_2, &Some(glyph_1)),
         Err(Ok(Error::NotFound))
     );
 }
@@ -384,25 +351,16 @@ fn test_rm_glyph_buy() {
 
     client.colors_mine(&u1_address, &None, &color_amount);
 
-    let id = client.glyph_mint(
+    client.glyph_mint(
         &u1_address,
         &None,
-        &Some(map![&env, (u1_address.clone(), colors_indexes)]),
-        &None,
+        &map![&env, (u1_address.clone(), colors_indexes)],
         &None,
     );
 
-    let id = match id {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash = client.glyph_mint(&u1_address, &None, &None, &Some(16), &Some(id));
-
-    let hash = match hash {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     env.budget().reset_default();
 
@@ -417,14 +375,14 @@ fn test_rm_glyph_buy() {
 
     assert_eq!(token_client.balance(&u1_address), 9_989i128);
 
-    let offer = client.offers_get(&asset, &glyph);
+    let offer = client.offers_get(&asset, &Some(glyph.clone()));
 
     println!("{:?}", offer);
 
-    client.offer_delete(&u1_address, &asset, &glyph);
+    client.offer_delete(&u1_address, &asset, &Some(glyph.clone()));
 
     assert_eq!(
-        client.try_offers_get(&asset, &glyph),
+        client.try_offers_get(&asset, &Some(glyph)),
         Err(Ok(Error::NotFound))
     );
 
@@ -472,25 +430,16 @@ fn test_rm_glyph_sell() {
 
     client.colors_mine(&u1_address, &None, &color_amount);
 
-    let id = client.glyph_mint(
+    client.glyph_mint(
         &u1_address,
         &None,
-        &Some(map![&env, (u1_address.clone(), colors_indexes)]),
-        &None,
+        &map![&env, (u1_address.clone(), colors_indexes)],
         &None,
     );
 
-    let id = match id {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash = client.glyph_mint(&u1_address, &None, &None, &Some(16), &Some(id));
-
-    let hash = match hash {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     env.budget().reset_default();
 
@@ -500,14 +449,14 @@ fn test_rm_glyph_sell() {
 
     client.offer_post(&u1_address, &glyph, &asset);
 
-    let offer = client.offers_get(&glyph, &asset);
+    let offer = client.offers_get(&glyph, &Some(asset.clone()));
 
     println!("{:?}", offer);
 
-    client.offer_delete(&u1_address, &glyph, &asset);
+    client.offer_delete(&u1_address, &glyph, &Some(asset.clone()));
 
     assert_eq!(
-        client.try_offers_get(&glyph, &asset),
+        client.try_offers_get(&glyph, &Some(asset)),
         Err(Ok(Error::NotFound))
     );
 
@@ -562,47 +511,29 @@ fn test_rm_glyph_swap() {
 
     client.colors_mine(&u1_address, &None, &colors_a_amount);
 
-    let id_a = client.glyph_mint(
+    client.glyph_mint(
         &u1_address,
         &None,
-        &Some(map![&env, (u1_address.clone(), colors_a_indexes)]),
-        &None,
+        &map![&env, (u1_address.clone(), colors_a_indexes)],
         &None,
     );
 
-    let id_a = match id_a {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash_a = client.glyph_mint(&u1_address, &None, &None, &Some(16), &Some(id_a));
-
-    let hash_a = match hash_a {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash_a = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     client.colors_mine(&u1_address, &Some(u2_address.clone()), &colors_b_amount);
 
-    let id_b = client.glyph_mint(
+    client.glyph_mint(
         &u2_address,
         &None,
-        &Some(map![&env, (u1_address.clone(), colors_b_indexes)]),
-        &None,
+        &map![&env, (u1_address.clone(), colors_b_indexes)],
         &None,
     );
 
-    let id_b = match id_b {
-        HashId::Id(id) => id,
-        _ => panic!(),
-    };
-
-    let hash_b = client.glyph_mint(&u2_address, &None, &None, &Some(16), &Some(id_b));
-
-    let hash_b = match hash_b {
-        HashId::Hash(hash) => hash,
-        _ => panic!(),
-    };
+    let hash_b = client
+        .glyph_mint(&u2_address, &None, &map![&env], &Some(16))
+        .unwrap();
 
     env.budget().reset_default();
 
@@ -612,14 +543,14 @@ fn test_rm_glyph_swap() {
 
     client.offer_post(&u1_address, &glyph_a, &glyph_b);
 
-    let offer = client.offers_get(&glyph_a, &glyph_b);
+    let offer = client.offers_get(&glyph_a, &Some(glyph_b.clone()));
 
     println!("{:?}", offer);
 
-    client.offer_delete(&u1_address, &glyph_a, &glyph_b);
+    client.offer_delete(&u1_address, &glyph_a, &Some(glyph_b.clone()));
 
     assert_eq!(
-        client.try_offers_get(&glyph_a, &glyph_b),
+        client.try_offers_get(&glyph_a, &Some(glyph_b)),
         Err(Ok(Error::NotFound))
     );
 

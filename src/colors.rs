@@ -2,12 +2,8 @@ use soroban_sdk::{token, Address, Env, Map, Vec};
 
 use crate::{contract::MAX_ENTRY_LIFETIME, types::StorageKey};
 
-// const COLORS: Symbol = Symbol::short("COLORS");
-
 pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
     miner.require_auth();
-
-    // TODO this seems slightly inneficient atm as you can only mine ~15 different colors per invocation
 
     let to = match to {
         Some(address) => address,
@@ -18,9 +14,6 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
 
     for (color, amount) in colors.iter() {
         let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
-
-        // env.events()
-        //     .publish((COLORS, Symbol::short("mine")), miner_owner_color.clone());
 
         let current_amount = env
             .storage()
@@ -53,18 +46,14 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
 
     env.storage().instance().bump(MAX_ENTRY_LIFETIME);
 
-    token.transfer(&miner, &fee_address, &i128::from(pay_amount));
+    // TODO this is just a stroop fee so not sufficient. This will need to be adjusted before going live
+    token.transfer(&miner, &fee_address, &(pay_amount as i128));
 }
 
 pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {
     from.require_auth();
 
-    // TODO
-    // Consider allowing the miner Address in `colors` to be Option<Address> and assume the from address in order to reduce the size of the argument being sent
-
-    for miner_color_amount in colors.iter() {
-        let (miner_address, color, amount) = miner_color_amount;
-
+    for (miner_address, color, amount) in colors.iter() {
         let from_miner_owner_color = StorageKey::Color(miner_address.clone(), from.clone(), color);
         let to_miner_owner_color = StorageKey::Color(miner_address, to.clone(), color);
 
