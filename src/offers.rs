@@ -23,7 +23,7 @@ Tweak MINTER_ROYALTY_RATE and MINER_ROYALTY_RATE values
 
 /* TODO soonish
 What happens if we try and submit a dupe offer? (for both selling a glyph and selling an asset)
-Place caps on the number of GlyphOffer and AssetOffer Vec lengths 
+Place caps on the number of GlyphOffer and AssetOffer Vec lengths
     how many sell offers can a Glyph owner open?
     how many identical glyph:asset:amount offers can be open?
 */
@@ -64,7 +64,7 @@ pub fn offer_post(
                 Offer::Glyph(
                     // We don't need _existing_offers or _existing_offer_index because we're going to nuke *all* existing owner sell offers for these glyphs vs just one
                     // Just the face that an _existing_offer_index was found in the _existing_offers is sufficent information to press forward with the swap
-                    _existing_offers, 
+                    _existing_offers,
                     existing_offer_hash,
                     existing_offer_owner,
                     _existing_offer_index,
@@ -181,7 +181,7 @@ pub fn offer_post(
                                 StorageKey::GlyphOwner(existing_offer_hash.clone());
 
                             env.storage().persistent().set(&glyph_owner_key, &seller);
-                            
+
                             env.storage()
                                 .persistent()
                                 .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME);
@@ -373,13 +373,13 @@ pub fn offer_delete(env: &Env, seller: Address, sell: OfferType, buy: &Option<Of
                     }
 
                     let glyph_offer_key = StorageKey::GlyphOffer(offer_hash);
-                    
+
                     match buy {
                         // Remove specific buy offer from our Glyph sell offers
                         Some(_) => {
                             // NOTE
                             // We don't do the `offer_index` lookup here as we need to ensure there's a matching buy offer somewhere in the offers Vec of OfferTypes
-                            // For assets we don't really care which identical Asset offer we match until we're deleting it 
+                            // For assets we don't really care which identical Asset offer we match until we're deleting it
                             offers.remove(offer_index);
 
                             env.storage().persistent().set(&glyph_offer_key, &offers);
@@ -390,15 +390,14 @@ pub fn offer_delete(env: &Env, seller: Address, sell: OfferType, buy: &Option<Of
                         }
                         // Remove all glyph sell offers
                         None => {
-                            env.storage()
-                                .persistent()
-                                .remove(&glyph_offer_key);
+                            env.storage().persistent().remove(&glyph_offer_key);
                         }
                     }
                 }
                 // Delete Asset offer (must be Glyph offer)
                 Offer::Asset(mut offers, glyph_hash, asset_address, amount) => {
-                    match offers.first_index_of(seller.clone()) { // <- this is where we ensure offer ownership
+                    match offers.first_index_of(seller.clone()) {
+                        // <- this is where we ensure offer ownership
                         Some(offer_index) => {
                             let token = token::Client::new(env, &asset_address);
 
@@ -462,9 +461,7 @@ pub fn offers_get(env: &Env, sell: OfferType, buy: &Option<OfferType>) -> Result
                         _ => Err(Error::NotFound),
                     }
                 }
-                None => {
-                    Ok(Offer::Glyph(offers, glyph_hash, offer_owner, 0))
-                }
+                None => Ok(Offer::Glyph(offers, glyph_hash, offer_owner, 0)),
             }
         }
         OfferType::Asset(asset_hash, amount) => {
@@ -473,24 +470,27 @@ pub fn offers_get(env: &Env, sell: OfferType, buy: &Option<OfferType>) -> Result
                 Some(buy) => {
                     match buy {
                         OfferType::Glyph(glyph_hash) => {
-                            let asset_offer_key =
-                                StorageKey::AssetOffer(glyph_hash.clone(), asset_hash.clone(), amount);
+                            let asset_offer_key = StorageKey::AssetOffer(
+                                glyph_hash.clone(),
+                                asset_hash.clone(),
+                                amount,
+                            );
                             let offers = env
                                 .storage()
                                 .persistent()
                                 .get::<StorageKey, Vec<Address>>(&asset_offer_key)
                                 .ok_or(Error::NotFound)?;
-        
+
                             env.storage()
                                 .persistent()
                                 .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
-        
+
                             Ok(Offer::Asset(offers, glyph_hash.clone(), asset_hash, amount))
                         }
-                        _ => Err(Error::NotPermitted) // You cannot sell an Asset for an Asset
+                        _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
                     }
                 }
-                None => Err(Error::NotPermitted) // You must include a counter buy when sell is an Asset
+                None => Err(Error::NotPermitted), // You must include a counter buy when sell is an Asset
             }
         }
     }
