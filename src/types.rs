@@ -8,9 +8,10 @@ pub enum Error {
     NotEmpty = 2,
     NotAuthorized = 3,
     NotPermitted = 4,
-    MissingAddress = 5,
-    MissingWidth = 6,
-    MissingId = 7,
+    MissingWidth = 5,
+    MissingId = 6,
+    MissingAddress = 7,
+    MissingBuy = 8,
 }
 
 #[contracttype]
@@ -31,8 +32,8 @@ pub enum StorageKey {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HashType {
-    Colors, // means you can only be building one glyph at a time
-    Dust,   // means you can only be scraping one glyph at a time
+    Colors(Address), // means you can only be building one glyph at a time
+    Dust(Address),   // means you can only be scraping one glyph at a time
     Glyph(BytesN<32>),
 }
 
@@ -53,14 +54,21 @@ pub struct Glyph {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum OfferType {
+pub enum Offer {
     Glyph(BytesN<32>),
     Asset(Address, i128),
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Offer {
-    Glyph(Vec<OfferType>, BytesN<32>, Address, u32),
-    Asset(Vec<Address>, BytesN<32>, Address, i128),
+pub enum OfferX {
+    Glyph(BytesN<32>),
+    Asset(Address, Address, i128),
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OfferCreate {
+    Glyph(BytesN<32>, Offer),
+    Asset(BytesN<32>, Address, Address, i128),
 }

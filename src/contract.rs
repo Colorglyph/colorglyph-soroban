@@ -5,7 +5,7 @@ use crate::{
     glyphs::{glyph_get, glyph_mint, glyph_scrape, glyph_transfer},
     interface::ColorGlyphTrait,
     offers::{offer_delete, offer_post, offers_get},
-    types::{Error, GlyphType, HashType, Offer, OfferType, StorageKey},
+    types::{Error, GlyphType, HashType, Offer, OfferX, StorageKey},
 };
 
 pub const MAX_ENTRY_LIFETIME: u32 = 6_312_000; // A year's worth of ledgers
@@ -51,28 +51,24 @@ impl ColorGlyphTrait for ColorGlyph {
     ) -> Option<BytesN<32>> {
         glyph_mint(&env, minter, to, colors, width)
     }
-    fn glyph_transfer(env: Env, from: Address, to: Address, hash: Option<BytesN<32>>) {
-        glyph_transfer(&env, from, to, hash)
+    fn glyph_transfer(env: Env, to: Address, hash_type: HashType) {
+        glyph_transfer(&env, to, hash_type)
     }
-    fn glyph_scrape(env: Env, owner: Address, to: Option<Address>, hash_type: HashType) {
-        glyph_scrape(&env, owner, to, &hash_type)
+    fn glyph_scrape(env: Env, to: Option<Address>, hash_type: HashType) {
+        glyph_scrape(&env, to, &hash_type)
     }
-    fn glyph_get(
-        env: Env,
-        address: Option<Address>,
-        hash_type: HashType,
-    ) -> Result<GlyphType, Error> {
-        glyph_get(&env, address, hash_type)
+    fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error> {
+        glyph_get(&env, hash_type)
     }
 
     // Offers
-    fn offer_post(env: Env, seller: Address, sell: OfferType, buy: OfferType) -> Result<(), Error> {
-        offer_post(&env, seller, sell, buy)
+    fn offer_post(env: Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
+        offer_post(&env, sell, buy)
     }
-    fn offer_delete(env: Env, seller: Address, sell: OfferType, buy: Option<OfferType>) {
-        offer_delete(&env, seller, sell, &buy)
+    fn offer_delete(env: Env, sell: OfferX, buy: Option<Offer>) -> Result<(), Error> {
+        offer_delete(&env, sell, buy)
     }
-    fn offers_get(env: Env, sell: OfferType, buy: Option<OfferType>) -> Result<Offer, Error> {
-        offers_get(&env, sell, &buy)
+    fn offers_get(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error> {
+        offers_get(&env, sell, buy)
     }
 }

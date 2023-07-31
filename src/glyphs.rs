@@ -13,7 +13,7 @@ pub const MAX_PAYMENT_COUNT: u8 = 15;
 // Limit number of unique miner addresses in a `glyph_mint`
 // Fine tune MAX_PAYMENT_COUNT number
 
-/* Blocked
+/* BLOCKED
 Use PRNG to generate random ids
     Then use that id to hold the Colors and add an additional store to hold the Colors owner
     Note this really only helps Colors transfers and gets which is likely a rare case so probably not worth it
@@ -115,8 +115,8 @@ fn glyph_store(
     let mut hash_data = Bytes::new(&env);
 
     // TODO
-    // better error for not enough colors
-    // should we error if there's a dupe index?
+    // Better error for not enough colors
+    // Should we error if there's a dupe index?
     // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
 
     for (_, color_indexes) in colors.iter() {
@@ -212,14 +212,28 @@ fn glyph_store(
     hash
 }
 
-pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash: Option<BytesN<32>>) {
-    from.require_auth();
+pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
+    match hash_type {
+        HashType::Colors(from) => {
+            glyph_transfer_color_dust(
+                env,
+                from.clone(),
+                StorageKey::Colors(from.clone()),
+                StorageKey::Colors(to),
+            );
+        }
+        HashType::Dust(from) => {
+            glyph_transfer_color_dust(
+                env,
+                from.clone(),
+                StorageKey::Dust(from.clone()),
+                StorageKey::Dust(to),
+            );
+        }
+        HashType::Glyph(glyph_hash) => {
+            let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash);
 
-    match hash {
-        Some(hash) => {
-            glyph_verify_ownership(env, from, hash.clone());
-
-            let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
+            glyph_verify_ownership(env, &glyph_owner_key);
 
             env.storage().persistent().set(&glyph_owner_key, &to);
 
@@ -227,65 +241,60 @@ pub fn glyph_transfer(env: &Env, from: Address, to: Address, hash: Option<BytesN
                 .persistent()
                 .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME);
         }
-        None => {
-            let from_colors_key = StorageKey::Colors(from);
-            let colors = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&from_colors_key)
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
-
-            // TODO
-            // This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
-            // On the other hand this is a pretty rare case so maybe it's not worth it
-
-            env.storage().persistent().remove(&from_colors_key);
-
-            let to_colors_key = StorageKey::Colors(to);
-
-            env.storage().persistent().set(&to_colors_key, &colors);
-
-            env.storage()
-                .persistent()
-                .bump(&to_colors_key, MAX_ENTRY_LIFETIME);
-        }
     }
 }
 
-pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &HashType) {
-    owner.require_auth();
+fn glyph_transfer_color_dust(
+    env: &Env,
+    from: Address,
+    from_colors_key: StorageKey,
+    to_colors_key: StorageKey,
+) {
+    from.require_auth();
 
-    let mut miners_colors_indexes: Map<Address, Map<u32, Vec<u32>>>;
+    let colors = env
+        .storage()
+        .persistent()
+        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&from_colors_key)
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
+
+    // TODO
+    // This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
+    // On the other hand this is a pretty rare case so maybe it's not worth it
+
+    env.storage().persistent().remove(&from_colors_key);
+
+    env.storage().persistent().set(&to_colors_key, &colors);
+
+    env.storage()
+        .persistent()
+        .bump(&to_colors_key, MAX_ENTRY_LIFETIME);
+}
+
+pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
+    let owner: Address;
+    let mut miners_colors_indexes: Map<Address, Map<u32, Vec<u32>>> = Map::new(&env);
 
     match hash_type {
-        HashType::Colors => {
-            let colors_key = StorageKey::Colors(owner.clone());
-
-            miners_colors_indexes = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
-
-            env.storage()
-                .persistent()
-                .bump(&colors_key, MAX_ENTRY_LIFETIME);
+        HashType::Colors(owner_) => {
+            owner = glyph_scrape_color_dust(
+                env,
+                owner_,
+                StorageKey::Colors(owner_.clone()),
+                &mut miners_colors_indexes,
+            );
         }
-        HashType::Dust => {
-            let colors_key = StorageKey::Dust(owner.clone());
-
-            miners_colors_indexes = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
-
-            env.storage()
-                .persistent()
-                .bump(&colors_key, MAX_ENTRY_LIFETIME);
+        HashType::Dust(owner_) => {
+            owner = glyph_scrape_color_dust(
+                env,
+                owner_,
+                StorageKey::Dust(owner_.clone()),
+                &mut miners_colors_indexes,
+            );
         }
-        HashType::Glyph(hash) => {
-            glyph_verify_ownership(env, owner.clone(), hash.clone());
+        HashType::Glyph(glyph_hash) => {
+            let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
+            let glyph_owner = glyph_verify_ownership(env, &glyph_owner_key);
 
             // Ensure we don't start a new scrape while there's a pending scrape, otherwise we'll overwrite the pending with the new
             // We use the Address vs the BytesN<32> as the key in order to maintain ownership of the Dust Colors
@@ -293,12 +302,12 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &
             if env
                 .storage()
                 .persistent()
-                .has(&StorageKey::Dust(owner.clone()))
+                .has(&StorageKey::Dust(glyph_owner.clone()))
             {
                 panic_with_error!(env, Error::NotEmpty);
             }
 
-            let glyph_key = StorageKey::Glyph(hash.clone());
+            let glyph_key = StorageKey::Glyph(glyph_hash.clone());
             let glyph = env
                 .storage()
                 .persistent()
@@ -311,14 +320,15 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &
             // Remove glyph owner
             env.storage()
                 .persistent()
-                .remove(&StorageKey::GlyphOwner(hash.clone()));
+                .remove(&StorageKey::GlyphOwner(glyph_hash.clone()));
 
             // Remove all glyph sell offers
             env.storage()
                 .persistent()
-                .remove(&StorageKey::GlyphOffer(hash.clone()));
+                .remove(&StorageKey::GlyphOffer(glyph_hash.clone()));
 
             miners_colors_indexes = glyph.colors;
+            owner = glyph_owner;
         }
     }
 
@@ -360,7 +370,7 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &
             payment_count += 1;
         }
 
-        if colors_indexes.len() == 0 {
+        if colors_indexes.is_empty() {
             miners_colors_indexes.remove(miner);
         } else {
             miners_colors_indexes.set(miner, colors_indexes);
@@ -369,10 +379,10 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &
 
     // We have two different partial scrape scenarios in order to not overwrite partial mints when scraping a minted glyph
     match hash_type {
-        HashType::Colors => {
+        HashType::Colors(_) => {
             let colors_key = StorageKey::Colors(owner);
 
-            if miners_colors_indexes.len() == 0 {
+            if miners_colors_indexes.is_empty() {
                 env.storage().persistent().remove(&colors_key);
             } else {
                 // save glyph
@@ -388,7 +398,7 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &
         _ => {
             let colors_key = StorageKey::Dust(owner);
 
-            if miners_colors_indexes.len() == 0 {
+            if miners_colors_indexes.is_empty() {
                 env.storage().persistent().remove(&colors_key);
             } else {
                 // save glyph
@@ -404,46 +414,31 @@ pub fn glyph_scrape(env: &Env, owner: Address, to: Option<Address>, hash_type: &
     }
 }
 
-pub fn glyph_get(
+fn glyph_scrape_color_dust(
     env: &Env,
-    address: Option<Address>,
-    hash_type: HashType,
-) -> Result<GlyphType, Error> {
+    owner: &Address,
+    colors_key: StorageKey,
+    miners_colors_indexes: &mut Map<Address, Map<u32, Vec<u32>>>,
+) -> Address {
+    owner.require_auth();
+
+    *miners_colors_indexes = env
+        .storage()
+        .persistent()
+        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
+
+    env.storage()
+        .persistent()
+        .bump(&colors_key, MAX_ENTRY_LIFETIME);
+
+    owner.clone()
+}
+
+pub fn glyph_get(env: &Env, hash_type: HashType) -> Result<GlyphType, Error> {
     match hash_type {
-        HashType::Colors => match address {
-            Some(address) => {
-                let colors_key = StorageKey::Colors(address);
-                let colors = env
-                    .storage()
-                    .persistent()
-                    .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
-                    .ok_or(Error::NotFound)?;
-
-                env.storage()
-                    .persistent()
-                    .bump(&colors_key, MAX_ENTRY_LIFETIME);
-
-                Ok(GlyphType::Colors(colors))
-            }
-            None => panic_with_error!(&env, Error::MissingAddress),
-        },
-        HashType::Dust => match address {
-            Some(address) => {
-                let colors_key = StorageKey::Dust(address);
-                let colors = env
-                    .storage()
-                    .persistent()
-                    .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
-                    .ok_or(Error::NotFound)?;
-
-                env.storage()
-                    .persistent()
-                    .bump(&colors_key, MAX_ENTRY_LIFETIME);
-
-                Ok(GlyphType::Colors(colors))
-            }
-            None => panic_with_error!(&env, Error::MissingAddress),
-        },
+        HashType::Colors(address) => glyph_get_color_dust(env, StorageKey::Colors(address)),
+        HashType::Dust(address) => glyph_get_color_dust(env, StorageKey::Dust(address)),
         HashType::Glyph(hash) => {
             let glyph_key = StorageKey::Glyph(hash);
             let glyph = env
@@ -461,19 +456,32 @@ pub fn glyph_get(
     }
 }
 
-pub fn glyph_verify_ownership(env: &Env, from: Address, glyph_hash: BytesN<32>) {
-    let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash);
-    let glyph_owner = env
+fn glyph_get_color_dust(env: &Env, colors_key: StorageKey) -> Result<GlyphType, Error> {
+    let colors = env
         .storage()
         .persistent()
-        .get::<StorageKey, Address>(&glyph_owner_key)
-        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
+        .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
+        .ok_or(Error::NotFound)?;
 
     env.storage()
         .persistent()
-        .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME);
+        .bump(&colors_key, MAX_ENTRY_LIFETIME);
 
-    if glyph_owner != from {
-        panic_with_error!(env, Error::NotAuthorized);
-    }
+    Ok(GlyphType::Colors(colors))
+}
+
+pub fn glyph_verify_ownership(env: &Env, glyph_owner_key: &StorageKey) -> Address {
+    let glyph_owner = env
+        .storage()
+        .persistent()
+        .get::<StorageKey, Address>(glyph_owner_key)
+        .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
+
+    glyph_owner.require_auth();
+
+    env.storage()
+        .persistent()
+        .bump(glyph_owner_key, MAX_ENTRY_LIFETIME);
+
+    glyph_owner
 }

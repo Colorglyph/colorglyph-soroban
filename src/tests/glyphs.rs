@@ -197,10 +197,7 @@ fn test_to_mint() {
 
     println!("{:?}\n", hash);
 
-    println!(
-        "{:?}\n",
-        client.glyph_get(&None, &HashType::Glyph(hash.clone()))
-    );
+    println!("{:?}\n", client.glyph_get(&HashType::Glyph(hash.clone())));
 
     env.as_contract(&contract_address, || {
         let res = env
@@ -381,7 +378,7 @@ fn test_partial_mint() {
 
     println!(
         "{:?}\n",
-        client.glyph_get(&Some(u1_address.clone()), &HashType::Colors)
+        client.glyph_get(&HashType::Colors(u1_address.clone()))
     );
 
     let hash = client
@@ -390,35 +387,38 @@ fn test_partial_mint() {
 
     println!("{:?}", hash);
 
-    match client.glyph_get(&None, &HashType::Glyph(hash.clone())) {
+    match client.glyph_get(&HashType::Glyph(hash.clone())) {
         GlyphType::Glyph(glyph) => {
             assert_eq!(glyph.length, 200);
         }
         _ => panic!(),
     }
 
-    client.glyph_scrape(&u1_address, &None, &HashType::Glyph(hash.clone()));
+    client.glyph_scrape(&None, &HashType::Glyph(hash.clone()));
 
     assert_eq!(
-        client.try_glyph_get(&None, &HashType::Glyph(hash.clone())),
+        client.try_glyph_get(&HashType::Glyph(hash.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_ne!(
         // not equals (v important as the glyph shouldn't be fully scraped yet)
-        client.try_glyph_get(&Some(u1_address.clone()), &HashType::Dust),
-        Err(Ok(Error::NotFound))
-    );
-
-    assert_eq!(client.glyph_scrape(&u1_address, &None, &HashType::Dust), ());
-
-    assert_eq!(
-        client.try_glyph_get(&Some(u1_address.clone()), &HashType::Dust),
+        client.try_glyph_get(&HashType::Dust(u1_address.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.try_glyph_get(&Some(u1_address.clone()), &HashType::Colors),
+        client.glyph_scrape(&None, &HashType::Dust(u1_address.clone())),
+        ()
+    );
+
+    assert_eq!(
+        client.try_glyph_get(&HashType::Dust(u1_address.clone())),
+        Err(Ok(Error::NotFound))
+    );
+
+    assert_eq!(
+        client.try_glyph_get(&HashType::Colors(u1_address.clone())),
         Err(Ok(Error::NotFound))
     );
 
