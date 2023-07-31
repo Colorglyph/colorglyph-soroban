@@ -7,7 +7,7 @@ use soroban_sdk::{token, vec, Address, Env, Vec};
 use crate::{
     contract::MAX_ENTRY_LIFETIME,
     glyphs::glyph_verify_ownership,
-    types::{Error, Glyph, Offer, OfferCreate, OfferX, StorageKey},
+    types::{Error, Glyph, Offer, OfferCreate, StorageKey},
 };
 
 /* TODO
@@ -27,7 +27,7 @@ Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 const MINTER_ROYALTY_RATE: i128 = 3; // 3%
 const MINER_ROYALTY_RATE: i128 = 2; // 2%
 
-pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
+pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
     // sell glyph
     // lookup if someone is selling what you're buying
     // sell asset
@@ -48,10 +48,11 @@ pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
                 .bump(&buy_glyph_offer_key, MAX_ENTRY_LIFETIME);
 
             match offers.binary_search(match &sell {
-                OfferX::Glyph(sell_glyph_hash) => Offer::Glyph(sell_glyph_hash.clone()),
-                OfferX::Asset(_, sell_asset_address, amount) => {
+                Offer::Glyph(sell_glyph_hash) => Offer::Glyph(sell_glyph_hash.clone()),
+                Offer::AssetSell(_, sell_asset_address, amount) => {
                     Offer::Asset(sell_asset_address.clone(), *amount)
                 }
+                _ => return Err(Error::NotPermitted),
             }) {
                 Ok(offer_index) => {
                     let buy_glyph_owner_key = StorageKey::GlyphOwner(buy_glyph_hash.clone());
@@ -72,7 +73,7 @@ pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
                         .set(&buy_glyph_offer_key, &offers);
 
                     match &sell {
-                        OfferX::Glyph(sell_glyph_hash) => {
+                        Offer::Glyph(sell_glyph_hash) => {
                             let sell_glyph_offer_key =
                                 StorageKey::GlyphOffer(sell_glyph_hash.clone());
                             let sell_glyph_owner_key =
@@ -105,7 +106,7 @@ pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
 
                             Ok(())
                         }
-                        OfferX::Asset(sell_asset_owner_address, sell_asset_address, amount) => {
+                        Offer::AssetSell(sell_asset_owner_address, sell_asset_address, amount) => {
                             let buy_glyph_key = StorageKey::Glyph(buy_glyph_hash.clone());
                             let buy_glyph_minter_key =
                                 StorageKey::GlyphMinter(buy_glyph_hash.clone());
@@ -199,13 +200,14 @@ pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
 
                             Ok(())
                         }
+                        _ => Err(Error::NotPermitted),
                     }
                 }
                 _ => match &sell {
-                    OfferX::Glyph(sell_glyph_hash) => {
+                    Offer::Glyph(sell_glyph_hash) => {
                         offer_post_create(env, OfferCreate::Glyph(sell_glyph_hash.clone(), buy))
                     }
-                    OfferX::Asset(sell_asset_owner_address, sell_asset_address, amount) => {
+                    Offer::AssetSell(sell_asset_owner_address, sell_asset_address, amount) => {
                         offer_post_create(
                             env,
                             OfferCreate::Asset(
@@ -216,13 +218,14 @@ pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
                             ),
                         )
                     }
+                    _ => Err(Error::NotPermitted),
                 },
             }
         }
         // buying an asset
         Offer::Asset(buy_asset_address, amount) => {
             match &sell {
-                OfferX::Glyph(sell_glyph_hash) => {
+                Offer::Glyph(sell_glyph_hash) => {
                     let buy_asset_offer_key = StorageKey::AssetOffer(
                         sell_glyph_hash.clone(),
                         buy_asset_address.clone(),
@@ -354,6 +357,7 @@ pub fn offer_post(env: &Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
                 _ => Err(Error::NotPermitted),
             }
         }
+        _ => Err(Error::NotPermitted),
     }
 }
 
@@ -429,23 +433,14 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
     }
 }
 
-pub fn offer_delete(env: &Env, sell: OfferX, buy: Option<Offer>) -> Result<(), Error> {
-    // sell glyph
-    // delete glyph offer
-    // (find seller from glyph owner )
-    // delete all glyph offers
-    // delete single seller's glyph offer
-    // delete asset offer
-    // (find seller from sell offer)
-    // delete single seller's asset offer
-    // sell asset
-
+pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error> {
     match sell {
-        OfferX::Glyph(glyph_hash) => {
+        Offer::Glyph(glyph_hash) => {
             // Selling a Glyph (delete Glyph or Asset buy offer)
-            let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
             let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
             glyph_verify_ownership(env, &glyph_owner_key);
+            
+            let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
             let mut offers = env
                 .storage()
                 .persistent()
@@ -477,7 +472,7 @@ pub fn offer_delete(env: &Env, sell: OfferX, buy: Option<Offer>) -> Result<(), E
                 }
             }
         }
-        OfferX::Asset(asset_owner_address, asset_address, amount) => {
+        Offer::AssetSell(asset_owner_address, asset_address, amount) => {
             // Selling an Asset (delete Glyph buy offer)
             asset_owner_address.require_auth();
 
@@ -500,8 +495,8 @@ pub fn offer_delete(env: &Env, sell: OfferX, buy: Option<Offer>) -> Result<(), E
                                 .persistent()
                                 .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
 
-                            match offers.first_index_of(asset_owner_address.clone()) {
-                                Some(offer_index) => {
+                            match offers.binary_search(asset_owner_address.clone()) {
+                                Ok(offer_index) => {
                                     let token = token::Client::new(env, &asset_address);
 
                                     token.transfer(
@@ -524,7 +519,7 @@ pub fn offer_delete(env: &Env, sell: OfferX, buy: Option<Offer>) -> Result<(), E
 
                                     Ok(())
                                 }
-                                None => Err(Error::NotFound),
+                                _ => Err(Error::NotFound),
                             }
                         }
                         _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
@@ -533,6 +528,7 @@ pub fn offer_delete(env: &Env, sell: OfferX, buy: Option<Offer>) -> Result<(), E
                 None => Err(Error::MissingBuy), // When deleting a Glyph offer for an Asset you must specify the buy offer (and it must be for a Glyph)
             }
         }
+        _ => Err(Error::NotPermitted),
     }
 }
 
@@ -553,15 +549,14 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
 
             match buy {
                 Some(buy) => match offers.binary_search(buy) {
-                    Ok(_) => Ok(()),
+                    Ok(_) => Ok(()), // Found the buy offer
                     _ => Err(Error::NotFound),
                 },
-                _ => Ok(()),
+                _ => Ok(()), // There are buy offers for this Glyph
             }
         }
         Offer::Asset(asset_hash, amount) => {
             // Selling an Asset
-            // TODO allow looking up a specific glyph with asset seller
             match buy {
                 Some(buy) => {
                     match buy {
@@ -581,6 +576,38 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
                                 .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
 
                             Ok(())
+                        }
+                        _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                    }
+                }
+                _ => Err(Error::MissingBuy), // When looking up a Glyph offer for an Asset you must specify the buy offer (and it must be for a Glyph
+            }
+        }
+        Offer::AssetSell(seller_address, asset_hash, amount) => {
+            // Selling an Asset but check for a specific seller address
+            match buy {
+                Some(buy) => {
+                    match buy {
+                        Offer::Glyph(glyph_hash) => {
+                            let asset_offer_key = StorageKey::AssetOffer(
+                                glyph_hash.clone(),
+                                asset_hash.clone(),
+                                amount,
+                            );
+                            let offers = env.storage()
+                                .persistent()
+                                .get::<StorageKey, Vec<Address>>(&asset_offer_key)
+                                .ok_or(Error::NotFound)?;
+
+                            if offers.contains(seller_address) {
+                                env.storage()
+                                    .persistent()
+                                    .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
+
+                                return Ok(())
+                            }
+
+                            Err(Error::NotFound)
                         }
                         _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
                     }

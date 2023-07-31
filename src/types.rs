@@ -56,14 +56,8 @@ pub struct Glyph {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Offer {
     Glyph(BytesN<32>),
-    Asset(Address, i128),
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum OfferX {
-    Glyph(BytesN<32>),
-    Asset(Address, Address, i128),
+    Asset(Address, i128), // BLOCKED once tuples support Option use that instead of AssetSell
+    AssetSell(Address, Address, i128),
 }
 
 #[contracttype]

@@ -5,7 +5,7 @@ use crate::{
     glyphs::{glyph_get, glyph_mint, glyph_scrape, glyph_transfer},
     interface::ColorGlyphTrait,
     offers::{offer_delete, offer_post, offers_get},
-    types::{Error, GlyphType, HashType, Offer, OfferX, StorageKey},
+    types::{Error, GlyphType, HashType, Offer, StorageKey},
 };
 
 pub const MAX_ENTRY_LIFETIME: u32 = 6_312_000; // A year's worth of ledgers
@@ -62,10 +62,10 @@ impl ColorGlyphTrait for ColorGlyph {
     }
 
     // Offers
-    fn offer_post(env: Env, sell: OfferX, buy: Offer) -> Result<(), Error> {
+    fn offer_post(env: Env, sell: Offer, buy: Offer) -> Result<(), Error> {
         offer_post(&env, sell, buy)
     }
-    fn offer_delete(env: Env, sell: OfferX, buy: Option<Offer>) -> Result<(), Error> {
+    fn offer_delete(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error> {
         offer_delete(&env, sell, buy)
     }
     fn offers_get(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error> {

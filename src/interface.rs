@@ -1,6 +1,6 @@
 use soroban_sdk::{Address, BytesN, Env, Map, Vec};
 
-use crate::types::{Error, GlyphType, HashType, Offer, OfferX};
+use crate::types::{Error, GlyphType, HashType, Offer};
 
 pub trait ColorGlyphTrait {
     fn initialize(env: Env, token_address: Address, fee_address: Address);
@@ -23,7 +23,7 @@ pub trait ColorGlyphTrait {
     fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error>;
 
     // Offers
-    fn offer_post(env: Env, sell: OfferX, buy: Offer) -> Result<(), Error>; // Bundle the seller into the OfferType
-    fn offer_delete(env: Env, sell: OfferX, buy: Option<Offer>) -> Result<(), Error>;
+    fn offer_post(env: Env, sell: Offer, buy: Offer) -> Result<(), Error>;
+    fn offer_delete(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error>;
     fn offers_get(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error>;
 }
