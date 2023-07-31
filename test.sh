@@ -57,5 +57,5 @@ soroban contract invoke --id $contract_id --source $user2_sk --network Futurenet
 echo 'offer deleted'
 
 # glyph_scrape
-soroban contract invoke --id $contract_id --source $user2_sk --network Futurenet -- glyph_scrape --owner $user2_pk --hash_type '{"Glyph": "'$glyph_hash'"}'
+soroban contract invoke --id $contract_id --source $user2_sk --network Futurenet -- glyph_scrape --hash_type '{"Glyph": "'$glyph_hash'"}'
 echo 'glyph scraped'

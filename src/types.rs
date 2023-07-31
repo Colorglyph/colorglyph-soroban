@@ -21,8 +21,8 @@ pub enum StorageKey {
     FeeAddress,
     Color(Address, Address, u32),
     Colors(Address),
-    Dust(Address),
     Glyph(BytesN<32>),
+    Dust(Address),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),
     GlyphOffer(BytesN<32>),
@@ -54,15 +54,15 @@ pub struct Glyph {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum Offer {
-    Glyph(BytesN<32>),
-    Asset(Address, i128), // BLOCKED once tuples support Option use that instead of AssetSell
-    AssetSell(Address, Address, i128),
+pub enum OfferCreate {
+    Glyph(BytesN<32>, Offer),
+    Asset(BytesN<32>, Address, Address, i128),
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum OfferCreate {
-    Glyph(BytesN<32>, Offer),
-    Asset(BytesN<32>, Address, Address, i128),
+pub enum Offer {
+    Glyph(BytesN<32>),
+    Asset(Address, i128), // BLOCKED once tuples support Option use that instead of AssetSell
+    AssetSell(Address, Address, i128),
 }
