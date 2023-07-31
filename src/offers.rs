@@ -145,6 +145,7 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                                     &buy_glyph_minter_address,
                                     &minter_amount,
                                 );
+
                                 leftover_amount -= minter_amount;
                             }
 
@@ -439,7 +440,7 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
             // Selling a Glyph (delete Glyph or Asset buy offer)
             let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
             glyph_verify_ownership(env, &glyph_owner_key);
-            
+
             let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
             let mut offers = env
                 .storage()
@@ -594,7 +595,8 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
                                 asset_hash.clone(),
                                 amount,
                             );
-                            let offers = env.storage()
+                            let offers = env
+                                .storage()
                                 .persistent()
                                 .get::<StorageKey, Vec<Address>>(&asset_offer_key)
                                 .ok_or(Error::NotFound)?;
@@ -604,7 +606,7 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
                                     .persistent()
                                     .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
 
-                                return Ok(())
+                                return Ok(());
                             }
 
                             Err(Error::NotFound)

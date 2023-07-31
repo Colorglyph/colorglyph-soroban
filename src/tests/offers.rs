@@ -335,9 +335,13 @@ fn test_buy_glyph() {
     client.offer_post(&asset_sell, &glyph);
     client.offers_get(&asset_sell, &Some(glyph.clone())); // User 2 is selling
     client.offers_get(&asset, &Some(glyph.clone())); // Someone is selling
-    
-    assert_eq!( // User 1 is NOT selling
-        client.try_offers_get(&Offer::AssetSell(u1_address.clone(), token_address.clone(), amount), &Some(glyph.clone())),
+
+    assert_eq!(
+        // User 1 is NOT selling
+        client.try_offers_get(
+            &Offer::AssetSell(u1_address.clone(), token_address.clone(), amount),
+            &Some(glyph.clone())
+        ),
         Err(Ok(Error::NotFound))
     );
 
@@ -712,10 +716,7 @@ fn test_rm_glyph_sell() {
 
     client.offers_get(&glyph, &Some(asset.clone()));
 
-    client.offer_delete(
-        &glyph,
-        &Some(asset.clone()),
-    );
+    client.offer_delete(&glyph, &Some(asset.clone()));
 
     assert_eq!(
         client.try_offers_get(&glyph, &Some(asset.clone())),
