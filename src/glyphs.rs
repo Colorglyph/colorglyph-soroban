@@ -176,7 +176,7 @@ fn glyph_store(
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
     let glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
-    
+
     if !env.storage().persistent().has(&glyph_minter_key) {
         env.storage().persistent().set(&glyph_minter_key, &minter);
     }

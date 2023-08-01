@@ -10,4 +10,5 @@ fmt:
 	cargo fmt --all
 
 clean:
+	rm -rf colorglyph-sdk
 	cargo clean

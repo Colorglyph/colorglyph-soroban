@@ -1,7 +1,7 @@
+make clean
 make
-rm -rf ./colorglyph-sdk
 
-contract_id=$(soroban contract deploy --wasm target/wasm32-unknown-unknown/release/colorglyph.wasm --source Default --network Futurenet)
+contract_id=$(soroban contract deploy --wasm target/wasm32-unknown-unknown/release/colorglyph.wasm --source Default --network Local)
 echo 'contract deployed' $contract_id
 # contract_id=CAMSMKKWJA2KOSYLY676V2YDXKK5P6LWI52MFREBGBLXVUXXXP7JHJKE
 
@@ -12,7 +12,7 @@ token_address=CB64D3G7SM2RTH6JSGG34DDTFTQ5CFDKVDZJZSODMCX4NJ2HV2KN7OHT
 fee_address=GA55USY2TY4DEO5YFQ3KZECL2A3A5IVYVCKPB4LLTAE57TOE6PM46D7C
 
 # initialize
-soroban contract invoke --id $contract_id --source Default --network Futurenet -- initialize --token_address $token_address --fee_address $fee_address
+soroban contract invoke --id $contract_id --source Default --network Local -- initialize --token_address $token_address --fee_address $fee_address
 echo 'contract initialized'
 
 soroban contract bindings typescript --wasm target/wasm32-unknown-unknown/release/colorglyph.wasm --contract-id $contract_id --output-dir ./colorglyph-sdk --contract-name colorglyph-sdk

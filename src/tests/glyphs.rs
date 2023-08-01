@@ -50,8 +50,6 @@ fn big_mint() {
         mint_colors.set(i, vec![&env, i]);
     }
 
-    println!("{:?}", mine_colors);
-
     client.colors_mine(&u1_address, &None, &mine_colors);
 
     client.glyph_mint(
@@ -61,13 +59,21 @@ fn big_mint() {
         &None,
     );
 
+    // Futurenet footprint @ width 22
+    // 17723593 CPU
+    // 1288556 MEM
+
+    // Test @ width 22 / 32
+    // 17477235 CPU / 36473277
+    // 1727575 MEM / 6681805
+
     // env.budget().reset_unlimited();
     env.budget().reset_default();
 
     let id = client.glyph_mint(&u1_address, &None, &map![&env], &Some(width));
 
-    println!("{:?}", id);
     println!("{:?}", env.budget().print());
+    println!("{:?}", id);
 }
 
 #[test]
