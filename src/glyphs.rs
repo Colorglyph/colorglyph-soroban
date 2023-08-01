@@ -179,26 +179,28 @@ fn glyph_store(
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
     let glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
-
     if !env.storage().persistent().has(&glyph_minter_key) {
         env.storage().persistent().set(&glyph_minter_key, &minter);
-
-        env.storage()
-            .persistent()
-            .bump(&glyph_minter_key, MAX_ENTRY_LIFETIME);
     }
+
+    env.storage()
+        .persistent()
+        .bump(&glyph_minter_key, MAX_ENTRY_LIFETIME);
 
     // Save the glyph to storage
     let glyph_key = StorageKey::Glyph(hash.clone());
 
-    env.storage().persistent().set(
-        &glyph_key,
-        &Glyph {
-            width,
-            length: (hash_data.len() - 4) / 3, // -4 because we're appending width, /3 because there are 3 u8 values per u32 color
-            colors,
-        },
-    );
+    // Only save the glyph if it hasn't already been minted
+    if !env.storage().persistent().has(&glyph_key) {
+        env.storage().persistent().set(
+            &glyph_key,
+            &Glyph {
+                width,
+                length: (hash_data.len() - 4) / 3, // -4 because we're appending width, /3 because there are 3 u8 values per u32 color
+                colors,
+            },
+        );
+    }
 
     env.storage()
         .persistent()
@@ -313,9 +315,6 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                 .persistent()
                 .get::<StorageKey, Glyph>(&glyph_key)
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
-
-            // Remove glyph
-            env.storage().persistent().remove(&glyph_key);
 
             // Remove glyph owner
             env.storage()
@@ -440,7 +439,13 @@ pub fn glyph_get(env: &Env, hash_type: HashType) -> Result<GlyphType, Error> {
         HashType::Colors(address) => glyph_get_color_dust(env, StorageKey::Colors(address)),
         HashType::Dust(address) => glyph_get_color_dust(env, StorageKey::Dust(address)),
         HashType::Glyph(hash) => {
-            let glyph_key = StorageKey::Glyph(hash);
+            let glyph_key = StorageKey::Glyph(hash.clone());
+            let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
+
+            if !env.storage().persistent().has(&glyph_owner_key) {
+                return Err(Error::NotFound);
+            }
+
             let glyph = env
                 .storage()
                 .persistent()
