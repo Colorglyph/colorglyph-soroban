@@ -21,6 +21,56 @@ use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env};
 // test scraping a glyph when there's already a Dust glyph in Storage
 
 #[test]
+fn big_mint() {
+    let env = Env::default();
+
+    env.mock_all_auths();
+    env.budget().reset_unlimited();
+
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
+
+    let token_admin = Address::random(&env);
+    let token_address = env.register_stellar_asset_contract(token_admin.clone());
+    let token_admin_client = token::AdminClient::new(&env, &token_address);
+
+    let u1_address = Address::random(&env);
+    let fee_address = Address::random(&env);
+
+    token_admin_client.mint(&u1_address, &10_000);
+
+    client.initialize(&token_address, &fee_address);
+
+    let width: u32 = 32;
+    let mut mine_colors = map![&env];
+    let mut mint_colors = map![&env];
+
+    for i in 0..width.pow(2) {
+        mine_colors.set(i, 1);
+        mint_colors.set(i, vec![&env, i]);
+    }
+
+    println!("{:?}", mine_colors);
+
+    client.colors_mine(&u1_address, &None, &mine_colors);
+
+    client.glyph_mint(
+        &u1_address,
+        &None,
+        &map![&env, (u1_address.clone(), mint_colors)],
+        &None,
+    );
+
+    // env.budget().reset_unlimited();
+    env.budget().reset_default();
+
+    let id = client.glyph_mint(&u1_address, &None, &map![&env], &Some(width));
+
+    println!("{:?}", id);
+    println!("{:?}", env.budget().print());
+}
+
+#[test]
 fn toolbox_test() {
     let env = Env::default();
 

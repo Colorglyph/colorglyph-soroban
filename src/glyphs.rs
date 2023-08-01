@@ -112,45 +112,42 @@ fn glyph_store(
     colors: Map<Address, Map<u32, Vec<u32>>>,
     width: u32,
 ) -> BytesN<32> {
-    let mut hash_data = Bytes::new(&env);
+    let mut bit24_data = Vec::new(&env);
 
     // TODO
     // Better error for not enough colors
     // Should we error if there's a dupe index?
     // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
-
     for (_, color_indexes) in colors.iter() {
         for (color, indexes) in color_indexes.iter() {
-            // TODO
-            // This is expensive and it's only for getting the sha256 hash. We should find a cheaper way to derive a hash from the Glyph colors themselves.
-            // RawVal maybe?
-            // Ordering is important so you can't just hash the arg directly
-            // May be able to improve perf by ordering indexes (and maybe reversing them so we extend and then insert vs lots of inserts?)
-
             for index in indexes.iter() {
-                // We need to extend the length of the palette
-                if (hash_data.len() / 3) <= index {
-                    // Start wherever we have data .. wherever we need data
-                    for i in (hash_data.len() / 3)..=index {
-                        // If this is the section we're interested in filling, just fill
-                        if i == index {
-                            let slice: [u8; 3] = color.to_le_bytes()[..3].try_into().unwrap();
-                            hash_data.insert_from_slice(index * 3, &slice);
-                        }
-                        // Push empty white pixels
-                        // NOTE: this is a "free" way to use white pixels atm
-                        else {
-                            hash_data.extend_from_slice(&[255; 3]);
-                        }
+                // fill between the gap with white pixels
+                if bit24_data.len() <= index {
+                    // Start wherever we have data..=wherever we need data
+                    for i in bit24_data.len()..=index {
+                        bit24_data.push_back(if i == index {
+                            // If this is the tail of the array fill it with the color
+                            color
+                        } else {
+                            // Push empty white pixels
+                            // NOTE: this is a "free" way to use white pixels atm
+                            16777215
+                        });
                     }
                 }
                 // If the bytes already exist just fill them in
                 else {
-                    let slice: [u8; 3] = color.to_le_bytes()[..3].try_into().unwrap();
-                    hash_data.copy_from_slice(index * 3, &slice);
+                    bit24_data.set(index, color);
                 }
             }
         }
+    }
+
+    let mut hash_data = Bytes::new(&env);
+
+    for color in bit24_data.iter() {
+        let slice = color.to_le_bytes();
+        hash_data.extend_from_slice(&slice[..3]);
     }
 
     // the hash includes the width. Otherwise two identical palettes with different widths would clash
@@ -179,6 +176,7 @@ fn glyph_store(
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
     let glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
+    
     if !env.storage().persistent().has(&glyph_minter_key) {
         env.storage().persistent().set(&glyph_minter_key, &minter);
     }
