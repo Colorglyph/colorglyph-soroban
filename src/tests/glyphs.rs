@@ -3,11 +3,18 @@
 use std::println;
 extern crate std;
 
+use fixed_point_math::FixedPoint;
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
     types::{Error, GlyphType, HashType, StorageKey},
 };
 use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env};
+
+mod colorglyph {
+    soroban_sdk::contractimport!(
+        file = "./target/wasm32-unknown-unknown/release/colorglyph.optimized.wasm"
+    );
+}
 
 // TODO
 // test scrape of a never minted glyph
@@ -19,6 +26,7 @@ use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env};
 // test Colors transfer
 // test to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
 // test scraping a glyph when there's already a Dust glyph in Storage
+// ensure color spends are working
 
 #[test]
 fn big_mint() {
@@ -27,8 +35,8 @@ fn big_mint() {
     env.mock_all_auths();
     env.budget().reset_unlimited();
 
-    let contract_address = env.register_contract(None, ColorGlyph);
-    let client = ColorGlyphClient::new(&env, &contract_address);
+    let contract_address = env.register_contract_wasm(None, colorglyph::WASM);
+    let client = colorglyph::Client::new(&env, &contract_address); // ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
@@ -41,13 +49,23 @@ fn big_mint() {
 
     client.initialize(&token_address, &fee_address);
 
-    let width: u32 = 32;
+    let width: u64 = 32;
+    let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
 
-    for i in 0..width.pow(2) {
-        mine_colors.set(i, 1);
-        mint_colors.set(i, vec![&env, i]);
+    for i in 0..width {
+        for j in 0..width {
+            let red = 255 - 1.fixed_div_floor(width, i * 255).unwrap();
+            let green = 255 - 1.fixed_div_floor(width, j * 255).unwrap();
+            let blue = 1.fixed_div_floor(width * width, i * j * 255).unwrap();
+
+            let color = red * 256u64.pow(2) + green * 256 + blue;
+
+            mine_colors.set(color as u32, 1);
+            mint_colors.set(color as u32, vec![&env, index as u32]);
+            index += 1;
+        }
     }
 
     client.colors_mine(&u1_address, &None, &mine_colors);
@@ -59,20 +77,14 @@ fn big_mint() {
         &None,
     );
 
-    // Futurenet footprint @ width 22
-    // 17723593 CPU
-    // 1288556 MEM
+    env.budget().reset_limits(100_000_000, 104_857_600);
 
-    // Test @ width 22 / 32
-    // 17477235 CPU / 36473277
-    // 1727575 MEM / 6681805
-
-    // env.budget().reset_unlimited();
-    env.budget().reset_default();
-
-    let id = client.glyph_mint(&u1_address, &None, &map![&env], &Some(width));
+    let id = client.glyph_mint(&u1_address, &None, &map![&env], &Some(width as u32));
 
     println!("{:?}", env.budget().print());
+
+    env.budget().reset_unlimited();
+
     println!("{:?}", id);
 }
 

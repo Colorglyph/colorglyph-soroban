@@ -145,9 +145,10 @@ fn glyph_store(
 
     let mut hash_data = Bytes::new(&env);
 
+    // TODO to_le_bytes produces different results than bit shifting
+
     for color in bit24_data.iter() {
-        let slice = color.to_le_bytes();
-        hash_data.extend_from_slice(&slice[..3]);
+        hash_data.extend_from_slice(&color.to_le_bytes()[..3]);
     }
 
     // the hash includes the width. Otherwise two identical palettes with different widths would clash
@@ -194,7 +195,7 @@ fn glyph_store(
             &glyph_key,
             &Glyph {
                 width,
-                length: (hash_data.len() - 4) / 3, // -4 because we're appending width, /3 because there are 3 u8 values per u32 color
+                length: bit24_data.len(),
                 colors,
             },
         );
