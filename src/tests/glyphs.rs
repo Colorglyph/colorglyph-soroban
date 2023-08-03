@@ -49,7 +49,7 @@ fn big_mint() {
 
     client.initialize(&token_address, &fee_address);
 
-    let width: u64 = 32;
+    let width: u64 = 40;
     let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
@@ -77,7 +77,7 @@ fn big_mint() {
         &None,
     );
 
-    env.budget().reset_limits(100_000_000, 104_857_600);
+    env.budget().reset_limits(1_000_000_000, 1_000_000_000);
 
     let id = client.glyph_mint(&u1_address, &None, &map![&env], &Some(width as u32));
 

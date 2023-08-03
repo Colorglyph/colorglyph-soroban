@@ -7,6 +7,15 @@ use fixed_point_math::FixedPoint;
 use soroban_sdk::{bytes, Env, map, vec};
 
 #[test]
+fn test_3() {
+    let color = 11759251u32;
+    println!("{:?}", color.to_be_bytes()); // <- right
+    println!("{:?}", color.to_le_bytes()); // <- wrong
+
+    println!("{:?}", [color >> 16, color >> 8 & 0xff, color & 0xff]);
+}
+
+#[test]
 fn test_2() {
     let env = Env::default();
 

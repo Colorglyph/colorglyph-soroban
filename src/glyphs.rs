@@ -145,14 +145,12 @@ fn glyph_store(
 
     let mut hash_data = Bytes::new(&env);
 
-    // TODO to_le_bytes produces different results than bit shifting
-
     for color in bit24_data.iter() {
-        hash_data.extend_from_slice(&color.to_le_bytes()[..3]);
+        hash_data.extend_from_slice(&color.to_be_bytes()[1..]);
     }
 
     // the hash includes the width. Otherwise two identical palettes with different widths would clash
-    hash_data.extend_from_slice(&width.to_le_bytes());
+    hash_data.extend_from_slice(&width.to_be_bytes());
 
     let hash = env.crypto().sha256(&hash_data);
     let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
