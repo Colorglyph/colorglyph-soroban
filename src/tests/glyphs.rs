@@ -3,11 +3,11 @@
 use std::println;
 extern crate std;
 
-use fixed_point_math::FixedPoint;
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
     types::{Error, GlyphType, HashType, StorageKey},
 };
+use fixed_point_math::FixedPoint;
 use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env};
 
 mod colorglyph {
@@ -36,7 +36,9 @@ fn big_mint() {
     env.budget().reset_unlimited();
 
     let contract_address = env.register_contract_wasm(None, colorglyph::WASM);
-    let client = colorglyph::Client::new(&env, &contract_address); // ColorGlyphClient::new(&env, &contract_address);
+    let client = colorglyph::Client::new(&env, &contract_address);
+    // let contract_address = env.register_contract(None, ColorGlyph);
+    // let client = ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
@@ -49,7 +51,7 @@ fn big_mint() {
 
     client.initialize(&token_address, &fee_address);
 
-    let width: u64 = 40;
+    let width: u64 = 42;
     let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
@@ -77,13 +79,14 @@ fn big_mint() {
         &None,
     );
 
-    env.budget().reset_limits(1_000_000_000, 1_000_000_000);
-
-    let id = client.glyph_mint(&u1_address, &None, &map![&env], &Some(width as u32));
-
-    println!("{:?}", env.budget().print());
-
+    // env.budget().reset_default();
     env.budget().reset_unlimited();
+
+    let id = client
+        .glyph_mint(&u1_address, &None, &map![&env], &Some(width as u32))
+        .unwrap();
+
+    env.budget().print();
 
     println!("{:?}", id);
 }

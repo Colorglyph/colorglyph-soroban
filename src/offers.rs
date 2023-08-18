@@ -2,7 +2,7 @@
 // extern crate std;
 
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{token, vec, Address, Env, Vec};
+use soroban_sdk::{token, vec, Address, Env, Symbol, Vec};
 
 use crate::{
     contract::MAX_ENTRY_LIFETIME,
@@ -104,6 +104,15 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             // remove all glyph buyer offers
                             env.storage().persistent().remove(&buy_glyph_offer_key);
 
+                            env.events().publish(
+                                (
+                                    Symbol::new(&env, "offer_match"),
+                                    sell_glyph_hash.clone(),
+                                    sell_glyph_owner_address,
+                                ),
+                                (buy_glyph_hash.clone(), buy_glyph_owner_address),
+                            );
+
                             Ok(())
                         }
                         Offer::AssetSell(sell_asset_owner_address, sell_asset_address, amount) => {
@@ -198,6 +207,16 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
 
                             // remove all other sell offers for this glyph
                             env.storage().persistent().remove(&buy_glyph_offer_key);
+
+                            env.events().publish(
+                                (
+                                    Symbol::new(&env, "offer_match"),
+                                    sell_asset_address,
+                                    sell_asset_owner_address,
+                                    *amount,
+                                ),
+                                (buy_glyph_hash.clone(), offer_index),
+                            );
 
                             Ok(())
                         }
@@ -353,6 +372,16 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                     // Remove all other sell offers for this glyph
                     env.storage().persistent().remove(&sell_glyph_offer_key);
 
+                    env.events().publish(
+                        (
+                            Symbol::new(&env, "offer_post"),
+                            buy_asset_address,
+                            buy_asset_owner,
+                            *amount,
+                        ),
+                        (sell_glyph_hash.clone(),),
+                    );
+
                     Ok(())
                 }
                 _ => Err(Error::NotPermitted),
@@ -366,8 +395,8 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
     match offer {
         OfferCreate::Glyph(sell_glyph_hash, buy) => {
             let sell_glyph_owner_key = StorageKey::GlyphOwner(sell_glyph_hash.clone());
-            glyph_verify_ownership(env, &sell_glyph_owner_key);
-            let sell_glyph_offer_key = StorageKey::GlyphOffer(sell_glyph_hash);
+            let sell_glyph_owner_address = glyph_verify_ownership(env, &sell_glyph_owner_key);
+            let sell_glyph_offer_key = StorageKey::GlyphOffer(sell_glyph_hash.clone());
 
             // Selling a Glyph
             // let glyph_offer_key = StorageKey::GlyphOffer(offer_hash);
@@ -378,8 +407,8 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                 .unwrap_or(Vec::new(env));
 
             match offers.binary_search(&buy) {
-                Err(offer_index) => offers.insert(offer_index, buy), // Buy can be an Asset or a Glyph
-                _ => return Err(Error::NotEmpty),                    // Dupe
+                Err(offer_index) => offers.insert(offer_index, buy.clone()), // Buy can be an Asset or a Glyph
+                _ => return Err(Error::NotEmpty),                            // Dupe
             }
 
             env.storage()
@@ -389,6 +418,15 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             env.storage()
                 .persistent()
                 .bump(&sell_glyph_offer_key, MAX_ENTRY_LIFETIME);
+
+            env.events().publish(
+                (
+                    Symbol::new(&env, "offer_post"),
+                    sell_glyph_hash,
+                    sell_glyph_owner_address,
+                ),
+                (buy,),
+            );
 
             Ok(())
         }
@@ -407,7 +445,7 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             );
 
             let sell_asset_offer_key =
-                StorageKey::AssetOffer(buy_glyph_hash, sell_asset_address, amount);
+                StorageKey::AssetOffer(buy_glyph_hash.clone(), sell_asset_address.clone(), amount);
 
             let mut offers = env
                 .storage()
@@ -419,7 +457,7 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                 return Err(Error::NotEmpty);
             }
 
-            offers.push_back(sell_asset_owner_address);
+            offers.push_back(sell_asset_owner_address.clone());
 
             env.storage()
                 .persistent()
@@ -428,6 +466,16 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             env.storage()
                 .persistent()
                 .bump(&sell_asset_offer_key, MAX_ENTRY_LIFETIME);
+
+            env.events().publish(
+                (
+                    Symbol::new(&env, "offer_post"),
+                    sell_asset_address,
+                    sell_asset_owner_address,
+                    amount,
+                ),
+                (buy_glyph_hash,),
+            );
 
             Ok(())
         }
@@ -439,7 +487,7 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
         Offer::Glyph(glyph_hash) => {
             // Selling a Glyph (delete Glyph or Asset buy offer)
             let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
-            glyph_verify_ownership(env, &glyph_owner_key);
+            let glyph_owner = glyph_verify_ownership(env, &glyph_owner_key);
 
             let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
             let mut offers = env
@@ -452,7 +500,7 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                 .persistent()
                 .bump(&glyph_hash_key, MAX_ENTRY_LIFETIME);
 
-            match buy {
+            match &buy {
                 Some(buy) => match offers.binary_search(buy) {
                     Ok(offer_index) => {
                         offers.remove(offer_index);
@@ -463,12 +511,23 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                             .persistent()
                             .bump(&glyph_hash_key, MAX_ENTRY_LIFETIME);
 
+                        env.events().publish(
+                            (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
+                            (buy.clone(), offer_index),
+                        );
+
                         Ok(())
                     }
                     _ => Err(Error::NotFound),
                 },
                 None => {
                     env.storage().persistent().remove(&glyph_hash_key);
+
+                    env.events().publish(
+                        (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
+                        (buy.clone(),),
+                    );
+
                     Ok(())
                 }
             }
@@ -507,6 +566,16 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                                     );
 
                                     offers.remove(offer_index);
+
+                                    env.events().publish(
+                                        (
+                                            Symbol::new(&env, "offer_delete"),
+                                            asset_address,
+                                            asset_owner_address,
+                                            amount,
+                                        ),
+                                        (glyph_hash, offer_index),
+                                    );
 
                                     if offers.is_empty() {
                                         env.storage().persistent().remove(&asset_offer_key);

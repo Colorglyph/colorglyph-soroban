@@ -4,7 +4,7 @@ use std::println;
 extern crate std;
 
 use fixed_point_math::FixedPoint;
-use soroban_sdk::{bytes, Env, map, vec};
+use soroban_sdk::{bytes, map, vec, Env};
 
 #[test]
 fn test_3() {
@@ -22,7 +22,7 @@ fn test_2() {
     let width: i128 = 22;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
-    
+
     for i in 0..width {
         for j in 0..width {
             let red = 1.fixed_div_floor(width, 255 - i * 255).unwrap();
@@ -40,7 +40,7 @@ fn test_2() {
 #[test]
 fn test_1() {
     let env = Env::default();
-    
+
     let bytes = bytes!(
         &env,
         [

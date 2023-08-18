@@ -5,7 +5,7 @@ use crate::{
     contract::MAX_ENTRY_LIFETIME,
     types::{Error, Glyph, GlyphType, HashType, StorageKey},
 };
-use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Map, Vec};
+use soroban_sdk::{panic_with_error, symbol_short, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
 
 pub const MAX_PAYMENT_COUNT: u8 = 15;
 
@@ -84,12 +84,21 @@ pub fn glyph_mint(
                     }
                 }
             }
+
+            // TODO do we need events for each color spent?
         }
     }
 
     match width {
         // We are storing the glyph
-        Some(width) => Some(glyph_store(env, minter, to, glyph_colors, width)),
+        Some(width) => {
+            let hash = glyph_store(env, minter.clone(), to.clone(), glyph_colors, width);
+
+            env.events()
+                .publish((symbol_short!("minted"), minter, to), hash.clone());
+
+            Some(hash)
+        }
         // We are building the glyph
         None => {
             env.storage()
@@ -99,6 +108,8 @@ pub fn glyph_mint(
             env.storage()
                 .persistent()
                 .bump(&glyph_colors_key, MAX_ENTRY_LIFETIME);
+
+            env.events().publish((symbol_short!("minting"), minter), ());
 
             None
         }
@@ -218,19 +229,25 @@ pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
                 env,
                 from.clone(),
                 StorageKey::Colors(from.clone()),
-                StorageKey::Colors(to),
+                StorageKey::Colors(to.clone()),
             );
+
+            env.events()
+                .publish((Symbol::new(env, "transfer_colors"), from, to), ());
         }
         HashType::Dust(from) => {
             glyph_transfer_color_dust(
                 env,
                 from.clone(),
                 StorageKey::Dust(from.clone()),
-                StorageKey::Dust(to),
+                StorageKey::Dust(to.clone()),
             );
+
+            env.events()
+                .publish((Symbol::new(env, "transfer_dust"), from, to), ());
         }
         HashType::Glyph(glyph_hash) => {
-            let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash);
+            let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
 
             glyph_verify_ownership(env, &glyph_owner_key);
 
@@ -239,6 +256,16 @@ pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
             env.storage()
                 .persistent()
                 .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME);
+
+            env.events().publish(
+                (
+                    Symbol::new(env, "transfer_glyph"),
+                    glyph_owner_key,
+                    to,
+                    glyph_hash,
+                ),
+                (),
+            );
         }
     }
 }
@@ -282,6 +309,11 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                 StorageKey::Colors(owner_.clone()),
                 &mut miners_colors_indexes,
             );
+
+            env.events().publish(
+                (Symbol::new(env, "scrape_colors"), owner.clone(), to.clone()),
+                (),
+            );
         }
         HashType::Dust(owner_) => {
             owner = glyph_scrape_color_dust(
@@ -289,6 +321,11 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                 owner_,
                 StorageKey::Dust(owner_.clone()),
                 &mut miners_colors_indexes,
+            );
+
+            env.events().publish(
+                (Symbol::new(env, "scrape_dust"), owner.clone(), to.clone()),
+                (),
             );
         }
         HashType::Glyph(glyph_hash) => {
@@ -324,7 +361,17 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                 .remove(&StorageKey::GlyphOffer(glyph_hash.clone()));
 
             miners_colors_indexes = glyph.colors;
-            owner = glyph_owner;
+            owner = glyph_owner.clone();
+
+            env.events().publish(
+                (
+                    Symbol::new(env, "scrape_glyph"),
+                    glyph_owner,
+                    to.clone(),
+                    glyph_hash.clone(),
+                ),
+                (),
+            );
         }
     }
 
@@ -364,6 +411,8 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
             colors_indexes.remove(color);
 
             payment_count += 1;
+
+            // TODO do we need to emit events for each color repayment?
         }
 
         if colors_indexes.is_empty() {

@@ -1,3 +1,5 @@
+# alias soroban="(cd ~/Desktop/Web/Soroban/soroban-tools/; cargo build --quiet) && ~/Desktop/Web/Soroban/soroban-tools/target/debug/soroban"
+
 make clean
 make build-opt
 
@@ -15,5 +17,5 @@ fee_address=GA55USY2TY4DEO5YFQ3KZECL2A3A5IVYVCKPB4LLTAE57TOE6PM46D7C
 soroban contract invoke --id $contract_id --source Default --network Futurenet -- initialize --token_address $token_address --fee_address $fee_address
 echo 'contract initialized'
 
-soroban contract bindings typescript --wasm target/wasm32-unknown-unknown/release/colorglyph.optimized.wasm --contract-id $contract_id --output-dir ./colorglyph-sdk --contract-name colorglyph-sdk
+soroban contract bindings typescript --wasm target/wasm32-unknown-unknown/release/colorglyph.optimized.wasm --contract-id $contract_id --output-dir ./colorglyph-sdk
 echo 'bindings generated'

@@ -1,4 +1,4 @@
-use soroban_sdk::{token, Address, Env, Map, Vec};
+use soroban_sdk::{symbol_short, token, Address, Env, Map, Vec};
 
 use crate::{contract::MAX_ENTRY_LIFETIME, types::StorageKey};
 
@@ -30,6 +30,11 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
         env.storage()
             .persistent()
             .bump(&miner_owner_color, MAX_ENTRY_LIFETIME);
+
+        env.events().publish(
+            (symbol_short!("mine"), miner.clone(), to.clone()),
+            (color, amount),
+        );
     }
 
     let token_address = env
@@ -55,7 +60,7 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Addre
 
     for (miner_address, color, amount) in colors.iter() {
         let from_miner_owner_color = StorageKey::Color(miner_address.clone(), from.clone(), color);
-        let to_miner_owner_color = StorageKey::Color(miner_address, to.clone(), color);
+        let to_miner_owner_color = StorageKey::Color(miner_address.clone(), to.clone(), color);
 
         let current_from_amount = env
             .storage()
@@ -81,6 +86,11 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Addre
         env.storage()
             .persistent()
             .bump(&to_miner_owner_color, MAX_ENTRY_LIFETIME);
+
+        env.events().publish(
+            (symbol_short!("transfer"), from.clone(), to.clone()),
+            (miner_address, color, amount),
+        );
     }
 }
 
