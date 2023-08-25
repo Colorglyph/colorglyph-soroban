@@ -57,6 +57,16 @@ pub fn glyph_mint(
                 .persistent()
                 .bump(&current_color_key, MAX_ENTRY_LIFETIME);
 
+            env.events().publish(
+                (
+                    symbol_short!("color_out"),
+                    miner.clone(),
+                    minter.clone(),
+                    color,
+                ),
+                indexes.clone(),
+            );
+
             if !skip {
                 match glyph_colors.get(miner.clone()) {
                     Some(result) => match result {
@@ -84,8 +94,6 @@ pub fn glyph_mint(
                     }
                 }
             }
-
-            // TODO do we need events for each color spent?
         }
     }
 
@@ -412,7 +420,15 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
 
             payment_count += 1;
 
-            // TODO do we need to emit events for each color repayment?
+            env.events().publish(
+                (
+                    symbol_short!("color_in"),
+                    miner.clone(),
+                    to_address.clone(),
+                    color,
+                ),
+                indexes.clone(),
+            );
         }
 
         if colors_indexes.is_empty() {

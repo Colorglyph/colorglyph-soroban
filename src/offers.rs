@@ -275,7 +275,8 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                     let sell_glyph_offer_key = StorageKey::GlyphOffer(sell_glyph_hash.clone());
                     let sell_glyph_key = StorageKey::Glyph(sell_glyph_hash.clone());
 
-                    // TODO this next block is essentially a dupe from up above, this should be broken up into a separate function
+                    // TODO
+                    // this next block is essentially a dupe from up above, this should be broken up into a separate function
                     // Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. over lap between minter and miner)
                     let mut leftover_amount = *amount;
 
