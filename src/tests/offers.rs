@@ -27,7 +27,7 @@ fn test_self_purchase() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -98,7 +98,7 @@ fn test_sell_scrape_buy() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -212,7 +212,7 @@ fn test_dupe() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -283,7 +283,7 @@ fn test_buy_glyph() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
@@ -389,7 +389,7 @@ fn test_sell_glyph() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
@@ -483,7 +483,7 @@ fn test_swap_glyph() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     // Accounts
     let u1_address = Address::random(&env);
@@ -591,7 +591,7 @@ fn test_rm_glyph_buy() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
@@ -669,7 +669,7 @@ fn test_rm_glyph_sell() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
@@ -741,7 +741,7 @@ fn test_rm_glyph_swap() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts

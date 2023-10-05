@@ -2,7 +2,7 @@
 // extern crate std;
 
 use crate::{
-    contract::MAX_ENTRY_LIFETIME,
+    // contract::MAX_ENTRY_LIFETIME,
     types::{Error, Glyph, GlyphType, HashType, StorageKey},
 };
 use soroban_sdk::{panic_with_error, symbol_short, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
@@ -53,9 +53,11 @@ pub fn glyph_mint(
                 .persistent()
                 .set(&current_color_key, &(current_color_amount - indexes.len()));
 
-            env.storage()
-                .persistent()
-                .bump(&current_color_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &current_color_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             env.events().publish(
                 (
@@ -113,9 +115,11 @@ pub fn glyph_mint(
                 .persistent()
                 .set(&glyph_colors_key, &glyph_colors);
 
-            env.storage()
-                .persistent()
-                .bump(&glyph_colors_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &glyph_colors_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             env.events().publish((symbol_short!("minting"), minter), ());
 
@@ -188,9 +192,9 @@ fn glyph_store(
         },
     );
 
-    env.storage()
-        .persistent()
-        .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
     let glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
@@ -199,9 +203,9 @@ fn glyph_store(
         env.storage().persistent().set(&glyph_minter_key, &minter);
     }
 
-    env.storage()
-        .persistent()
-        .bump(&glyph_minter_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(&glyph_minter_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     // Save the glyph to storage
     let glyph_key = StorageKey::Glyph(hash.clone());
@@ -218,9 +222,9 @@ fn glyph_store(
         );
     }
 
-    env.storage()
-        .persistent()
-        .bump(&glyph_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(&glyph_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     // Remove any temp Colors
     env.storage()
@@ -261,9 +265,11 @@ pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
 
             env.storage().persistent().set(&glyph_owner_key, &to);
 
-            env.storage()
-                .persistent()
-                .bump(&glyph_owner_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &glyph_owner_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             env.events().publish(
                 (
@@ -300,9 +306,9 @@ fn glyph_transfer_color_dust(
 
     env.storage().persistent().set(&to_colors_key, &colors);
 
-    env.storage()
-        .persistent()
-        .bump(&to_colors_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(&to_colors_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 }
 
 pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
@@ -412,9 +418,11 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                 .persistent()
                 .set(&miner_owner_color, &(current_amount + indexes.len()));
 
-            env.storage()
-                .persistent()
-                .bump(&miner_owner_color, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &miner_owner_color,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             colors_indexes.remove(color);
 
@@ -451,9 +459,11 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                     .persistent()
                     .set(&colors_key, &miners_colors_indexes);
 
-                env.storage()
-                    .persistent()
-                    .bump(&colors_key, MAX_ENTRY_LIFETIME);
+                // env.storage().persistent().bump(
+                //     &colors_key,
+                //     MAX_ENTRY_LIFETIME,
+                //     MAX_ENTRY_LIFETIME,
+                // );
             }
         }
         _ => {
@@ -467,9 +477,11 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                     .persistent()
                     .set(&colors_key, &miners_colors_indexes);
 
-                env.storage()
-                    .persistent()
-                    .bump(&colors_key, MAX_ENTRY_LIFETIME);
+                // env.storage().persistent().bump(
+                //     &colors_key,
+                //     MAX_ENTRY_LIFETIME,
+                //     MAX_ENTRY_LIFETIME,
+                // );
             }
         }
     }
@@ -489,9 +501,9 @@ fn glyph_scrape_color_dust(
         .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
-    env.storage()
-        .persistent()
-        .bump(&colors_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(&colors_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     owner.clone()
 }
@@ -514,9 +526,9 @@ pub fn glyph_get(env: &Env, hash_type: HashType) -> Result<GlyphType, Error> {
                 .get::<StorageKey, Glyph>(&glyph_key)
                 .ok_or(Error::NotFound)?;
 
-            env.storage()
-                .persistent()
-                .bump(&glyph_key, MAX_ENTRY_LIFETIME);
+            // env.storage()
+            //     .persistent()
+            //     .bump(&glyph_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
             Ok(GlyphType::Glyph(glyph))
         }
@@ -530,9 +542,9 @@ fn glyph_get_color_dust(env: &Env, colors_key: StorageKey) -> Result<GlyphType, 
         .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&colors_key)
         .ok_or(Error::NotFound)?;
 
-    env.storage()
-        .persistent()
-        .bump(&colors_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(&colors_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     Ok(GlyphType::Colors(colors))
 }
@@ -546,9 +558,9 @@ pub fn glyph_verify_ownership(env: &Env, glyph_owner_key: &StorageKey) -> Addres
 
     glyph_owner.require_auth();
 
-    env.storage()
-        .persistent()
-        .bump(glyph_owner_key, MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .persistent()
+    //     .bump(glyph_owner_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     glyph_owner
 }

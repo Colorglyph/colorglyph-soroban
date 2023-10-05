@@ -9,16 +9,16 @@ publish = false
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+testutils = ["soroban-sdk/testutils"]
+
 [dependencies]
-soroban-sdk = "0.9.1"
+soroban-sdk = "20.0.0-rc2"
 fixed-point-math = { version = "0.0.2"}
 
 [dev_dependencies]
-soroban-sdk = { version = "0.9.1", features = ["testutils"] }
+soroban-sdk = { version = "20.0.0-rc2", features = ["testutils"] }
 chrono = { version = "0.4.26" }
-
-[features]
-testutils = ["soroban-sdk/testutils"]
 
 [profile.release]
 opt-level = "z"

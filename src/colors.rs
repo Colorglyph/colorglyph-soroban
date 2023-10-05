@@ -1,6 +1,8 @@
 use soroban_sdk::{symbol_short, token, Address, Env, Map, Vec};
 
-use crate::{contract::MAX_ENTRY_LIFETIME, types::StorageKey};
+use crate::{
+    // contract::MAX_ENTRY_LIFETIME, 
+    types::StorageKey};
 
 pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
     miner.require_auth();
@@ -27,9 +29,9 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
             .persistent()
             .set(&miner_owner_color, &(current_amount + amount));
 
-        env.storage()
-            .persistent()
-            .bump(&miner_owner_color, MAX_ENTRY_LIFETIME);
+        // env.storage()
+        //     .persistent()
+        //     .bump(&miner_owner_color, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
         env.events().publish(
             (symbol_short!("mine"), miner.clone(), to.clone()),
@@ -49,7 +51,9 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
         .unwrap();
     let token = token::Client::new(env, &token_address);
 
-    env.storage().instance().bump(MAX_ENTRY_LIFETIME);
+    // env.storage()
+    //     .instance()
+    //     .bump(MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     // TODO this is just a stroop fee so not sufficient. This will need to be adjusted before going live
     token.transfer(&miner, &fee_address, &(pay_amount as i128));
@@ -80,12 +84,16 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Addre
             .persistent()
             .set(&to_miner_owner_color, &(current_to_amount + amount));
 
-        env.storage()
-            .persistent()
-            .bump(&from_miner_owner_color, MAX_ENTRY_LIFETIME);
-        env.storage()
-            .persistent()
-            .bump(&to_miner_owner_color, MAX_ENTRY_LIFETIME);
+        // env.storage().persistent().bump(
+        //     &from_miner_owner_color,
+        //     MAX_ENTRY_LIFETIME,
+        //     MAX_ENTRY_LIFETIME,
+        // );
+        // env.storage().persistent().bump(
+        //     &to_miner_owner_color,
+        //     MAX_ENTRY_LIFETIME,
+        //     MAX_ENTRY_LIFETIME,
+        // );
 
         env.events().publish(
             (symbol_short!("transfer"), from.clone(), to.clone()),
@@ -107,9 +115,11 @@ pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u
         .get::<StorageKey, u32>(&color_key)
         .unwrap_or(0);
 
-    env.storage()
-        .persistent()
-        .bump(&color_key, MAX_ENTRY_LIFETIME);
+    if color > 0 {
+        // env.storage()
+        //     .persistent()
+        //     .bump(&color_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
+    }
 
     color
 }

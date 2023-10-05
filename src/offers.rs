@@ -5,7 +5,7 @@ use fixed_point_math::FixedPoint;
 use soroban_sdk::{token, vec, Address, Env, Symbol, Vec};
 
 use crate::{
-    contract::MAX_ENTRY_LIFETIME,
+    // contract::MAX_ENTRY_LIFETIME,
     glyphs::glyph_verify_ownership,
     types::{Error, Glyph, Offer, OfferCreate, StorageKey},
 };
@@ -43,9 +43,12 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                 .persistent()
                 .get::<StorageKey, Vec<Offer>>(&buy_glyph_offer_key)
                 .unwrap_or(vec![&env]);
-            env.storage()
-                .persistent()
-                .bump(&buy_glyph_offer_key, MAX_ENTRY_LIFETIME);
+
+            // env.storage().persistent().bump(
+            //     &buy_glyph_offer_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             match offers.binary_search(match &sell {
                 Offer::Glyph(sell_glyph_hash) => Offer::Glyph(sell_glyph_hash.clone()),
@@ -62,9 +65,11 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                         .get::<StorageKey, Address>(&buy_glyph_owner_key)
                         .ok_or(Error::NotFound)?;
 
-                    env.storage()
-                        .persistent()
-                        .bump(&buy_glyph_owner_key, MAX_ENTRY_LIFETIME);
+                    // env.storage().persistent().bump(
+                    //     &buy_glyph_owner_key,
+                    //     MAX_ENTRY_LIFETIME,
+                    //     MAX_ENTRY_LIFETIME,
+                    // );
 
                     offers.remove(offer_index);
 
@@ -91,12 +96,16 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                                 .persistent()
                                 .set(&buy_glyph_owner_key, &sell_glyph_owner_address);
 
-                            env.storage()
-                                .persistent()
-                                .bump(&sell_glyph_owner_key, MAX_ENTRY_LIFETIME);
-                            env.storage()
-                                .persistent()
-                                .bump(&buy_glyph_owner_key, MAX_ENTRY_LIFETIME);
+                            // env.storage().persistent().bump(
+                            //     &sell_glyph_owner_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
+                            // env.storage().persistent().bump(
+                            //     &buy_glyph_owner_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
 
                             // remove all glyph seller offers
                             env.storage().persistent().remove(&sell_glyph_offer_key);
@@ -116,6 +125,8 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             Ok(())
                         }
                         Offer::AssetSell(sell_asset_owner_address, sell_asset_address, amount) => {
+                            sell_asset_owner_address.require_auth();
+
                             let buy_glyph_key = StorageKey::Glyph(buy_glyph_hash.clone());
                             let buy_glyph_minter_key =
                                 StorageKey::GlyphMinter(buy_glyph_hash.clone());
@@ -135,12 +146,16 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                                 .get::<StorageKey, Address>(&buy_glyph_minter_key)
                                 .ok_or(Error::NotFound)?;
 
-                            env.storage()
-                                .persistent()
-                                .bump(&buy_glyph_key, MAX_ENTRY_LIFETIME);
-                            env.storage()
-                                .persistent()
-                                .bump(&buy_glyph_minter_key, MAX_ENTRY_LIFETIME);
+                            // env.storage().persistent().bump(
+                            //     &buy_glyph_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
+                            // env.storage().persistent().bump(
+                            //     &buy_glyph_minter_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
 
                             // Pay the glyph minter their cut
                             let minter_amount =
@@ -201,9 +216,11 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                                 .persistent()
                                 .set(&buy_glyph_owner_key, &sell_asset_owner_address);
 
-                            env.storage()
-                                .persistent()
-                                .bump(&buy_glyph_owner_key, MAX_ENTRY_LIFETIME);
+                            // env.storage().persistent().bump(
+                            //     &buy_glyph_owner_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
 
                             // remove all other sell offers for this glyph
                             env.storage().persistent().remove(&buy_glyph_offer_key);
@@ -264,9 +281,11 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                         );
                     }
 
-                    env.storage()
-                        .persistent()
-                        .bump(&buy_asset_offer_key, MAX_ENTRY_LIFETIME);
+                    // env.storage().persistent().bump(
+                    //     &buy_asset_offer_key,
+                    //     MAX_ENTRY_LIFETIME,
+                    //     MAX_ENTRY_LIFETIME,
+                    // );
 
                     let sell_glyph_owner_key = StorageKey::GlyphOwner(sell_glyph_hash.clone());
                     let sell_glyph_owner_address =
@@ -292,12 +311,16 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                         .get::<StorageKey, Address>(&sell_glyph_minter_key)
                         .ok_or(Error::NotFound)?;
 
-                    env.storage()
-                        .persistent()
-                        .bump(&sell_glyph_key, MAX_ENTRY_LIFETIME);
-                    env.storage()
-                        .persistent()
-                        .bump(&sell_glyph_minter_key, MAX_ENTRY_LIFETIME);
+                    // env.storage().persistent().bump(
+                    //     &sell_glyph_key,
+                    //     MAX_ENTRY_LIFETIME,
+                    //     MAX_ENTRY_LIFETIME,
+                    // );
+                    // env.storage().persistent().bump(
+                    //     &sell_glyph_minter_key,
+                    //     MAX_ENTRY_LIFETIME,
+                    //     MAX_ENTRY_LIFETIME,
+                    // );
 
                     // Pay the glyph minter their cut
                     let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
@@ -356,9 +379,11 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             .persistent()
                             .set(&buy_asset_offer_key, &offers);
 
-                        env.storage()
-                            .persistent()
-                            .bump(&buy_asset_offer_key, MAX_ENTRY_LIFETIME);
+                        // env.storage().persistent().bump(
+                        //     &buy_asset_offer_key,
+                        //     MAX_ENTRY_LIFETIME,
+                        //     MAX_ENTRY_LIFETIME,
+                        // );
                     }
 
                     // Transfer ownership of Glyph from Glyph giver to Glyph taker
@@ -366,9 +391,11 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                         .persistent()
                         .set(&sell_glyph_owner_key, &buy_asset_owner);
 
-                    env.storage()
-                        .persistent()
-                        .bump(&sell_glyph_owner_key, MAX_ENTRY_LIFETIME);
+                    // env.storage().persistent().bump(
+                    //     &sell_glyph_owner_key,
+                    //     MAX_ENTRY_LIFETIME,
+                    //     MAX_ENTRY_LIFETIME,
+                    // );
 
                     // Remove all other sell offers for this glyph
                     env.storage().persistent().remove(&sell_glyph_offer_key);
@@ -416,9 +443,11 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                 .persistent()
                 .set(&sell_glyph_offer_key, &offers);
 
-            env.storage()
-                .persistent()
-                .bump(&sell_glyph_offer_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &sell_glyph_offer_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             env.events().publish(
                 (
@@ -438,6 +467,8 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             amount,
         ) => {
             let token = token::Client::new(env, &sell_asset_address);
+
+            sell_asset_owner_address.require_auth();
 
             token.transfer(
                 &sell_asset_owner_address,
@@ -464,9 +495,11 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                 .persistent()
                 .set(&sell_asset_offer_key, &offers);
 
-            env.storage()
-                .persistent()
-                .bump(&sell_asset_offer_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &sell_asset_offer_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             env.events().publish(
                 (
@@ -497,9 +530,11 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                 .get::<StorageKey, Vec<Offer>>(&glyph_hash_key)
                 .ok_or(Error::NotFound)?;
 
-            env.storage()
-                .persistent()
-                .bump(&glyph_hash_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &glyph_hash_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             match &buy {
                 Some(buy) => match offers.binary_search(buy) {
@@ -508,9 +543,11 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
 
                         env.storage().persistent().set(&glyph_hash_key, &offers);
 
-                        env.storage()
-                            .persistent()
-                            .bump(&glyph_hash_key, MAX_ENTRY_LIFETIME);
+                        // env.storage().persistent().bump(
+                        //     &glyph_hash_key,
+                        //     MAX_ENTRY_LIFETIME,
+                        //     MAX_ENTRY_LIFETIME,
+                        // );
 
                         env.events().publish(
                             (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
@@ -552,9 +589,11 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                                 .get::<StorageKey, Vec<Address>>(&asset_offer_key)
                                 .ok_or(Error::NotFound)?;
 
-                            env.storage()
-                                .persistent()
-                                .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
+                            // env.storage().persistent().bump(
+                            //     &asset_offer_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
 
                             match offers.binary_search(asset_owner_address.clone()) {
                                 Ok(offer_index) => {
@@ -583,9 +622,11 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                                     } else {
                                         env.storage().persistent().set(&asset_offer_key, &offers);
 
-                                        env.storage()
-                                            .persistent()
-                                            .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
+                                        // env.storage().persistent().bump(
+                                        //     &asset_offer_key,
+                                        //     MAX_ENTRY_LIFETIME,
+                                        //     MAX_ENTRY_LIFETIME,
+                                        // );
                                     }
 
                                     Ok(())
@@ -614,9 +655,11 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
                 .get::<StorageKey, Vec<Offer>>(&glyph_hash_key)
                 .ok_or(Error::NotFound)?;
 
-            env.storage()
-                .persistent()
-                .bump(&glyph_hash_key, MAX_ENTRY_LIFETIME);
+            // env.storage().persistent().bump(
+            //     &glyph_hash_key,
+            //     MAX_ENTRY_LIFETIME,
+            //     MAX_ENTRY_LIFETIME,
+            // );
 
             match buy {
                 Some(buy) => match offers.binary_search(buy) {
@@ -642,9 +685,11 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
                                 .get::<StorageKey, Vec<Address>>(&asset_offer_key)
                                 .ok_or(Error::NotFound)?;
 
-                            env.storage()
-                                .persistent()
-                                .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
+                            // env.storage().persistent().bump(
+                            //     &asset_offer_key,
+                            //     MAX_ENTRY_LIFETIME,
+                            //     MAX_ENTRY_LIFETIME,
+                            // );
 
                             Ok(())
                         }
@@ -672,9 +717,11 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
                                 .ok_or(Error::NotFound)?;
 
                             if offers.contains(seller_address) {
-                                env.storage()
-                                    .persistent()
-                                    .bump(&asset_offer_key, MAX_ENTRY_LIFETIME);
+                                // env.storage().persistent().bump(
+                                //     &asset_offer_key,
+                                //     MAX_ENTRY_LIFETIME,
+                                //     MAX_ENTRY_LIFETIME,
+                                // );
 
                                 return Ok(());
                             }

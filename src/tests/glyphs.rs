@@ -42,7 +42,7 @@ fn big_mint() {
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let fee_address = Address::random(&env);
@@ -103,7 +103,7 @@ fn toolbox_test() {
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let fee_address = Address::random(&env);
@@ -142,7 +142,7 @@ fn test_dupe_mint() {
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
@@ -199,7 +199,7 @@ fn test_to_mint() {
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);
@@ -293,7 +293,7 @@ fn test_partial_mint() {
 
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
 
     let u1_address = Address::random(&env);
     let u2_address = Address::random(&env);

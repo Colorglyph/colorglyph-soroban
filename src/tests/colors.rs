@@ -20,7 +20,7 @@ fn test() {
     // Token
     let token_admin = Address::random(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
-    let token_admin_client = token::AdminClient::new(&env, &token_address);
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
