@@ -1,2 +1,0 @@
-Why store `Color` as `(miner, owner, color): amount` vs `(owner, color): (miner, amount)`
-It would be nice to be able to look up how many of a specific color you have not just how much of a mined color
