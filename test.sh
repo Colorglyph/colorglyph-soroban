@@ -33,7 +33,7 @@ echo 'colors transferred'
 # color_balance
 soroban contract invoke --id $contract_id --source default --network futurenet -- color_balance --owner $user2_pk --miner $user1_pk --color 0
 
-glyph_mint
+# glyph_mint
 glyph_hash=$(soroban contract invoke --id $contract_id --source $user1_sk --network futurenet -- glyph_mint --minter $user1_pk --colors '{}' --width 2 | tr -d '"')
 echo 'glyph minted' $glyph_hash
 # glyph_hash="f0bc10a894428074df05e22065498100da657071704cd89ba4f1e3fb4b13f928"
