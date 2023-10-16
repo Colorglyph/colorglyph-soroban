@@ -1,10 +1,7 @@
 // use std::println;
 // extern crate std;
 
-use crate::{
-    // contract::MAX_ENTRY_LIFETIME,
-    types::{Error, Glyph, GlyphType, HashType, StorageKey},
-};
+use crate::types::{Error, Glyph, GlyphType, HashType, StorageKey};
 use soroban_sdk::{panic_with_error, symbol_short, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
 
 pub const MAX_PAYMENT_COUNT: u8 = 15;

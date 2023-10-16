@@ -1,8 +1,6 @@
 use soroban_sdk::{symbol_short, token, Address, Env, Map, Vec};
 
-use crate::{
-    // contract::MAX_ENTRY_LIFETIME, 
-    types::StorageKey};
+use crate::types::StorageKey;
 
 pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
     miner.require_auth();

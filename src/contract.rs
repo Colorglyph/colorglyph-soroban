@@ -8,7 +8,7 @@ use crate::{
     types::{Error, GlyphType, HashType, Offer, StorageKey},
 };
 
-// pub const MAX_ENTRY_LIFETIME: u32 = 6_312_000; // A year's worth of ledgers
+pub const MAX_ENTRY_LIFETIME: u32 = 12 * 60 * 24 * 31 - 12; // A year's worth of ledgers - 12
 
 #[contract]
 pub struct ColorGlyph;
@@ -27,9 +27,9 @@ impl ColorGlyphTrait for ColorGlyph {
             .instance()
             .set(&StorageKey::FeeAddress, &fee_address);
 
-        // env.storage()
-        //     .instance()
-        //     .bump(MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
+        env.storage()
+            .instance()
+            .bump(MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
     }
 
     // Colors

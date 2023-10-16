@@ -64,5 +64,5 @@ pub enum OfferCreate {
 pub enum Offer {
     Glyph(BytesN<32>),
     Asset(Address, i128), // BLOCKED once tuples support Option use that instead of AssetSell
-    AssetSell(Address, Address, i128),
+    AssetSell(Address, Address, i128), // asset owner, sac, amount
 }
