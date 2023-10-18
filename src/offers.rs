@@ -230,9 +230,8 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                                     Symbol::new(&env, "offer_match"),
                                     sell_asset_address,
                                     sell_asset_owner_address,
-                                    *amount,
                                 ),
-                                (buy_glyph_hash.clone(), offer_index),
+                                (*amount, buy_glyph_hash.clone(), offer_index),
                             );
 
                             Ok(())
@@ -405,9 +404,8 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             Symbol::new(&env, "offer_post"),
                             buy_asset_address,
                             buy_asset_owner,
-                            *amount,
                         ),
-                        (sell_glyph_hash.clone(),),
+                        (*amount, sell_glyph_hash.clone()),
                     );
 
                     Ok(())
@@ -455,7 +453,7 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                     sell_glyph_hash,
                     sell_glyph_owner_address,
                 ),
-                (buy,),
+                buy,
             );
 
             Ok(())
@@ -506,9 +504,8 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                     Symbol::new(&env, "offer_post"),
                     sell_asset_address,
                     sell_asset_owner_address,
-                    amount,
                 ),
-                (buy_glyph_hash,),
+                (amount, buy_glyph_hash),
             );
 
             Ok(())
@@ -563,7 +560,7 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
 
                     env.events().publish(
                         (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
-                        (buy.clone(),),
+                        buy.clone(),
                     );
 
                     Ok(())
@@ -612,9 +609,8 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                                             Symbol::new(&env, "offer_delete"),
                                             asset_address,
                                             asset_owner_address,
-                                            amount,
                                         ),
-                                        (glyph_hash, offer_index),
+                                        (amount, glyph_hash, offer_index),
                                     );
 
                                     if offers.is_empty() {

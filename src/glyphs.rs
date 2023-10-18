@@ -57,13 +57,8 @@ pub fn glyph_mint(
             // );
 
             env.events().publish(
-                (
-                    symbol_short!("color_out"),
-                    miner.clone(),
-                    minter.clone(),
-                    color,
-                ),
-                indexes.len(),
+                (symbol_short!("color_out"), miner.clone(), minter.clone()),
+                (color, indexes.len()),
             );
 
             if !skip {
@@ -269,13 +264,8 @@ pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
             // );
 
             env.events().publish(
-                (
-                    Symbol::new(env, "transfer_glyph"),
-                    glyph_owner_key,
-                    to,
-                    glyph_hash,
-                ),
-                (),
+                (Symbol::new(env, "transfer_glyph"), glyph_owner_key, to),
+                glyph_hash,
             );
         }
     }
@@ -375,13 +365,8 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
             owner = glyph_owner.clone();
 
             env.events().publish(
-                (
-                    Symbol::new(env, "scrape_glyph"),
-                    glyph_owner,
-                    to.clone(),
-                    glyph_hash.clone(),
-                ),
-                (),
+                (Symbol::new(env, "scrape_glyph"), glyph_owner, to.clone()),
+                glyph_hash.clone(),
             );
         }
     }
@@ -426,13 +411,8 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
             payment_count += 1;
 
             env.events().publish(
-                (
-                    symbol_short!("color_in"),
-                    miner.clone(),
-                    to_address.clone(),
-                    color,
-                ),
-                indexes.len(),
+                (symbol_short!("color_in"), miner.clone(), to_address.clone()),
+                (color, indexes.len()),
             );
         }
 
