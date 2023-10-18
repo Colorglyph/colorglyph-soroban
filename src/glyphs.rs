@@ -63,7 +63,7 @@ pub fn glyph_mint(
                     minter.clone(),
                     color,
                 ),
-                indexes.clone(),
+                indexes.len(),
             );
 
             if !skip {
@@ -432,7 +432,7 @@ pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: &HashType) {
                     to_address.clone(),
                     color,
                 ),
-                indexes.clone(),
+                indexes.len(),
             );
         }
 

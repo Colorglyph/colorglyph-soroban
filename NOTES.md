@@ -10,3 +10,7 @@
 
 * Mechanic for making a "commitment to mint" where you transfer all the colors to a special minting contract where anyone can trigger the actual progressive mint
 * Combine mine and mint events or really any looped event into a single batched event to make it smaller so it fits in the 2 KB limit
+
+---
+
+* How do we plan to handle title and story info?

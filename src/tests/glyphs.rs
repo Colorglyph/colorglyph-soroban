@@ -51,7 +51,7 @@ fn big_mint() {
 
     client.initialize(&token_address, &fee_address);
 
-    let width: u64 = 42;
+    let width: u64 = 40;
     let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
@@ -80,11 +80,28 @@ fn big_mint() {
     );
 
     // env.budget().reset_default();
+    let map = map![&env];
     env.budget().reset_unlimited();
 
     let id = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(width as u32))
+        .glyph_mint(&u1_address, &None, &map, &Some(width as u32))
         .unwrap();
+
+    // 40
+    // "cost": {
+    //     "cpuInsns": "77759603",
+    //     "memBytes": "38784019"
+    // },
+    // Cpu limit: 18446744073709551615; used: 67664234
+    // Mem limit: 18446744073709551615; used: 39437165
+
+    // 42
+    // "cost": {
+    //     "cpuInsns": "84791429",
+    //     "memBytes": "46411085"
+    // },
+    // Cpu limit: 18446744073709551615; used: 73672645
+    // Mem limit: 18446744073709551615; used: 47139671
 
     env.budget().print();
 
