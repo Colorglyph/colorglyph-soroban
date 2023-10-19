@@ -2,12 +2,23 @@ use soroban_sdk::{symbol_short, token, Address, Env, Map, Vec};
 
 use crate::types::StorageKey;
 
-pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
-    miner.require_auth();
+pub fn colors_mine(
+    env: &Env,
+    source: Address,
+    miner: Option<Address>,
+    to: Option<Address>,
+    colors: Map<u32, u32>,
+) {
+    source.require_auth();
+
+    let miner = match miner {
+        Some(address) => address,
+        None => source.clone(),
+    };
 
     let to = match to {
         Some(address) => address,
-        None => miner.clone(),
+        None => source.clone(),
     };
 
     let mut pay_amount: u32 = 0;
@@ -54,7 +65,7 @@ pub fn colors_mine(env: &Env, miner: Address, to: Option<Address>, colors: Map<u
     //     .bump(MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     // TODO this is just a stroop fee so not sufficient. This will need to be adjusted before going live
-    token.transfer(&miner, &fee_address, &(pay_amount as i128));
+    token.transfer(&source, &fee_address, &(pay_amount as i128));
 }
 
 pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {

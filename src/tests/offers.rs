@@ -50,7 +50,7 @@ fn test_self_purchase() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &None, &None, &color_amount);
 
     let hash = client
         .glyph_mint(
@@ -121,7 +121,7 @@ fn test_sell_scrape_buy() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &None, &None, &color_amount);
 
     let hash = client
         .glyph_mint(
@@ -235,7 +235,7 @@ fn test_dupe() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &None, &None, &color_amount);
 
     let hash = client
         .glyph_mint(
@@ -309,7 +309,7 @@ fn test_buy_glyph() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u3_address, &Some(u1_address.clone()), &color_amount);
+    client.colors_mine(&u3_address, &None, &Some(u1_address.clone()), &color_amount);
 
     // println!("{:?}\n", colors_indexes);
 
@@ -417,7 +417,7 @@ fn test_sell_glyph() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u3_address, &Some(u1_address.clone()), &color_amount);
+    client.colors_mine(&u3_address, &None, &Some(u1_address.clone()), &color_amount);
 
     client.glyph_mint(
         &u1_address,
@@ -513,7 +513,7 @@ fn test_swap_glyph() {
         colors_b_amount.set(hex_b as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &colors_a_amount);
+    client.colors_mine(&u1_address, &None, &None, &colors_a_amount);
 
     client.glyph_mint(
         &u1_address,
@@ -526,7 +526,7 @@ fn test_swap_glyph() {
         .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
         .unwrap();
 
-    client.colors_mine(&u2_address, &None, &colors_b_amount);
+    client.colors_mine(&u2_address, &None, &None, &colors_b_amount);
 
     client.glyph_mint(
         &u2_address,
@@ -615,7 +615,7 @@ fn test_rm_glyph_buy() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &None, &None, &color_amount);
 
     client.glyph_mint(
         &u1_address,
@@ -693,7 +693,7 @@ fn test_rm_glyph_sell() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &color_amount);
+    client.colors_mine(&u1_address, &None, &None, &color_amount);
 
     client.glyph_mint(
         &u1_address,
@@ -772,7 +772,7 @@ fn test_rm_glyph_swap() {
         colors_b_amount.set(hex_b as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &colors_a_amount);
+    client.colors_mine(&u1_address, &None, &None, &colors_a_amount);
 
     client.glyph_mint(
         &u1_address,
@@ -785,7 +785,12 @@ fn test_rm_glyph_swap() {
         .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
         .unwrap();
 
-    client.colors_mine(&u1_address, &Some(u2_address.clone()), &colors_b_amount);
+    client.colors_mine(
+        &u1_address,
+        &None,
+        &Some(u2_address.clone()),
+        &colors_b_amount,
+    );
 
     client.glyph_mint(
         &u2_address,

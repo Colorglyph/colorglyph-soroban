@@ -33,8 +33,14 @@ impl ColorGlyphTrait for ColorGlyph {
     }
 
     // Colors
-    fn colors_mine(env: Env, miner: Address, to: Option<Address>, colors: Map<u32, u32>) {
-        colors_mine(&env, miner, to, colors)
+    fn colors_mine(
+        env: Env,
+        source: Address,
+        miner: Option<Address>,
+        to: Option<Address>,
+        colors: Map<u32, u32>,
+    ) {
+        colors_mine(&env, source, miner, to, colors)
     }
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {
         colors_transfer(&env, from, to, colors)

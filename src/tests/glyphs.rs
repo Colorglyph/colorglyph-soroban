@@ -70,7 +70,7 @@ fn big_mint() {
         }
     }
 
-    client.colors_mine(&u1_address, &None, &mine_colors);
+    client.colors_mine(&u1_address, &None, &None, &mine_colors);
 
     client.glyph_mint(
         &u1_address,
@@ -129,7 +129,12 @@ fn toolbox_test() {
 
     client.initialize(&token_address, &fee_address);
 
-    client.colors_mine(&u1_address, &None, &map![&env, (0, 100), (16777215, 100),]);
+    client.colors_mine(
+        &u1_address,
+        &None,
+        &None,
+        &map![&env, (0, 100), (16777215, 100),],
+    );
 
     let id = client.glyph_mint(
         &u1_address,
@@ -170,7 +175,12 @@ fn test_dupe_mint() {
 
     client.initialize(&token_address, &fee_address);
 
-    client.colors_mine(&u1_address, &None, &map![&env, (0, 100), (16777215, 100),]);
+    client.colors_mine(
+        &u1_address,
+        &None,
+        &None,
+        &map![&env, (0, 100), (16777215, 100),],
+    );
 
     let hash = client.glyph_mint(
         &u1_address,
@@ -229,6 +239,7 @@ fn test_to_mint() {
 
     client.colors_mine(
         &u1_address,
+        &None,
         &None,
         &map![
             &env,
@@ -324,6 +335,7 @@ fn test_partial_mint() {
     client.colors_mine(
         &u1_address,
         &None,
+        &None,
         &map![
             &env,
             (0, 100),
@@ -340,6 +352,7 @@ fn test_partial_mint() {
     );
     client.colors_mine(
         &u2_address,
+        &None,
         &Some(u1_address.clone()),
         &map![
             &env,

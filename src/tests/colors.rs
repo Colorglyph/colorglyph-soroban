@@ -42,13 +42,13 @@ fn test() {
         colors.set(i, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &colors);
+    client.colors_mine(&u1_address, &None, &None, &colors);
 
     let color = client.color_balance(&u1_address.clone(), &None, &0);
 
     assert_eq!(color, 1);
 
-    client.colors_mine(&u2_address, &Some(u1_address.clone()), &colors);
+    client.colors_mine(&u2_address, &None, &Some(u1_address.clone()), &colors);
 
     let color1 = client.color_balance(&u1_address.clone(), &None, &0);
     let color2 = client.color_balance(&u1_address.clone(), &Option::Some(u2_address.clone()), &0);
