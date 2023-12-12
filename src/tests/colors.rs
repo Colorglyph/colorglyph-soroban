@@ -18,16 +18,16 @@ fn test() {
     let client = ColorGlyphClient::new(&env, &contract_address);
 
     // Token
-    let token_admin = Address::random(&env);
+    let token_admin = Address::generate(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
     let token_admin_client = token::StellarAssetClient::new(&env, &token_address);
     let token_client = token::Client::new(&env, &token_address);
 
     // Accounts
-    let u1_address = Address::random(&env);
-    let u2_address = Address::random(&env);
-    let u3_address = Address::random(&env);
-    let fee_address = Address::random(&env);
+    let u1_address = Address::generate(&env);
+    let u2_address = Address::generate(&env);
+    let u3_address = Address::generate(&env);
+    let fee_address = Address::generate(&env);
 
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);

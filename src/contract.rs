@@ -29,7 +29,7 @@ impl ColorGlyphTrait for ColorGlyph {
 
         env.storage()
             .instance()
-            .bump(MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
+            .extend_ttl(MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
     }
 
     // Colors
