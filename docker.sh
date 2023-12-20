@@ -5,4 +5,5 @@ docker run --rm -i \
     --name stellar \
     stellar/quickstart:testing \
     --local \
+    --limits unlimited \
     --enable-soroban-rpc

@@ -1,11 +1,11 @@
 # alias soroban="(cd ~/Desktop/Web/Soroban/soroban-tools/; cargo build --quiet) && ~/Desktop/Web/Soroban/soroban-tools/target/debug/soroban"
 
 # make clean
-make build-opt
+# make build-opt
 
 contract_id=$(soroban contract deploy --wasm target/wasm32-unknown-unknown/release/colorglyph.optimized.wasm --source default --network local)
 echo 'contract deployed' $contract_id
-# contract_id=CBHW2VG2H6Q5TCDIAM37KX5FZGZUDSWBXIYMWNG3W2FDSYB7UTIO44NS
+# contract_id=CDN3ZKZJYHWE26ZD7UDD2NDBJ53LN6PYUBBF6GLMCTVKJSJ5X66GMNF3
 
 token_address=CDMLFMKMMD7MWZP3FKUBZPVHTUEDLSX4BYGYKH4GCESXYHS3IHQ4EIG4
 

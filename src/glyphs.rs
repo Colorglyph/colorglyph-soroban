@@ -127,7 +127,7 @@ fn glyph_store(
     colors: Map<Address, Map<u32, Vec<u32>>>,
     width: u32,
 ) -> BytesN<32> {
-    let mut bit24_data = Vec::new(&env);
+    let mut bit24_data = Bytes::new(&env);
 
     // TODO
     // Better error for not enough colors
@@ -136,38 +136,25 @@ fn glyph_store(
     for (_, color_indexes) in colors.iter() {
         for (color, indexes) in color_indexes.iter() {
             for index in indexes.iter() {
-                // fill between the gap with white pixels
-                if bit24_data.len() <= index {
-                    // Start wherever we have data..=wherever we need data
-                    for i in bit24_data.len()..=index {
-                        bit24_data.push_back(if i == index {
-                            // If this is the tail of the array fill it with the color
-                            color
-                        } else {
-                            // Push empty white pixels
-                            // NOTE: this is a "free" way to use white pixels atm
-                            16777215
-                        });
-                    }
+                let i = index * 3;
+
+                while bit24_data.len() <= i {
+                    bit24_data.extend_from_slice(&[255, 255, 255]) // .push_back(16777215);
                 }
-                // If the bytes already exist just fill them in
-                else {
-                    bit24_data.set(index, color);
-                }
+
+                let [_, r, g, b] = color.to_be_bytes();
+
+                bit24_data.set(i, r);
+                bit24_data.set(i + 1, g);
+                bit24_data.set(i + 2, b);
             }
         }
     }
 
-    let mut hash_data = Bytes::new(&env);
-
-    for color in bit24_data.iter() {
-        hash_data.extend_from_slice(&color.to_be_bytes()[1..]);
-    }
-
     // the hash includes the width. Otherwise two identical palettes with different widths would clash
-    hash_data.extend_from_slice(&width.to_be_bytes());
+    bit24_data.extend_from_slice(&width.to_be_bytes());
 
-    let hash = env.crypto().sha256(&hash_data);
+    let hash = env.crypto().sha256(&bit24_data);
     let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
     // Glyph has already been minted and is currently owned (not scraped)
