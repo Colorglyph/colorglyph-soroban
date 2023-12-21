@@ -51,7 +51,7 @@ fn big_mint() {
 
     client.initialize(&token_address, &fee_address);
 
-    let width: u64 = 40;
+    let width: u64 = 50;
     let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];

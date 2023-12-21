@@ -5,6 +5,7 @@ use crate::types::{Error, Glyph, GlyphType, HashType, StorageKey};
 use soroban_sdk::{panic_with_error, symbol_short, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
 
 pub const MAX_PAYMENT_COUNT: u8 = 15;
+pub const MAX_BIT24_SIZE: usize = 10_000; // 40 * 40 * 3 + 4;
 
 // TODO
 // Limit number of unique miner addresses in a `glyph_mint`
@@ -127,9 +128,8 @@ fn glyph_store(
     colors: Map<Address, Map<u32, Vec<u32>>>,
     width: u32,
 ) -> BytesN<32> {
-    // let mut bit24_data = Bytes::new(&env);
     let mut max_i = 0;
-    let mut bit24_data = [255u8; 40 * 40 * 3 + 4];
+    let mut bit24_data = [255u8; MAX_BIT24_SIZE];
 
     // TODO
     // Better error for not enough colors
