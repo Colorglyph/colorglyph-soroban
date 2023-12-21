@@ -140,21 +140,11 @@ fn glyph_store(
             for index in indexes.iter() {
                 let i = (index * 3) as usize;
 
-                // while bit24_data.len() <= i {
-                //     bit24_data.extend_from_slice(&[255, 255, 255]) // .push_back(16777215);
-                // }
-
                 let [_, r, g, b] = color.to_be_bytes();
-
-                // bit24_data.set(i, r);
-                // bit24_data.set(i + 1, g);
-                // bit24_data.set(i + 2, b);
 
                 bit24_data[i] = r;
                 bit24_data[i + 1] = g;
                 bit24_data[i + 2] = b;
-
-                // TODO does this still work if your color_indexes is out of order?
 
                 if i + 2 > max_i {
                     max_i = i + 2;
@@ -162,10 +152,6 @@ fn glyph_store(
             }
         }
     }
-
-    // the hash includes the width. Otherwise two identical palettes with different widths would clash
-    // bit24_data.extend_from_slice(&width.to_be_bytes());
-    // width.to_be_bytes().swap_with_slice(&mut bit24_data[(40 * 40 * 3 - 4)..]);
 
     let width_bytes = width.to_be_bytes();
 
