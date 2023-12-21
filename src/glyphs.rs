@@ -127,7 +127,9 @@ fn glyph_store(
     colors: Map<Address, Map<u32, Vec<u32>>>,
     width: u32,
 ) -> BytesN<32> {
-    let mut bit24_data = Bytes::new(&env);
+    // let mut bit24_data = Bytes::new(&env);
+    let mut max_i = 0;
+    let mut bit24_data = [255u8; 40 * 40 * 3 + 4];
 
     // TODO
     // Better error for not enough colors
@@ -136,25 +138,45 @@ fn glyph_store(
     for (_, color_indexes) in colors.iter() {
         for (color, indexes) in color_indexes.iter() {
             for index in indexes.iter() {
-                let i = index * 3;
+                let i = (index * 3) as usize;
 
-                while bit24_data.len() <= i {
-                    bit24_data.extend_from_slice(&[255, 255, 255]) // .push_back(16777215);
-                }
+                // while bit24_data.len() <= i {
+                //     bit24_data.extend_from_slice(&[255, 255, 255]) // .push_back(16777215);
+                // }
 
                 let [_, r, g, b] = color.to_be_bytes();
 
-                bit24_data.set(i, r);
-                bit24_data.set(i + 1, g);
-                bit24_data.set(i + 2, b);
+                // bit24_data.set(i, r);
+                // bit24_data.set(i + 1, g);
+                // bit24_data.set(i + 2, b);
+
+                bit24_data[i] = r;
+                bit24_data[i + 1] = g;
+                bit24_data[i + 2] = b;
+
+                // TODO does this still work if your color_indexes is out of order?
+
+                if i + 2 > max_i {
+                    max_i = i + 2;
+                }
             }
         }
     }
 
     // the hash includes the width. Otherwise two identical palettes with different widths would clash
-    bit24_data.extend_from_slice(&width.to_be_bytes());
+    // bit24_data.extend_from_slice(&width.to_be_bytes());
+    // width.to_be_bytes().swap_with_slice(&mut bit24_data[(40 * 40 * 3 - 4)..]);
 
-    let hash = env.crypto().sha256(&bit24_data);
+    let width_bytes = width.to_be_bytes();
+
+    bit24_data[max_i + 1] = width_bytes[0];
+    bit24_data[max_i + 2] = width_bytes[1];
+    bit24_data[max_i + 3] = width_bytes[2];
+    bit24_data[max_i + 4] = width_bytes[3];
+
+    let bytes = Bytes::from_slice(&env, &bit24_data[..=(max_i + 4)]);
+
+    let hash = env.crypto().sha256(&bytes);
     let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
     // Glyph has already been minted and is currently owned (not scraped)
@@ -195,7 +217,7 @@ fn glyph_store(
             &glyph_key,
             &Glyph {
                 width,
-                length: bit24_data.len(),
+                length: (bytes.len() - 4) / 3,
                 colors,
             },
         );

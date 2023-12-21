@@ -1,7 +1,7 @@
 // use std::println;
 // extern crate std;
 
-use fixed_point_math::FixedPoint;
+use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{token, vec, Address, Env, Symbol, Vec};
 
 use crate::{

@@ -7,7 +7,7 @@ use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
     types::{Error, GlyphType, HashType, StorageKey},
 };
-use fixed_point_math::FixedPoint;
+use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env};
 
 mod colorglyph {
@@ -92,8 +92,8 @@ fn big_mint() {
     //     "cpuInsns": "77759603",
     //     "memBytes": "38784019"
     // },
-    // Cpu limit: 18446744073709551615; used: 51649094
-    // Mem limit: 18446744073709551615; used: 31907728
+    // Cpu limit: 18446744073709551615; used: 28017220
+    // Mem limit: 18446744073709551615; used: 4439162
 
     env.budget().print();
 

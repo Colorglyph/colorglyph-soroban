@@ -3,7 +3,7 @@
 use std::println;
 extern crate std;
 
-use fixed_point_math::FixedPoint;
+use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{bytes, map, vec, Env};
 
 #[test]

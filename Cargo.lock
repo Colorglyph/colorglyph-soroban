@@ -162,7 +162,7 @@ name = "colorglyph"
 version = "0.0.0"
 dependencies = [
  "chrono",
- "fixed-point-math",
+ "soroban-fixed-point-math",
  "soroban-sdk",
 ]
 
@@ -472,12 +472,6 @@ name = "fiat-crypto"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0870c84016d4b481be5c9f323c24f65e31e901ae618f0e80f4308fb00de1d2d"
-
-[[package]]
-name = "fixed-point-math"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d8c494ccd0b270d97dc51d5f0de703b9d18a489c26f0328e409f6feba55a640"
 
 [[package]]
 name = "fnv"
@@ -1088,6 +1082,15 @@ dependencies = [
  "serde_json",
  "stellar-xdr",
  "syn 2.0.39",
+]
+
+[[package]]
+name = "soroban-fixed-point-math"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "230e5902daf9de6e7591aa7864dcf763ff96914a4460a0294a5dfd62b3181e0f"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]

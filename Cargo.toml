@@ -13,8 +13,8 @@ crate-type = ["cdylib"]
 testutils = ["soroban-sdk/testutils"]
 
 [dependencies]
-soroban-sdk = "20.0.0"
-fixed-point-math = { version = "0.0.2"}
+soroban-sdk = { version = "20.0.0", features = [] }
+soroban-fixed-point-math = { version = "1.0.0" }
 
 [dev_dependencies]
 soroban-sdk = { version = "20.0.0", features = ["testutils"] }
