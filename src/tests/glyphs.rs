@@ -16,17 +16,18 @@ mod colorglyph {
     );
 }
 
-// TODO
-// test scrape of a never minted glyph
-// test partial scrape to mint
-// test partial scrape to build then remint
-// test full scrape to remint
-// test scrape to `to` account
-// test Glyph transfer
-// test Colors transfer
-// test to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
-// test scraping a glyph when there's already a Dust glyph in Storage
-// ensure color spends are working
+/* TODO
+test scrape of a never minted glyph
+test partial scrape to mint
+test partial scrape to build then remint
+test full scrape to remint
+test scrape to `to` account
+test Glyph transfer
+test Colors transfer
+test to ensure hash gen is consistent when duping indexes or mixing in white/missing pixels
+test scraping a glyph when there's already a Dust glyph in Storage
+ensure color spends are working
+*/
 
 #[test]
 fn big_mint() {

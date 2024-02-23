@@ -129,10 +129,11 @@ fn glyph_store(
     let mut max_i = 0;
     let mut bit24_data = [u8::MAX; MAX_BIT24_SIZE];
 
-    // TODO
-    // Better error for not enough colors
-    // Should we error if there's a dupe index?
-    // Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
+    /* TODO
+    Better error for not enough colors
+    Should we error if there's a dupe index?
+    Should we enable some concept of ranging between 2 indexs vs listing out all the indexes? 0..=5 vs 0,1,2,3,4,5
+    */
     for (_, color_indexes) in colors.iter() {
         for (color, indexes) in color_indexes.iter() {
             for index in indexes.iter() {
@@ -227,9 +228,10 @@ pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
                 .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&from_colors_key)
                 .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
-            // TODO
-            // This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
-            // On the other hand this is a pretty rare case so maybe it's not worth it
+            /* TODO
+            This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
+            On the other hand this is a pretty rare case so maybe it's not worth it
+            */
 
             env.storage().persistent().remove(&from_colors_key);
 
