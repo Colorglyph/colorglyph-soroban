@@ -1,4 +1,6 @@
 # TODO
+* Write full test coverage for every function
+* Include fuzz tests where appropriate
 * Combine mine and mint events or really any looped event into a single batched event to make it smaller so it fits in the 2 KB limit
 * Add some sort of NFT standard functions for viewing, transferring, etc.
 * How do we plan to handle title and story info?
