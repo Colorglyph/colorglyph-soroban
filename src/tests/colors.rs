@@ -33,7 +33,7 @@ fn test() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     let mut colors: Map<u32, u32> = Map::new(&env);
@@ -42,16 +42,16 @@ fn test() {
         colors.set(i, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &colors);
+    client.colors_mine(&u1_address, &colors, &None, &None);
 
-    let color = client.color_balance(&u1_address.clone(), &None, &0);
+    let color = client.color_balance(&u1_address.clone(), &0, &None);
 
     assert_eq!(color, 1);
 
-    client.colors_mine(&u2_address, &None, &Some(u1_address.clone()), &colors);
+    client.colors_mine(&u2_address, &colors, &None, &Some(u1_address.clone()));
 
-    let color1 = client.color_balance(&u1_address.clone(), &None, &0);
-    let color2 = client.color_balance(&u1_address.clone(), &Option::Some(u2_address.clone()), &0);
+    let color1 = client.color_balance(&u1_address.clone(), &0, &None);
+    let color2 = client.color_balance(&u1_address.clone(), &0, &Option::Some(u2_address.clone()));
 
     assert_eq!(color1 + color2, 2);
 
@@ -63,11 +63,11 @@ fn test() {
 
     let color0 = client.color_balance(
         &u3_address.clone(),
-        &Option::Some(u1_address.clone()),
         &u32::MAX,
+        &Option::Some(u1_address.clone()),
     );
-    let color1 = client.color_balance(&u3_address.clone(), &Option::Some(u1_address.clone()), &0);
-    let color2 = client.color_balance(&u3_address.clone(), &Option::Some(u2_address.clone()), &0);
+    let color1 = client.color_balance(&u3_address.clone(), &0, &Option::Some(u1_address.clone()));
+    let color2 = client.color_balance(&u3_address.clone(), &0, &Option::Some(u2_address.clone()));
 
     assert_eq!(color0, 0); // ensure we test for colors that don't exist (getting and bumping non-existent values)
     assert_eq!(color1 + color2, 2);

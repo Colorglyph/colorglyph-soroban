@@ -49,9 +49,9 @@ fn big_mint() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
-    let width: u64 = 50;
+    let width: u64 = 40;
     let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
@@ -70,7 +70,7 @@ fn big_mint() {
         }
     }
 
-    client.colors_mine(&u1_address, &None, &None, &mine_colors);
+    client.colors_mine(&u1_address, &mine_colors, &None, &None);
 
     client.glyph_mint(
         &u1_address,
@@ -120,13 +120,13 @@ fn toolbox_test() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     client.colors_mine(
         &u1_address,
-        &None,
-        &None,
         &map![&env, (0, 100), (16777215, 100),],
+        &None,
+        &None,
     );
 
     let id = client.glyph_mint(
@@ -166,13 +166,13 @@ fn test_dupe_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     client.colors_mine(
         &u1_address,
-        &None,
-        &None,
         &map![&env, (0, 100), (16777215, 100),],
+        &None,
+        &None,
     );
 
     let hash = client.glyph_mint(
@@ -228,12 +228,10 @@ fn test_to_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     client.colors_mine(
         &u1_address,
-        &None,
-        &None,
         &map![
             &env,
             (0, 100),
@@ -245,6 +243,8 @@ fn test_to_mint() {
             (6, 100),
             (7, 100)
         ],
+        &None,
+        &None,
     );
 
     client.glyph_mint(
@@ -323,12 +323,10 @@ fn test_partial_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     client.colors_mine(
         &u1_address,
-        &None,
-        &None,
         &map![
             &env,
             (0, 100),
@@ -342,11 +340,11 @@ fn test_partial_mint() {
             (8, 100),
             (9, 100)
         ],
+        &None,
+        &None,
     );
     client.colors_mine(
         &u2_address,
-        &None,
-        &Some(u1_address.clone()),
         &map![
             &env,
             (10, 100),
@@ -360,6 +358,8 @@ fn test_partial_mint() {
             (18, 100),
             (19, 100)
         ],
+        &None,
+        &Some(u1_address.clone()),
     );
 
     client.glyph_mint(
@@ -497,19 +497,19 @@ fn test_partial_mint() {
 
     assert_ne!(
         // not equals (v important as the glyph shouldn't be fully scraped yet)
-        client.try_glyph_get(&HashType::Dust(u1_address.clone())),
+        client.try_glyph_get(&HashType::Colors(u1_address.clone())),
         Err(Ok(Error::NotFound))
     );
 
     assert_eq!(
-        client.glyph_scrape(&None, &HashType::Dust(u1_address.clone())),
+        client.glyph_scrape(&None, &HashType::Colors(u1_address.clone())),
         ()
     );
 
-    assert_eq!(
-        client.try_glyph_get(&HashType::Dust(u1_address.clone())),
-        Err(Ok(Error::NotFound))
-    );
+    // assert_eq!(
+    //     client.try_glyph_get(&HashType::Dust(u1_address.clone())),
+    //     Err(Ok(Error::NotFound))
+    // );
 
     assert_eq!(
         client.try_glyph_get(&HashType::Colors(u1_address.clone())),

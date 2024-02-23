@@ -37,7 +37,7 @@ fn test_self_purchase() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -50,7 +50,7 @@ fn test_self_purchase() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &color_amount);
+    client.colors_mine(&u1_address, &color_amount, &None, &None);
 
     let hash = client
         .glyph_mint(
@@ -108,7 +108,7 @@ fn test_sell_scrape_buy() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -121,7 +121,7 @@ fn test_sell_scrape_buy() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &color_amount);
+    client.colors_mine(&u1_address, &color_amount, &None, &None);
 
     let hash = client
         .glyph_mint(
@@ -147,10 +147,10 @@ fn test_sell_scrape_buy() {
         Err(Ok(Error::NotFound))
     );
 
-    assert_eq!(
-        client.try_glyph_get(&HashType::Dust(u1_address.clone())),
-        Err(Ok(Error::NotFound))
-    );
+    // assert_eq!(
+    //     client.try_glyph_get(&HashType::Dust(u1_address.clone())),
+    //     Err(Ok(Error::NotFound))
+    // );
 
     assert_eq!(
         client.try_glyph_get(&HashType::Glyph(hash.clone())),
@@ -222,7 +222,7 @@ fn test_dupe() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -235,7 +235,7 @@ fn test_dupe() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &color_amount);
+    client.colors_mine(&u1_address, &color_amount, &None, &None);
 
     let hash = client
         .glyph_mint(
@@ -296,7 +296,7 @@ fn test_buy_glyph() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -309,7 +309,7 @@ fn test_buy_glyph() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u3_address, &None, &Some(u1_address.clone()), &color_amount);
+    client.colors_mine(&u3_address, &color_amount, &None, &Some(u1_address.clone()));
 
     // println!("{:?}\n", colors_indexes);
 
@@ -402,7 +402,7 @@ fn test_sell_glyph() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -417,7 +417,7 @@ fn test_sell_glyph() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u3_address, &None, &Some(u1_address.clone()), &color_amount);
+    client.colors_mine(&u3_address, &color_amount, &None, &Some(u1_address.clone()));
 
     client.glyph_mint(
         &u1_address,
@@ -493,7 +493,7 @@ fn test_swap_glyph() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -513,7 +513,7 @@ fn test_swap_glyph() {
         colors_b_amount.set(hex_b as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &colors_a_amount);
+    client.colors_mine(&u1_address, &colors_a_amount, &None, &None);
 
     client.glyph_mint(
         &u1_address,
@@ -526,7 +526,7 @@ fn test_swap_glyph() {
         .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
         .unwrap();
 
-    client.colors_mine(&u2_address, &None, &None, &colors_b_amount);
+    client.colors_mine(&u2_address, &colors_b_amount, &None, &None);
 
     client.glyph_mint(
         &u2_address,
@@ -600,7 +600,7 @@ fn test_rm_glyph_buy() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -615,7 +615,7 @@ fn test_rm_glyph_buy() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &color_amount);
+    client.colors_mine(&u1_address, &color_amount, &None, &None);
 
     client.glyph_mint(
         &u1_address,
@@ -678,7 +678,7 @@ fn test_rm_glyph_sell() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -693,7 +693,7 @@ fn test_rm_glyph_sell() {
         color_amount.set(hex as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &color_amount);
+    client.colors_mine(&u1_address, &color_amount, &None, &None);
 
     client.glyph_mint(
         &u1_address,
@@ -752,7 +752,7 @@ fn test_rm_glyph_swap() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address);
 
     // Tests
     env.budget().reset_default();
@@ -772,7 +772,7 @@ fn test_rm_glyph_swap() {
         colors_b_amount.set(hex_b as u32, 1);
     }
 
-    client.colors_mine(&u1_address, &None, &None, &colors_a_amount);
+    client.colors_mine(&u1_address, &colors_a_amount, &None, &None);
 
     client.glyph_mint(
         &u1_address,
@@ -787,9 +787,9 @@ fn test_rm_glyph_swap() {
 
     client.colors_mine(
         &u1_address,
+        &colors_b_amount,
         &None,
         &Some(u2_address.clone()),
-        &colors_b_amount,
     );
 
     client.glyph_mint(

@@ -5,7 +5,6 @@ use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{token, vec, Address, Env, Symbol, Vec};
 
 use crate::{
-    // contract::MAX_ENTRY_LIFETIME,
     glyphs::glyph_verify_ownership,
     types::{Error, Glyph, Offer, OfferCreate, StorageKey},
 };
@@ -24,8 +23,8 @@ Place caps on the number of GlyphOffer and AssetOffer Vec lengths
     how many identical glyph:asset:amount offers can be open?
 */
 
-const MINTER_ROYALTY_RATE: i128 = 3; // 3%
-const MINER_ROYALTY_RATE: i128 = 2; // 2%
+// const MINTER_ROYALTY_RATE: i128 = 3; // 3%
+// const MINER_ROYALTY_RATE: i128 = 2; // 2%
 
 pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
     // sell glyph
@@ -158,8 +157,13 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             // );
 
                             // Pay the glyph minter their cut
+                            let minter_royalty_rate = env
+                                .storage()
+                                .instance()
+                                .get::<StorageKey, i128>(&StorageKey::MinterRoyaltyRate)
+                                .unwrap();
                             let minter_amount =
-                                MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                                minter_royalty_rate.fixed_mul_ceil(*amount, 100).unwrap();
 
                             let token = token::Client::new(env, &sell_asset_address);
 
@@ -183,7 +187,12 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                                     color_count += indexes.len();
                                 }
 
-                                let miner_amount = MINER_ROYALTY_RATE
+                                let miner_royalty_rate = env
+                                    .storage()
+                                    .instance()
+                                    .get::<StorageKey, i128>(&StorageKey::MinerRoyaltyRate)
+                                    .unwrap();
+                                let miner_amount = miner_royalty_rate
                                     .fixed_mul_ceil(*amount, 100)
                                     .unwrap()
                                     .fixed_mul_ceil(color_count as i128, buy_glyph.length as i128)
@@ -322,7 +331,12 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                     // );
 
                     // Pay the glyph minter their cut
-                    let minter_amount = MINTER_ROYALTY_RATE.fixed_mul_ceil(*amount, 100).unwrap();
+                    let minter_royalty_rate = env
+                        .storage()
+                        .instance()
+                        .get::<StorageKey, i128>(&StorageKey::MinterRoyaltyRate)
+                        .unwrap();
+                    let minter_amount = minter_royalty_rate.fixed_mul_ceil(*amount, 100).unwrap();
                     let token = token::Client::new(env, &buy_asset_address);
 
                     token.transfer(
@@ -343,10 +357,15 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             color_count += indexes.len();
                         }
 
-                        let miner_amount = MINER_ROYALTY_RATE
+                        let miner_royalty_rate = env
+                            .storage()
+                            .instance()
+                            .get::<StorageKey, i128>(&StorageKey::MinerRoyaltyRate)
+                            .unwrap();
+                        let miner_amount = miner_royalty_rate
                             .fixed_mul_ceil(*amount, 100)
                             .unwrap()
-                            .fixed_mul_ceil(i128::from(color_count), i128::from(sell_glyph.length))
+                            .fixed_mul_ceil(color_count as i128, sell_glyph.length as i128)
                             .unwrap();
 
                         // Determine their percentage of whole

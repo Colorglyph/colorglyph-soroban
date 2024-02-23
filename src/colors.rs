@@ -1,13 +1,12 @@
-use soroban_sdk::{symbol_short, token, Address, Env, Map, Vec};
-
-use crate::types::StorageKey;
+use crate::types::{Error, StorageKey};
+use soroban_sdk::{panic_with_error, symbol_short, token, Address, Env, Map, Vec};
 
 pub fn colors_mine(
     env: &Env,
     source: Address,
+    colors: Map<u32, u32>,
     miner: Option<Address>,
     to: Option<Address>,
-    colors: Map<u32, u32>,
 ) {
     source.require_auth();
 
@@ -41,12 +40,10 @@ pub fn colors_mine(
         // env.storage()
         //     .persistent()
         //     .bump(&miner_owner_color, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
-
-        env.events().publish(
-            (symbol_short!("mine"), miner.clone(), to.clone()),
-            (color, amount),
-        );
     }
+
+    env.events()
+        .publish((symbol_short!("mine"), miner.clone(), to.clone()), colors);
 
     let token_address = env
         .storage()
@@ -71,20 +68,24 @@ pub fn colors_mine(
 pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {
     from.require_auth();
 
-    for (miner_address, color, amount) in colors.iter() {
-        let from_miner_owner_color = StorageKey::Color(miner_address.clone(), from.clone(), color);
-        let to_miner_owner_color = StorageKey::Color(miner_address.clone(), to.clone(), color);
+    for (miner, color, amount) in colors.iter() {
+        let from_miner_owner_color = StorageKey::Color(miner.clone(), from.clone(), color);
+        let to_miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
 
         let current_from_amount = env
             .storage()
             .persistent()
             .get::<StorageKey, u32>(&from_miner_owner_color)
-            .unwrap_or(0);
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
         let current_to_amount = env
             .storage()
             .persistent()
             .get::<StorageKey, u32>(&to_miner_owner_color)
             .unwrap_or(0);
+
+        if amount > current_from_amount {
+            panic_with_error!(env, Error::NotPermitted);
+        }
 
         env.storage()
             .persistent()
@@ -103,15 +104,15 @@ pub fn colors_transfer(env: &Env, from: Address, to: Address, colors: Vec<(Addre
         //     MAX_ENTRY_LIFETIME,
         //     MAX_ENTRY_LIFETIME,
         // );
-
-        env.events().publish(
-            (symbol_short!("transfer"), from.clone(), to.clone()),
-            (miner_address, color, amount),
-        );
     }
+
+    env.events().publish(
+        (symbol_short!("transfer"), from.clone(), to.clone()),
+        colors,
+    );
 }
 
-pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u32) -> u32 {
+pub fn color_balance(env: &Env, owner: Address, color: u32, miner: Option<Address>) -> u32 {
     let miner = match miner {
         None => owner.clone(),
         Some(address) => address,
@@ -124,11 +125,11 @@ pub fn color_balance(env: &Env, owner: Address, miner: Option<Address>, color: u
         .get::<StorageKey, u32>(&color_key)
         .unwrap_or(0);
 
-    if color > 0 {
-        // env.storage()
-        //     .persistent()
-        //     .bump(&color_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
-    }
+    // if color > 0 {
+    //     env.storage()
+    //         .persistent()
+    //         .bump(&color_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
+    // }
 
     color
 }

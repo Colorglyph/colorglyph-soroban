@@ -1,7 +1,7 @@
 use soroban_sdk::{contracterror, contracttype, Address, BytesN, Map, Vec};
 
 #[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 #[repr(u32)]
 pub enum Error {
     NotFound = 1,
@@ -15,14 +15,18 @@ pub enum Error {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum StorageKey {
+    OwnerAddress,
     TokenAddress,
     FeeAddress,
+    MaxEntryLifetime,
+    MaxPaymentCount,
+    MinterRoyaltyRate,
+    MinerRoyaltyRate,
     Color(Address, Address, u32),
     Colors(Address),
     Glyph(BytesN<32>),
-    Dust(Address),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),
     GlyphOffer(BytesN<32>),
@@ -30,22 +34,21 @@ pub enum StorageKey {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum HashType {
-    Colors(Address), // means you can only be building one glyph at a time
-    Dust(Address),   // means you can only be scraping one glyph at a time
+    Colors(Address), // means you can only be building or scraping one glyph at a time
     Glyph(BytesN<32>),
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum GlyphType {
     Colors(Map<Address, Map<u32, Vec<u32>>>),
     Glyph(Glyph),
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Glyph {
     pub width: u32,
     pub length: u32,
@@ -53,14 +56,14 @@ pub struct Glyph {
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum OfferCreate {
     Glyph(BytesN<32>, Offer),
     Asset(BytesN<32>, Address, Address, i128),
 }
 
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Offer {
     Glyph(BytesN<32>),
     Asset(Address, i128), // BLOCKED once tuples support Option use that instead of AssetSell
