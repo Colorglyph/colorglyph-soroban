@@ -15,16 +15,13 @@ Break it up into individual functions to improve legibility
 I'm not convinced it's terribly efficient or that we aren't over doing the match nesting hell
 Support progressive offers? This would allow increasing the miner addresses per glyph
     Only really required when processing royalties.
-    Also it only involves miners not unique colors so the cap is less concerning.
+    Also it only involves miner counts not unique colors so the cap is less concerning.
     How many miners are you likely to have really? 15 is the ceiling atm which is pretty high imo
 Tweak MINTER_ROYALTY_RATE and MINER_ROYALTY_RATE values
 Place caps on the number of GlyphOffer and AssetOffer Vec lengths
     how many sell offers can a Glyph owner open?
     how many identical glyph:asset:amount offers can be open?
 */
-
-// const MINTER_ROYALTY_RATE: i128 = 3; // 3%
-// const MINER_ROYALTY_RATE: i128 = 2; // 2%
 
 pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
     // sell glyph
@@ -130,7 +127,7 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             let buy_glyph_minter_key =
                                 StorageKey::GlyphMinter(buy_glyph_hash.clone());
 
-                            // Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. over lap between minter and miner)
+                            // TODO Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. overlap between minter and miner)
                             let mut leftover_amount = *amount;
 
                             // Get glyph
@@ -168,6 +165,7 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             let token = token::Client::new(env, &sell_asset_address);
 
                             if *sell_asset_owner_address != buy_glyph_minter_address {
+                                // eliminate self payments
                                 token.transfer(
                                     &sell_asset_owner_address,
                                     &buy_glyph_minter_address,
@@ -304,7 +302,7 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
 
                     // TODO
                     // this next block is essentially a dupe from up above, this should be broken up into a separate function
-                    // Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. over lap between minter and miner)
+                    // Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. overlap between minter and miner)
                     let mut leftover_amount = *amount;
 
                     // Get glyph
@@ -444,7 +442,6 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             let sell_glyph_offer_key = StorageKey::GlyphOffer(sell_glyph_hash.clone());
 
             // Selling a Glyph
-            // let glyph_offer_key = StorageKey::GlyphOffer(offer_hash);
             let mut offers = env
                 .storage()
                 .persistent()
@@ -453,7 +450,7 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
 
             match offers.binary_search(&buy) {
                 Err(offer_index) => offers.insert(offer_index, buy.clone()), // Buy can be an Asset or a Glyph
-                _ => return Err(Error::NotEmpty),                            // Dupe
+                _ => return Err(Error::NotEmpty), // Error on dupe offer
             }
 
             env.storage()
@@ -503,7 +500,7 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
                 .unwrap_or(Vec::new(env));
 
             if offers.contains(sell_asset_owner_address.clone()) {
-                return Err(Error::NotEmpty);
+                return Err(Error::NotEmpty); // Error on dupe offer
             }
 
             offers.push_back(sell_asset_owner_address.clone());

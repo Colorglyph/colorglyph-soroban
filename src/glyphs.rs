@@ -7,11 +7,9 @@ use crate::{
 };
 use soroban_sdk::{panic_with_error, symbol_short, Address, Bytes, BytesN, Env, Map, Symbol, Vec};
 
-// TODO
-// Limit number of unique miner addresses in a `glyph_mint`
-// Fine tune MAX_PAYMENT_COUNT number
-
-/* BLOCKED
+/* TODO
+Limit number of unique miner addresses in a `glyph_mint`
+Fine tune MAX_PAYMENT_COUNT number
 Use PRNG to generate random ids
     Then use that id to hold the Colors and add an additional store to hold the Colors owner
     Note this really only helps Colors transfers and gets which is likely a rare case so probably not worth it
