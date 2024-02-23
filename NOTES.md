@@ -11,6 +11,8 @@
 * Mechanic for making a "commitment to mint" where you transfer all the colors to a special minting contract where anyone can trigger the actual progressive mint
 	* You are so dumb. "transfer all the colors". That's literally why we have progressive minting in the first place
 * Combine mine and mint events or really any looped event into a single batched event to make it smaller so it fits in the 2 KB limit
+* Add upgrade function during a beta period
+* Add some sort of NFT standard functions for viewing, transfering, etc.
 
 ---
 
