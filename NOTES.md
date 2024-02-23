@@ -13,6 +13,7 @@
 * Combine mine and mint events or really any looped event into a single batched event to make it smaller so it fits in the 2 KB limit
 * Add upgrade function during a beta period
 * Add some sort of NFT standard functions for viewing, transfering, etc.
+* Set specific settings to instance vars and allow then to be modified by protocol owner address
 
 ---
 
