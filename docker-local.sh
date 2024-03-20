@@ -4,4 +4,6 @@ docker run --rm -i \
     stellar/quickstart:latest \
     --local \
     --limits unlimited \
-    --enable-soroban-rpc
+    --enable-soroban-rpc \
+    --enable-soroban-diagnostic-events \
+    --enable rpc,horizon
