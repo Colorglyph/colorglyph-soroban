@@ -5,11 +5,9 @@ pub fn colors_mine(env: &Env, miner: &Address, to: &Address, colors: Map<u32, u3
         .publish((symbol_short!("mine"), miner, to), colors);
 }
 
-pub fn colors_transfer(env: &Env, from: &Address, to: &Address, colors:  Vec<(Address, u32, u32)>) {
-    env.events().publish(
-        (symbol_short!("transfer"), from, to),
-        colors,
-    );
+pub fn colors_transfer(env: &Env, from: &Address, to: &Address, colors: Vec<(Address, u32, u32)>) {
+    env.events()
+        .publish((symbol_short!("transfer"), from, to), colors);
 }
 
 pub fn colors_out(env: &Env, miner: &Address, minter: &Address, color: u32, indexes_length: u32) {
@@ -27,15 +25,17 @@ pub fn minted_event(env: &Env, minter: &Address, to: Option<Address>, hash: &Byt
 }
 
 pub fn minting_event(env: &Env, minter: &Address) {
-    env.events().publish(
-        (symbol_short!("minting"), minter.clone()),
-        (),
-    );
+    env.events()
+        .publish((symbol_short!("minting"), minter.clone()), ());
 }
 
 pub fn transfer_colors_event(env: &Env, from: &Address, to: &Address) {
     env.events().publish(
-        (Symbol::new(&env, "transfer_colors"), from.clone(), to.clone()),
+        (
+            Symbol::new(&env, "transfer_colors"),
+            from.clone(),
+            to.clone(),
+        ),
         (),
     );
 }
@@ -43,26 +43,45 @@ pub fn transfer_colors_event(env: &Env, from: &Address, to: &Address) {
 // Note this event has changed to avoid unnecessary enlargement of soroban meta.
 pub fn transfer_glyph_event(env: &Env, to: &Address, glyph_hash: &BytesN<32>) {
     env.events().publish(
-        (Symbol::new(&env, "transfer_glyph"), glyph_hash.clone(), to.clone()),
-        ()
+        (
+            Symbol::new(&env, "transfer_glyph"),
+            glyph_hash.clone(),
+            to.clone(),
+        ),
+        (),
     );
 }
 
 pub fn scrape_colors_event(env: &Env, colors_owner: &Address, to: Option<Address>) {
     env.events().publish(
-        (Symbol::new(&env, "scrape_colors"), colors_owner.clone(), to.clone()),
+        (
+            Symbol::new(&env, "scrape_colors"),
+            colors_owner.clone(),
+            to.clone(),
+        ),
         (),
     );
 }
 
-pub fn scrape_glyph_event(env: &Env, owner: &Address, to: Option<Address>, glyph_hash: &BytesN<32>) {
+pub fn scrape_glyph_event(
+    env: &Env,
+    owner: &Address,
+    to: Option<Address>,
+    glyph_hash: &BytesN<32>,
+) {
     env.events().publish(
         (Symbol::new(&env, "scrape_glyph"), owner.clone(), to.clone()),
         glyph_hash.clone(),
     );
 }
 
-pub fn color_in_event(env: &Env, miner: &Address, to_address: &Address, color: u32, indexes_length: u32) {
+pub fn color_in_event(
+    env: &Env,
+    miner: &Address,
+    to_address: &Address,
+    color: u32,
+    indexes_length: u32,
+) {
     env.events().publish(
         (symbol_short!("color_in"), miner.clone(), to_address.clone()),
         (color, indexes_length),

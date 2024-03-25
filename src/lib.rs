@@ -14,10 +14,10 @@ Ensure fully verifying necessary ownerships
 // NOTE 20 storage writes is very limiting atm
 
 mod contract;
-mod interface;
-mod types;
-mod storage;
 mod events;
+mod interface;
+mod storage;
+mod types;
 
 mod glyphs;
 mod offers;
