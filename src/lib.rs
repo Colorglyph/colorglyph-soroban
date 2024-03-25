@@ -16,8 +16,9 @@ Ensure fully verifying necessary ownerships
 mod contract;
 mod interface;
 mod types;
+mod storage;
+mod events;
 
-mod colors;
 mod glyphs;
 mod offers;
 

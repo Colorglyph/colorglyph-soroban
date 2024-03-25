@@ -15,8 +15,9 @@ pub trait ColorGlyphTrait {
         miner_royalty_rate: Option<i128>,
     );
     fn upgrade(env: Env, hash: BytesN<32>);
+}
 
-    // Colors
+pub trait ColorsInterface {
     fn colors_mine(
         env: Env,
         source: Address,
@@ -26,8 +27,9 @@ pub trait ColorGlyphTrait {
     );
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>);
     fn color_balance(env: Env, owner: Address, color: u32, miner: Option<Address>) -> u32;
+}
 
-    // Glyphs
+pub trait GlyphInterface {
     fn glyph_mint(
         env: Env,
         minter: Address,
@@ -38,8 +40,9 @@ pub trait ColorGlyphTrait {
     fn glyph_transfer(env: Env, to: Address, hash_type: HashType);
     fn glyph_scrape(env: Env, to: Option<Address>, hash_type: HashType);
     fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error>;
+}
 
-    // Offers
+pub trait Exchange {
     fn offer_post(env: Env, sell: Offer, buy: Offer) -> Result<(), Error>;
     fn offer_delete(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error>;
     fn offers_get(env: Env, sell: Offer, buy: Option<Offer>) -> Result<(), Error>;
