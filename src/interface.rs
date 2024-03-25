@@ -30,12 +30,13 @@ pub trait ColorGlyphTrait {
     // Glyphs
     fn glyph_mint(
         env: Env,
+        hash: BytesN<32>,
         minter: Address,
         to: Option<Address>,
         colors: Map<Address, Map<u32, Vec<u32>>>,
         width: Option<u32>,
     ) -> Option<BytesN<32>>;
-    fn glyph_transfer(env: Env, to: Address, hash_type: HashType);
+    fn glyph_transfer(env: Env, to: Address, hash: BytesN<32>);
     fn glyph_scrape(env: Env, to: Option<Address>, hash_type: HashType);
     fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error>;
 

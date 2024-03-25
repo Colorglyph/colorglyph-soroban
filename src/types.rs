@@ -12,6 +12,8 @@ pub enum Error {
     MissingId = 6,
     MissingAddress = 7,
     MissingBuy = 8,
+    HashMismatch = 9,
+    AddressMismatch = 10,
 }
 
 #[contracttype]

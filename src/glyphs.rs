@@ -17,6 +17,7 @@ Use PRNG to generate random ids
 
 pub fn glyph_mint(
     env: &Env,
+    hash: BytesN<32>,
     minter: Address,
     to: Option<Address>,
     colors: Map<Address, Map<u32, Vec<u32>>>,
@@ -24,7 +25,8 @@ pub fn glyph_mint(
 ) -> Option<BytesN<32>> {
     minter.require_auth();
 
-    let glyph_colors_key = StorageKey::Colors(minter.clone());
+    // let glyph_colors_key = StorageKey::Colors(minter.clone());
+    let glyph_colors_key = StorageKey::Glyph(hash.clone());
     let mut glyph_colors = env
         .storage()
         .persistent()
@@ -93,7 +95,14 @@ pub fn glyph_mint(
     match width {
         // We are storing the glyph
         Some(width) => {
-            let hash = glyph_store(env, minter.clone(), to.clone(), glyph_colors, width as u8);
+            let hash = glyph_store(
+                env,
+                hash.clone(),
+                minter.clone(),
+                to.clone(),
+                glyph_colors,
+                width as u8,
+            );
 
             env.events()
                 .publish((symbol_short!("minted"), minter, to), hash.clone());
@@ -105,6 +114,18 @@ pub fn glyph_mint(
             env.storage()
                 .persistent()
                 .set(&glyph_colors_key, &glyph_colors);
+
+            let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
+
+            if !env.storage().persistent().has(&glyph_owner_key) {
+                env.storage().persistent().set(
+                    &glyph_owner_key,
+                    &match to {
+                        Some(address) => address,
+                        None => minter.clone(),
+                    },
+                );
+            }
 
             // env.storage().persistent().bump(
             //     &glyph_colors_key,
@@ -121,6 +142,7 @@ pub fn glyph_mint(
 
 fn glyph_store(
     env: &Env,
+    og_hash: BytesN<32>,
     minter: Address,
     to: Option<Address>,
     colors: Map<Address, Map<u32, Vec<u32>>>,
@@ -157,21 +179,25 @@ fn glyph_store(
     let bytes = Bytes::from_slice(&env, &bit24_data[..=(max_i + 1)]);
 
     let hash = env.crypto().sha256(&bytes);
-    let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
-    // Glyph has already been minted and is currently owned (not scraped)
-    if env.storage().persistent().has(&glyph_owner_key) {
-        panic_with_error!(env, Error::NotEmpty);
+    if og_hash != hash {
+        panic_with_error!(env, Error::HashMismatch);
     }
 
-    // Save the glyph owner to storage
-    env.storage().persistent().set(
-        &glyph_owner_key,
-        &match to {
+    let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
+
+    if env
+        .storage()
+        .persistent()
+        .get::<StorageKey, Address>(&glyph_owner_key)
+        .unwrap()
+        != match to {
             Some(address) => address,
             None => minter.clone(),
-        },
-    );
+        }
+    {
+        panic_with_error!(env, Error::AddressMismatch);
+    }
 
     // env.storage()
     //     .persistent()
@@ -208,61 +234,60 @@ fn glyph_store(
     //     .bump(&glyph_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
     // Remove any temp Colors
-    env.storage()
-        .persistent()
-        .remove(&StorageKey::Colors(minter));
+    // env.storage()
+    //     .persistent()
+    //     .remove(&StorageKey::Colors(minter));
 
     hash
 }
 
-pub fn glyph_transfer(env: &Env, to: Address, hash_type: HashType) {
-    match hash_type {
-        HashType::Colors(from) => {
-            from.require_auth();
+pub fn glyph_transfer(env: &Env, to: Address, hash: BytesN<32>) {
+    // match hash_type {
+    // HashType::Colors(from) => {
+    //     from.require_auth();
 
-            let to_colors_key = StorageKey::Colors(to.clone());
-            let from_colors_key = StorageKey::Colors(from.clone());
-            let colors = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&from_colors_key)
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
+    //     let to_colors_key = StorageKey::Colors(to.clone());
+    //     let from_colors_key = StorageKey::Colors(from.clone());
+    //     let colors = env
+    //         .storage()
+    //         .persistent()
+    //         .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&from_colors_key)
+    //         .unwrap_or_else(|| panic_with_error!(env, Error::NotFound));
 
-            /* TODO
-            This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
-            On the other hand this is a pretty rare case so maybe it's not worth it
-            */
+    //     /* TODO
+    //     This is a pretty expensive transfer. Separating StorageKey::Colors from maybe a StorageKey::ColorsOwner might be the better way to go
+    //     On the other hand this is a pretty rare case so maybe it's not worth it
+    //     */
+    //     env.storage().persistent().remove(&from_colors_key);
 
-            env.storage().persistent().remove(&from_colors_key);
+    //     env.storage().persistent().set(&to_colors_key, &colors);
 
-            env.storage().persistent().set(&to_colors_key, &colors);
+    //     // env.storage()
+    //     //     .persistent()
+    //     //     .bump(&to_colors_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
 
-            // env.storage()
-            //     .persistent()
-            //     .bump(&to_colors_key, MAX_ENTRY_LIFETIME, MAX_ENTRY_LIFETIME);
+    //     env.events()
+    //         .publish((Symbol::new(env, "transfer_colors"), from, to), ());
+    // }
+    // HashType::Glyph(glyph_hash) => {
+    let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
-            env.events()
-                .publish((Symbol::new(env, "transfer_colors"), from, to), ());
-        }
-        HashType::Glyph(glyph_hash) => {
-            let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
+    glyph_verify_ownership(env, &glyph_owner_key);
 
-            glyph_verify_ownership(env, &glyph_owner_key);
+    env.storage().persistent().set(&glyph_owner_key, &to);
 
-            env.storage().persistent().set(&glyph_owner_key, &to);
+    // env.storage().persistent().bump(
+    //     &glyph_owner_key,
+    //     MAX_ENTRY_LIFETIME,
+    //     MAX_ENTRY_LIFETIME,
+    // );
 
-            // env.storage().persistent().bump(
-            //     &glyph_owner_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
-            env.events().publish(
-                (Symbol::new(env, "transfer_glyph"), glyph_owner_key, to),
-                glyph_hash,
-            );
-        }
-    }
+    env.events().publish(
+        (Symbol::new(env, "transfer_glyph"), glyph_owner_key, to),
+        hash,
+    );
+    //     }
+    // }
 }
 
 pub fn glyph_scrape(env: &Env, to: Option<Address>, hash_type: HashType) {

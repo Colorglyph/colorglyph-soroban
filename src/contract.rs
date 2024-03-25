@@ -142,15 +142,16 @@ impl ColorGlyphTrait for ColorGlyph {
     // Glyphs
     fn glyph_mint(
         env: Env,
+        hash: BytesN<32>,
         minter: Address,
         to: Option<Address>,
         colors: Map<Address, Map<u32, Vec<u32>>>,
         width: Option<u32>,
     ) -> Option<BytesN<32>> {
-        glyph_mint(&env, minter, to, colors, width)
+        glyph_mint(&env, hash, minter, to, colors, width)
     }
-    fn glyph_transfer(env: Env, to: Address, hash_type: HashType) {
-        glyph_transfer(&env, to, hash_type)
+    fn glyph_transfer(env: Env, to: Address, hash: BytesN<32>) {
+        glyph_transfer(&env, to, hash)
     }
     fn glyph_scrape(env: Env, to: Option<Address>, hash_type: HashType) {
         glyph_scrape(&env, to, hash_type)
