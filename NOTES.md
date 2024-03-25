@@ -4,6 +4,10 @@
 * Combine mine and mint events or really any looped event into a single batched event to make it smaller so it fits in the 2 KB limit
 * Add some sort of NFT standard functions for viewing, transferring, etc.
 * How do we plan to handle title and story info?
+* Consider combining the StorageKey::Glyph and StorageKey::Colors which will save on tx costs
+* Consider slimming up the StorageKey::Color in cases where the miner and owner are the same address
+* Check if we can increase any limits post phase 2 launch
+    * I do wonder if it'd be better to submit more smaller transactions to avoid any inclusion fee bid wars 
 
 # DONE
 * Add upgrade function during a beta period
