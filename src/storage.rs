@@ -3,13 +3,13 @@ use crate::types::{StorageKey, Error};
 
 
 pub mod persistent {
-    use soroban_sdk::{BytesN, Map, Vec};
+    use soroban_sdk::{vec, BytesN, Map, Vec};
 
-    use crate::types::Glyph;
+    use crate::types::{Glyph, Offer};
 
     use super::*;
 
-    pub fn write_color(env: &Env, miner: Address, to: Address, color: u32, amount: u32) {
+    pub fn write_color(env: &Env, miner: &Address, to: &Address, color: u32, amount: u32) {
         let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
         
         env
@@ -18,7 +18,7 @@ pub mod persistent {
             .set::<StorageKey, u32>(&miner_owner_color, &amount);
     }
 
-    pub fn write_colors(env: &Env, minter: Address, colors: &Map<Address, Map<u32, Vec<u32>>>) {
+    pub fn write_colors(env: &Env, minter: &Address, colors: &Map<Address, Map<u32, Vec<u32>>>) {
         let glyph_colors_key = StorageKey::Colors(minter.clone());
 
         env
@@ -27,7 +27,7 @@ pub mod persistent {
             .set::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&glyph_colors_key, colors);
     }
 
-    pub fn read_color(env: &Env, miner: Address, to: Address, color: u32) -> u32 {
+    pub fn read_color(env: &Env, miner: &Address, to: &Address, color: u32) -> u32 {
         let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
 
         env
@@ -37,15 +37,15 @@ pub mod persistent {
             .unwrap_or(0)
     }
 
-    pub fn read_colors_or_map(env: &Env, minter: Address) -> Map<Address, Map<u32, Vec<u32>>> {
+    pub fn read_colors_or_map(env: &Env, minter: &Address) -> Map<Address, Map<u32, Vec<u32>>> {
         read_colors(env, minter).unwrap_or(Map::new(&env))
     }
 
-    pub fn read_colors_or_error(env: &Env, minter: Address) -> Map<Address, Map<u32, Vec<u32>>> {
+    pub fn read_colors_or_error(env: &Env, minter: &Address) -> Map<Address, Map<u32, Vec<u32>>> {
         read_colors(env, minter).unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
     }
 
-    fn read_colors(env: &Env, minter: Address) -> Option<Map<Address, Map<u32, Vec<u32>>>> {
+    fn read_colors(env: &Env, minter: &Address) -> Option<Map<Address, Map<u32, Vec<u32>>>> {
         let glyph_colors_key = StorageKey::Colors(minter.clone());
 
         env
@@ -54,7 +54,7 @@ pub mod persistent {
             .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&glyph_colors_key)
     }
 
-    pub fn read_glyph(env: &Env, hash: BytesN<32>) -> Result<Glyph, Error> {
+    pub fn read_glyph(env: &Env, hash: &BytesN<32>) -> Result<Glyph, Error> {
         let glyph_key = StorageKey::Glyph(hash.clone());
 
         env
@@ -86,6 +86,34 @@ pub mod persistent {
             .storage()
             .persistent()
             .has(&StorageKey::Colors(owner))
+    }
+
+    pub fn read_glyph_minter(env: &Env, hash: &BytesN<32>) -> Option<Address> {
+        let buy_glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
+
+        env
+            .storage()
+            .persistent()
+            .get::<StorageKey, Address>(&buy_glyph_minter_key)
+    }
+
+    // Offers-related storage utils
+    
+    pub fn read_offers_by_glyph(env: &Env, hash: &BytesN<32>) -> Vec<Offer> {
+        let buy_glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
+        env
+        .storage()
+        .persistent()
+        .get::<StorageKey, Vec<Offer>>(&buy_glyph_offer_key)
+        .unwrap_or(vec![&env])
+    }
+
+    pub fn write_offers_by_glyph(env: &Env, hash: &BytesN<32>, offers: Vec<Offer>) {
+        let buy_glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
+        env
+        .storage()
+        .persistent()
+        .set(&buy_glyph_offer_key, &offers);
     }
 }
 

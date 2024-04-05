@@ -68,3 +68,25 @@ pub fn color_in_event(env: &Env, miner: &Address, to_address: &Address, color: u
         (color, indexes_length),
     );
 }
+
+pub fn offer_match(env: &Env, sell_hash: &BytesN<32>, sell_owner: &Address, buy_hash: &BytesN<32>, buy_owner: &Address) {
+    env.events().publish(
+        (
+            Symbol::new(&env, "offer_match"),
+            sell_hash.clone(),
+            sell_owner,
+        ),
+        (buy_hash.clone(), buy_owner),
+    );
+}
+
+pub fn offer_match_sell_asset(env: &Env, sell_asset: &Address, sell_owner: &Address, buy_hash: &BytesN<32>, offer_index: u32) {
+    env.events().publish(
+        (
+            Symbol::new(&env, "offer_match_sell_asset"),
+            sell_asset,
+            sell_owner,
+        ),
+        (buy_hash.clone(), offer_index),
+    );
+}

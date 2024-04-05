@@ -98,8 +98,8 @@ impl ColorsInterface for ColorGlyph {
         let mut pay_amount: u32 = 0;
 
         for (color, amount) in colors.iter() {
-            let current_amount = read_color(&env, miner.clone(), to.clone(), color);
-            write_color(&env, miner.clone(), to.clone(), color, current_amount + amount);
+            let current_amount = read_color(&env, &miner, &to, color);
+            write_color(&env, &miner, &to, color, current_amount + amount);
 
             pay_amount += amount;
         }
@@ -119,15 +119,15 @@ impl ColorsInterface for ColorGlyph {
         from.require_auth();
 
         for (miner, color, amount) in colors.iter() {
-            let current_from_amount = read_color(&env, miner.clone(), from.clone(), color);
-            let current_to_amount = read_color(&env, miner.clone(), to.clone(), color);
+            let current_from_amount = read_color(&env, &miner, &from, color);
+            let current_to_amount = read_color(&env, &miner, &to, color);
             
             if amount > current_from_amount {
                 panic_with_error!(env, Error::NotPermitted);
             }
 
-            write_color(&env, miner.clone(), from.clone(), color, current_from_amount - amount);
-            write_color(&env, miner.clone(), to.clone(), color, current_to_amount + amount);
+            write_color(&env, &miner, &from, color, current_from_amount - amount);
+            write_color(&env, &miner, &to, color, current_to_amount + amount);
         }
 
         crate::events::colors_transfer(&env, &from, &to, colors);
@@ -136,7 +136,7 @@ impl ColorsInterface for ColorGlyph {
     fn color_balance(env: Env, owner: Address, color: u32, miner: Option<Address>) -> u32 {
         let miner = miner.unwrap_or(owner.clone());
         
-        read_color(&env, miner, owner, color)
+        read_color(&env, &miner, &owner, color)
     }
 }
 
@@ -149,7 +149,7 @@ impl GlyphInterface for ColorGlyph {
         colors: Map<Address, Map<u32, Vec<u32>>>,
         width: Option<u32>,
     ) -> Option<BytesN<32>> {
-        let mut glyph_colors = read_colors_or_map(&env, minter.clone());
+        let mut glyph_colors = read_colors_or_map(&env, &minter);
 
         // spend colors
         for (miner, color_indexes) in colors.iter() {
@@ -157,8 +157,8 @@ impl GlyphInterface for ColorGlyph {
 
             for (color, indexes) in color_indexes.iter() {
 //                let current_color_key = StorageKey::Color(miner.clone(), minter.clone(), color);
-                let current_color_amount = read_color(&env, miner.clone(), minter.clone(), color);
-                write_color(&env, miner.clone(), minter.clone(), color, current_color_amount - indexes.len());
+                let current_color_amount = read_color(&env, &miner, &minter, color);
+                write_color(&env, &miner, &minter, color, current_color_amount - indexes.len());
 
                 
                 crate::events::colors_out(&env, &miner, &minter, color, indexes.len());
@@ -204,7 +204,7 @@ impl GlyphInterface for ColorGlyph {
             }
             // We are building the glyph
             None => {
-                write_colors(&env, minter.clone(), &glyph_colors);
+                write_colors(&env, &minter, &glyph_colors);
                 crate::events::minting_event(&env, &minter);
                 
                 None
@@ -217,10 +217,10 @@ impl GlyphInterface for ColorGlyph {
                 from.require_auth();
     
                 let from_colors_key = StorageKey::Colors(from.clone());
-                let colors = read_colors_or_error(&env, from.clone());
+                let colors = read_colors_or_error(&env, &from);
     
                 env.storage().persistent().remove(&from_colors_key);
-                write_colors(&env, to.clone(), &colors);
+                write_colors(&env, &to, &colors);
                 
                 crate::events::transfer_colors_event(&env, &from, &to);
             }
@@ -242,7 +242,7 @@ impl GlyphInterface for ColorGlyph {
         let owner: Address = match &hash_type {
             HashType::Colors(colors_owner) => {
                 colors_owner.require_auth();
-                miners_colors_indexes = read_colors_or_error(&env, colors_owner.clone());
+                miners_colors_indexes = read_colors_or_error(&env, colors_owner);
 
                 crate::events::scrape_colors_event(&env, colors_owner, to.clone());
 
@@ -261,7 +261,7 @@ impl GlyphInterface for ColorGlyph {
                     panic_with_error!(env, Error::NotEmpty);
                 }
 
-                let glyph = read_glyph(&env, glyph_hash.clone()).unwrap_or_else(|e| panic_with_error!(&env, e));
+                let glyph = read_glyph(&env, glyph_hash).unwrap_or_else(|e| panic_with_error!(&env, e));
 
                 // Remove glyph owner
                 remove_glyph_owner(&env, glyph_hash.clone());
@@ -293,8 +293,8 @@ impl GlyphInterface for ColorGlyph {
                     break;
                 }
 
-                let current_amount = read_color(&env, miner.clone(), to_address.clone(), color);
-                write_color(&env, miner.clone(), to_address.clone(), color, current_amount + indexes.len());
+                let current_amount = read_color(&env, &miner, &to_address, color);
+                write_color(&env, &miner, &to_address, color, current_amount + indexes.len());
 
                 colors_indexes.remove(color);
                 payment_count += 1;
@@ -313,13 +313,13 @@ impl GlyphInterface for ColorGlyph {
             remove_colors(&env, owner)
             //env.storage().persistent().remove(&colors_key);
         } else {
-            write_colors(&env, owner, &miners_colors_indexes);
+            write_colors(&env, &owner, &miners_colors_indexes);
         }
     }
     fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error> {
         match hash_type {
             HashType::Colors(address) => {
-                let colors = read_colors_or_error(&env, address);
+                let colors = read_colors_or_error(&env, &address);
                 Ok(GlyphType::Colors(colors))
             }
             HashType::Glyph(hash) => {
@@ -329,7 +329,7 @@ impl GlyphInterface for ColorGlyph {
                     return Err(Error::NotFound);
                 }
     
-                let glyph = read_glyph(&env, hash)?;
+                let glyph = read_glyph(&env, &hash)?;
                 Ok(GlyphType::Glyph(glyph))
             }
         }
