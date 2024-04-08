@@ -64,16 +64,30 @@ pub mod persistent {
             .ok_or(Error::NotFound)
     }
 
+    pub fn read_glyph_owner(env: &Env, hash: &BytesN<32>) -> Option<Address> {
+        env.storage()
+            .persistent()
+            .get(&StorageKey::GlyphOwner(hash.clone()))
+    }
+
     pub fn remove_glyph_owner(env: &Env, hash: BytesN<32>) {
         env.storage()
             .persistent()
             .remove(&StorageKey::GlyphOwner(hash));
     }
 
-    pub fn remove_glyph_offer(env: &Env, hash: BytesN<32>) {
+    pub fn write_glyph_owner(env: &Env, hash: &BytesN<32>, new_owner: &Address) {
+        let key = StorageKey::GlyphOwner(hash.clone());
+        
         env.storage()
             .persistent()
-            .remove(&StorageKey::GlyphOffer(hash));
+            .set(&key, &new_owner);
+    }
+
+    pub fn remove_glyph_offer(env: &Env, hash: &BytesN<32>) {
+        env.storage()
+            .persistent()
+            .remove(&StorageKey::GlyphOffer(hash.clone()));
     }
 
     pub fn remove_colors(env: &Env, owner: Address) {
@@ -114,6 +128,45 @@ pub mod persistent {
         .storage()
         .persistent()
         .set(&buy_glyph_offer_key, &offers);
+    }
+
+    pub fn read_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128) -> Option<Vec<Address>> {
+        let key = StorageKey::AssetOffer(
+            hash.clone(),
+            address.clone(),
+            amount,
+        );
+        
+        env
+            .storage()
+            .persistent()
+            .get::<StorageKey, Vec<Address>>(&key)
+    }
+
+    pub fn remove_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128) {
+        let key = StorageKey::AssetOffer(
+            hash.clone(),
+            address.clone(),
+            amount,
+        );
+        
+        env
+            .storage()
+            .persistent()
+            .remove(&key);
+    }
+
+    pub fn write_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128, offers: &Vec<Address>) {
+        let key = StorageKey::AssetOffer(
+            hash.clone(),
+            address.clone(),
+            amount,
+        );
+        
+        env
+            .storage()
+            .persistent()
+            .set(&key, offers);
     }
 }
 

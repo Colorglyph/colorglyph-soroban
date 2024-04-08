@@ -90,3 +90,14 @@ pub fn offer_match_sell_asset(env: &Env, sell_asset: &Address, sell_owner: &Addr
         (buy_hash.clone(), offer_index),
     );
 }
+
+pub fn offer_post(env: &Env, buy_asset: &Address, buy_asset_owner: &Address, hash: &BytesN<32>, amount: i128) {
+    env.events().publish(
+        (
+            Symbol::new(&env, "offer_post"),
+            buy_asset,
+            buy_asset_owner,
+        ),
+        (amount, hash.clone()),
+    );
+}

@@ -267,7 +267,7 @@ impl GlyphInterface for ColorGlyph {
                 remove_glyph_owner(&env, glyph_hash.clone());
                 
                 // Remove all glyph sell offers
-                remove_glyph_offer(&env, glyph_hash.clone());
+                remove_glyph_offer(&env, glyph_hash);
 
                 miners_colors_indexes = glyph.colors;
                 crate::events::scrape_glyph_event(&env, &owner, to.clone(), glyph_hash);
