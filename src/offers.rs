@@ -323,30 +323,14 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
             let glyph_owner = glyph_verify_ownership(env, &glyph_owner_key);
 
             let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
-            let mut offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Offer>>(&glyph_hash_key)
-                .ok_or(Error::NotFound)?;
-
-            // env.storage().persistent().bump(
-            //     &glyph_hash_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
+            
+            let mut offers = read_offers_by_glyph(env, &glyph_hash);
+            
             match &buy {
                 Some(buy) => match offers.binary_search(buy) {
                     Ok(offer_index) => {
                         offers.remove(offer_index);
-
-                        env.storage().persistent().set(&glyph_hash_key, &offers);
-
-                        // env.storage().persistent().bump(
-                        //     &glyph_hash_key,
-                        //     MAX_ENTRY_LIFETIME,
-                        //     MAX_ENTRY_LIFETIME,
-                        // );
+                        write_offers_by_glyph(env, &glyph_hash, offers);
 
                         env.events().publish(
                             (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
