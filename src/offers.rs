@@ -321,8 +321,6 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
             // Selling a Glyph (delete Glyph or Asset buy offer)
             let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
             let glyph_owner = glyph_verify_ownership(env, &glyph_owner_key);
-
-            let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
             
             let mut offers = read_offers_by_glyph(env, &glyph_hash);
             
@@ -332,23 +330,15 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                         offers.remove(offer_index);
                         write_offers_by_glyph(env, &glyph_hash, offers);
 
-                        env.events().publish(
-                            (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
-                            (buy.clone(), offer_index),
-                        );
-
+                        events::glyph_offer_delete(env, &glyph_hash, &glyph_owner, buy.clone(), offer_index);
                         Ok(())
                     }
                     _ => Err(Error::NotFound),
                 },
                 None => {
-                    env.storage().persistent().remove(&glyph_hash_key);
-
-                    env.events().publish(
-                        (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
-                        buy.clone(),
-                    );
-
+                    remove_glyph_offer(env, &glyph_hash);
+                    
+                    events::glyph_offer_delete_all(env, &glyph_hash, &glyph_owner);
                     Ok(())
                 }
             }
@@ -366,17 +356,7 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                                 asset_address.clone(),
                                 amount,
                             );
-                            let mut offers = env
-                                .storage()
-                                .persistent()
-                                .get::<StorageKey, Vec<Address>>(&asset_offer_key)
-                                .ok_or(Error::NotFound)?;
-
-                            // env.storage().persistent().bump(
-                            //     &asset_offer_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
+                            let mut offers = read_asset_offers_by_asset(env, &glyph_hash, &asset_address, amount).ok_or(Error::NotFound)?;
 
                             match offers.binary_search(asset_owner_address.clone()) {
                                 Ok(offer_index) => {
@@ -389,26 +369,12 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                                     );
 
                                     offers.remove(offer_index);
-
-                                    env.events().publish(
-                                        (
-                                            Symbol::new(&env, "offer_delete"),
-                                            asset_address,
-                                            asset_owner_address,
-                                        ),
-                                        (amount, glyph_hash, offer_index),
-                                    );
+                                    events::asset_offer_delete(env, &asset_address, &asset_owner_address, &glyph_hash, amount, offer_index);
 
                                     if offers.is_empty() {
-                                        env.storage().persistent().remove(&asset_offer_key);
+                                        remove_asset_offers_by_asset(env, &glyph_hash, &asset_address, amount);
                                     } else {
-                                        env.storage().persistent().set(&asset_offer_key, &offers);
-
-                                        // env.storage().persistent().bump(
-                                        //     &asset_offer_key,
-                                        //     MAX_ENTRY_LIFETIME,
-                                        //     MAX_ENTRY_LIFETIME,
-                                        // );
+                                        write_asset_offers_by_asset(env, &glyph_hash, &asset_address, amount, &offers);
                                     }
 
                                     Ok(())
@@ -430,19 +396,8 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
     match sell {
         Offer::Glyph(glyph_hash) => {
             // Selling a Glyph
-            let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
-            let offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Offer>>(&glyph_hash_key)
-                .ok_or(Error::NotFound)?;
-
-            // env.storage().persistent().bump(
-            //     &glyph_hash_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
+            let offers = read_offers_by_glyph(env, &glyph_hash);
+            
             match buy {
                 Some(buy) => match offers.binary_search(buy) {
                     Ok(_) => Ok(()), // Found the buy offer

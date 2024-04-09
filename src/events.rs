@@ -114,3 +114,36 @@ pub fn glyph_offer_post(env: &Env, sell_hash: &BytesN<32>, sell_owner: &Address,
         (offer, ),
     );
 }
+
+pub fn glyph_offer_delete(env: &Env, hash: &BytesN<32>, owner: &Address, offer: Offer, idx: u32) {
+    env.events().publish(
+        (
+            Symbol::new(&env, "glyph_offer_delete"),
+            hash.clone(),
+            owner,
+        ),
+        (offer, idx),
+    );
+}
+
+pub fn glyph_offer_delete_all(env: &Env, hash: &BytesN<32>, owner: &Address) {
+    env.events().publish(
+        (
+            Symbol::new(&env, "glyph_offer_delete_all"),
+            hash.clone(),
+            owner,
+        ),
+        ((), ),
+    );
+}
+
+pub fn asset_offer_delete(env: &Env, asset: &Address, asset_owner: &Address, hash: &BytesN<32>, amount: i128, idx: u32) {
+    env.events().publish(
+        (
+            Symbol::new(&env, "asset_offer_delete"),
+            asset,
+            asset_owner,
+        ),
+        (amount, hash.clone(), idx),
+    );
+}
