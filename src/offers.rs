@@ -2,11 +2,10 @@
 // extern crate std;
 
 use soroban_fixed_point_math::FixedPoint;
-use soroban_sdk::{token, vec, Address, Env, Symbol, Vec};
+use soroban_sdk::{token::{self, TokenClient}, vec, Address, BytesN, Env, Vec};
 
 use crate::{
-    glyphs::glyph_verify_ownership,
-    types::{Error, Glyph, Offer, OfferCreate, StorageKey},
+    events, glyphs::glyph_verify_ownership, storage::{instance::{read_miner_royalty_rate, read_minter_royalty_rate}, persistent::{has_asset_offers_by_asset, read_asset_offers_by_asset, read_glyph, read_glyph_minter, read_glyph_owner, read_offers_by_glyph, remove_asset_offers_by_asset, remove_glyph_offer, write_asset_offers_by_asset, write_glyph_owner, write_offers_by_glyph}}, types::{Error, Offer, OfferCreate, StorageKey}
 };
 
 /* TODO
@@ -32,20 +31,9 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
     // Lookup if there are any open buy offers for what we're selling
     match &buy {
         // buying a glyph
-        Offer::Glyph(buy_glyph_hash) => {
-            let buy_glyph_offer_key = StorageKey::GlyphOffer(buy_glyph_hash.clone());
-            let mut offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Offer>>(&buy_glyph_offer_key)
-                .unwrap_or(vec![&env]);
-
-            // env.storage().persistent().bump(
-            //     &buy_glyph_offer_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
+        Offer::Glyph(buy_glyph_hash) => {            
+            let mut offers = read_offers_by_glyph(env, buy_glyph_hash);
+            
             match offers.binary_search(match &sell {
                 Offer::Glyph(sell_glyph_hash) => Offer::Glyph(sell_glyph_hash.clone()),
                 Offer::AssetSell(_, sell_asset_address, amount) => {
@@ -54,192 +42,38 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                 _ => return Err(Error::NotPermitted),
             }) {
                 Ok(offer_index) => {
-                    let buy_glyph_owner_key = StorageKey::GlyphOwner(buy_glyph_hash.clone());
-                    let buy_glyph_owner_address = env
-                        .storage()
-                        .persistent()
-                        .get::<StorageKey, Address>(&buy_glyph_owner_key)
-                        .ok_or(Error::NotFound)?;
-
-                    // env.storage().persistent().bump(
-                    //     &buy_glyph_owner_key,
-                    //     MAX_ENTRY_LIFETIME,
-                    //     MAX_ENTRY_LIFETIME,
-                    // );
+                    let buy_glyph_owner_address = read_glyph_owner(env, buy_glyph_hash).ok_or(Error::NotFound)?;
 
                     offers.remove(offer_index);
 
-                    env.storage()
-                        .persistent()
-                        .set(&buy_glyph_offer_key, &offers);
+                    write_offers_by_glyph(&env, buy_glyph_hash, offers);
 
                     match &sell {
                         Offer::Glyph(sell_glyph_hash) => {
-                            let sell_glyph_offer_key =
-                                StorageKey::GlyphOffer(sell_glyph_hash.clone());
                             let sell_glyph_owner_key =
                                 StorageKey::GlyphOwner(sell_glyph_hash.clone());
                             let sell_glyph_owner_address =
                                 glyph_verify_ownership(env, &sell_glyph_owner_key);
 
-                            // transfer ownership from seller to buyer
-                            env.storage()
-                                .persistent()
-                                .set(&sell_glyph_owner_key, &buy_glyph_owner_address);
+                            transfer_ownership(env, sell_glyph_hash, &buy_glyph_owner_address);
 
-                            // transfer ownership from buyer to seller
-                            env.storage()
-                                .persistent()
-                                .set(&buy_glyph_owner_key, &sell_glyph_owner_address);
+                            transfer_ownership(env, buy_glyph_hash, &sell_glyph_owner_address);
 
-                            // env.storage().persistent().bump(
-                            //     &sell_glyph_owner_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
-                            // env.storage().persistent().bump(
-                            //     &buy_glyph_owner_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
-
-                            // remove all glyph seller offers
-                            env.storage().persistent().remove(&sell_glyph_offer_key);
-
-                            // remove all glyph buyer offers
-                            env.storage().persistent().remove(&buy_glyph_offer_key);
-
-                            env.events().publish(
-                                (
-                                    Symbol::new(&env, "offer_match"),
-                                    sell_glyph_hash.clone(),
-                                    sell_glyph_owner_address,
-                                ),
-                                (buy_glyph_hash.clone(), buy_glyph_owner_address),
-                            );
-
+                            events::offer_match(env, sell_glyph_hash, &sell_glyph_owner_address, buy_glyph_hash, &buy_glyph_owner_address);
                             Ok(())
                         }
                         Offer::AssetSell(sell_asset_owner_address, sell_asset_address, amount) => {
                             sell_asset_owner_address.require_auth();
-
-                            let buy_glyph_key = StorageKey::Glyph(buy_glyph_hash.clone());
-                            let buy_glyph_minter_key =
-                                StorageKey::GlyphMinter(buy_glyph_hash.clone());
-
-                            // TODO Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. overlap between minter and miner)
-                            let mut leftover_amount = *amount;
-
-                            // Get glyph
-                            let buy_glyph = env
-                                .storage()
-                                .persistent()
-                                .get::<StorageKey, Glyph>(&buy_glyph_key)
-                                .ok_or(Error::NotFound)?;
-                            let buy_glyph_minter_address = env
-                                .storage()
-                                .persistent()
-                                .get::<StorageKey, Address>(&buy_glyph_minter_key)
-                                .ok_or(Error::NotFound)?;
-
-                            // env.storage().persistent().bump(
-                            //     &buy_glyph_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
-                            // env.storage().persistent().bump(
-                            //     &buy_glyph_minter_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
-
-                            // Pay the glyph minter their cut
-                            let minter_royalty_rate = env
-                                .storage()
-                                .instance()
-                                .get::<StorageKey, i128>(&StorageKey::MinterRoyaltyRate)
-                                .unwrap();
-                            let minter_amount =
-                                minter_royalty_rate.fixed_mul_ceil(*amount, 100).unwrap();
-
-                            let token = token::Client::new(env, &sell_asset_address);
-
-                            if *sell_asset_owner_address != buy_glyph_minter_address {
-                                // eliminate self payments
-                                token.transfer(
-                                    &sell_asset_owner_address,
-                                    &buy_glyph_minter_address,
-                                    &minter_amount,
-                                );
-
-                                leftover_amount -= minter_amount;
-                            }
-
-                            // Loop over miners
-                            // NOTE currently can support 17 miners
-                            for (miner_address, colors_indexes) in buy_glyph.colors.iter() {
-                                let mut color_count: u32 = 0;
-
-                                // Count colors per miner
-                                for (_, indexes) in colors_indexes.iter() {
-                                    color_count += indexes.len();
-                                }
-
-                                let miner_royalty_rate = env
-                                    .storage()
-                                    .instance()
-                                    .get::<StorageKey, i128>(&StorageKey::MinerRoyaltyRate)
-                                    .unwrap();
-                                let miner_amount = miner_royalty_rate
-                                    .fixed_mul_ceil(*amount, 100)
-                                    .unwrap()
-                                    .fixed_mul_ceil(color_count as i128, buy_glyph.length as i128)
-                                    .unwrap();
-
-                                // Determine their percentage of whole
-                                // Derive their share of the amount
-                                // Make payment
-                                if *sell_asset_owner_address != miner_address {
-                                    token.transfer(
-                                        &sell_asset_owner_address,
-                                        &miner_address,
-                                        &miner_amount,
-                                    );
-                                    leftover_amount -= miner_amount;
-                                }
-                            }
-
-                            // Transfer Asset from Glyph taker to Glyph giver
-                            if *sell_asset_owner_address != buy_glyph_owner_address {
-                                token.transfer(
-                                    &sell_asset_owner_address,
-                                    &buy_glyph_owner_address,
-                                    &leftover_amount,
-                                );
-                            }
+                            
+                            reward_minter_and_miners(env, buy_glyph_owner_address, buy_glyph_hash, amount, sell_asset_address, Some(sell_asset_owner_address.clone()))?;
 
                             // Transfer ownership of Glyph from glyph giver to Glyph taker
-                            env.storage()
-                                .persistent()
-                                .set(&buy_glyph_owner_key, &sell_asset_owner_address);
-
-                            // env.storage().persistent().bump(
-                            //     &buy_glyph_owner_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
+                            write_glyph_owner(env, buy_glyph_hash, sell_asset_owner_address);
 
                             // remove all other sell offers for this glyph
-                            env.storage().persistent().remove(&buy_glyph_offer_key);
+                            remove_glyph_offer(env, buy_glyph_hash);
 
-                            env.events().publish(
-                                (
-                                    Symbol::new(&env, "offer_match"),
-                                    sell_asset_address,
-                                    sell_asset_owner_address,
-                                ),
-                                (*amount, buy_glyph_hash.clone(), offer_index),
-                            );
+                            events::offer_match_sell_asset(env, sell_asset_address, sell_asset_owner_address, buy_glyph_hash, offer_index);
 
                             Ok(())
                         }
@@ -269,16 +103,7 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
         Offer::Asset(buy_asset_address, amount) => {
             match &sell {
                 Offer::Glyph(sell_glyph_hash) => {
-                    let buy_asset_offer_key = StorageKey::AssetOffer(
-                        sell_glyph_hash.clone(),
-                        buy_asset_address.clone(),
-                        *amount,
-                    );
-                    let mut offers = env
-                        .storage()
-                        .persistent()
-                        .get::<StorageKey, Vec<Address>>(&buy_asset_offer_key)
-                        .unwrap_or(vec![&env]);
+                    let mut offers = read_asset_offers_by_asset(env, sell_glyph_hash, buy_asset_address, *amount).unwrap_or(vec![&env]);
 
                     if offers.is_empty() {
                         return offer_post_create(
@@ -287,145 +112,29 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                         );
                     }
 
-                    // env.storage().persistent().bump(
-                    //     &buy_asset_offer_key,
-                    //     MAX_ENTRY_LIFETIME,
-                    //     MAX_ENTRY_LIFETIME,
-                    // );
-
                     let sell_glyph_owner_key = StorageKey::GlyphOwner(sell_glyph_hash.clone());
                     let sell_glyph_owner_address =
                         glyph_verify_ownership(env, &sell_glyph_owner_key);
-                    let sell_glyph_minter_key = StorageKey::GlyphMinter(sell_glyph_hash.clone());
-                    let sell_glyph_offer_key = StorageKey::GlyphOffer(sell_glyph_hash.clone());
-                    let sell_glyph_key = StorageKey::Glyph(sell_glyph_hash.clone());
-
-                    /* TODO
-                    This next block is essentially a dupe from up above, this should be broken up into a separate function
-                    Might want to make a map of payees to reduce or eliminate piecemeal payments (e.g. overlap between minter and miner)
-                    */
-                    let mut leftover_amount = *amount;
-
-                    // Get glyph
-                    let sell_glyph = env
-                        .storage()
-                        .persistent()
-                        .get::<StorageKey, Glyph>(&sell_glyph_key)
-                        .ok_or(Error::NotFound)?;
-                    let sell_glyph_minter = env
-                        .storage()
-                        .persistent()
-                        .get::<StorageKey, Address>(&sell_glyph_minter_key)
-                        .ok_or(Error::NotFound)?;
-
-                    // env.storage().persistent().bump(
-                    //     &sell_glyph_key,
-                    //     MAX_ENTRY_LIFETIME,
-                    //     MAX_ENTRY_LIFETIME,
-                    // );
-                    // env.storage().persistent().bump(
-                    //     &sell_glyph_minter_key,
-                    //     MAX_ENTRY_LIFETIME,
-                    //     MAX_ENTRY_LIFETIME,
-                    // );
-
-                    // Pay the glyph minter their cut
-                    let minter_royalty_rate = env
-                        .storage()
-                        .instance()
-                        .get::<StorageKey, i128>(&StorageKey::MinterRoyaltyRate)
-                        .unwrap();
-                    let minter_amount = minter_royalty_rate.fixed_mul_ceil(*amount, 100).unwrap();
-                    let token = token::Client::new(env, &buy_asset_address);
-
-                    token.transfer(
-                        &env.current_contract_address(),
-                        &sell_glyph_minter,
-                        &minter_amount,
-                    );
-
-                    leftover_amount -= minter_amount;
-
-                    // Loop over miners
-                    // NOTE currently can support 15 miners
-                    for (miner_address, colors_indexes) in sell_glyph.colors.iter() {
-                        let mut color_count: u32 = 0;
-
-                        // Count colors per miner
-                        for (_, indexes) in colors_indexes.iter() {
-                            color_count += indexes.len();
-                        }
-
-                        let miner_royalty_rate = env
-                            .storage()
-                            .instance()
-                            .get::<StorageKey, i128>(&StorageKey::MinerRoyaltyRate)
-                            .unwrap();
-                        let miner_amount = miner_royalty_rate
-                            .fixed_mul_ceil(*amount, 100)
-                            .unwrap()
-                            .fixed_mul_ceil(color_count as i128, sell_glyph.length as i128)
-                            .unwrap();
-
-                        // Determine their percentage of whole
-                        // Derive their share of the amount
-                        // Make payment
-                        token.transfer(
-                            &env.current_contract_address(),
-                            &miner_address,
-                            &miner_amount,
-                        );
-
-                        leftover_amount -= miner_amount;
-                    }
-
-                    // Transfer Asset from Glyph taker to Glyph giver
-                    token.transfer(
-                        &env.current_contract_address(),
-                        &sell_glyph_owner_address,
-                        &leftover_amount,
-                    );
+                    
+                    reward_minter_and_miners(env, sell_glyph_owner_address, sell_glyph_hash, amount, buy_asset_address, None)?;
 
                     // Remove Asset counter offer
                     let buy_asset_owner = offers.pop_front().unwrap();
 
                     if offers.is_empty() {
-                        env.storage().persistent().remove(&buy_asset_offer_key);
+                        remove_asset_offers_by_asset(env, sell_glyph_hash, buy_asset_address, *amount);
                     } else {
-                        env.storage()
-                            .persistent()
-                            .set(&buy_asset_offer_key, &offers);
-
-                        // env.storage().persistent().bump(
-                        //     &buy_asset_offer_key,
-                        //     MAX_ENTRY_LIFETIME,
-                        //     MAX_ENTRY_LIFETIME,
-                        // );
+                        write_asset_offers_by_asset(env, sell_glyph_hash, buy_asset_address, *amount, &offers);
+                        
                     }
 
                     // Transfer ownership of Glyph from Glyph giver to Glyph taker
-                    env.storage()
-                        .persistent()
-                        .set(&sell_glyph_owner_key, &buy_asset_owner);
-
-                    // env.storage().persistent().bump(
-                    //     &sell_glyph_owner_key,
-                    //     MAX_ENTRY_LIFETIME,
-                    //     MAX_ENTRY_LIFETIME,
-                    // );
+                    write_glyph_owner(env, sell_glyph_hash, &buy_asset_owner);
 
                     // Remove all other sell offers for this glyph
-                    env.storage().persistent().remove(&sell_glyph_offer_key);
+                    remove_glyph_offer(env, sell_glyph_hash);
 
-                    env.events().publish(
-                        (
-                            Symbol::new(&env, "offer_post"),
-                            buy_asset_address,
-                            buy_asset_owner,
-                        ),
-                        (*amount, sell_glyph_hash.clone()),
-                    );
-
+                    events::asset_offer_post(env, &buy_asset_address, &buy_asset_owner, sell_glyph_hash, *amount);
                     Ok(())
                 }
                 _ => Err(Error::NotPermitted),
@@ -440,39 +149,18 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
         OfferCreate::Glyph(sell_glyph_hash, buy) => {
             let sell_glyph_owner_key = StorageKey::GlyphOwner(sell_glyph_hash.clone());
             let sell_glyph_owner_address = glyph_verify_ownership(env, &sell_glyph_owner_key);
-            let sell_glyph_offer_key = StorageKey::GlyphOffer(sell_glyph_hash.clone());
 
             // Selling a Glyph
-            let mut offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Offer>>(&sell_glyph_offer_key)
-                .unwrap_or(Vec::new(env));
-
+            let mut offers = read_offers_by_glyph(env, &sell_glyph_hash);
+            
             match offers.binary_search(&buy) {
                 Err(offer_index) => offers.insert(offer_index, buy.clone()), // Buy can be an Asset or a Glyph
                 _ => return Err(Error::NotEmpty),                            // Error on dupe offer
             }
 
-            env.storage()
-                .persistent()
-                .set(&sell_glyph_offer_key, &offers);
+            write_offers_by_glyph(env, &sell_glyph_hash, offers);
 
-            // env.storage().persistent().bump(
-            //     &sell_glyph_offer_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
-            env.events().publish(
-                (
-                    Symbol::new(&env, "offer_post"),
-                    sell_glyph_hash,
-                    sell_glyph_owner_address,
-                ),
-                buy,
-            );
-
+            events::glyph_offer_post(env, &sell_glyph_hash, &sell_glyph_owner_address, buy);
             Ok(())
         }
         OfferCreate::Asset(
@@ -481,50 +169,24 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             sell_asset_address,
             amount,
         ) => {
-            let token = token::Client::new(env, &sell_asset_address);
-
             sell_asset_owner_address.require_auth();
 
+            let token = token::Client::new(env, &sell_asset_address);
             token.transfer(
                 &sell_asset_owner_address,
                 &env.current_contract_address(),
                 &amount,
             );
 
-            let sell_asset_offer_key =
-                StorageKey::AssetOffer(buy_glyph_hash.clone(), sell_asset_address.clone(), amount);
-
-            let mut offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Address>>(&sell_asset_offer_key)
-                .unwrap_or(Vec::new(env));
-
+            let mut offers = read_asset_offers_by_asset(env, &buy_glyph_hash, &sell_asset_address, amount).unwrap_or(Vec::new(env));
             if offers.contains(sell_asset_owner_address.clone()) {
                 return Err(Error::NotEmpty); // Error on dupe offer
             }
-
             offers.push_back(sell_asset_owner_address.clone());
 
-            env.storage()
-                .persistent()
-                .set(&sell_asset_offer_key, &offers);
-
-            // env.storage().persistent().bump(
-            //     &sell_asset_offer_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
-            env.events().publish(
-                (
-                    Symbol::new(&env, "offer_post"),
-                    sell_asset_address,
-                    sell_asset_owner_address,
-                ),
-                (amount, buy_glyph_hash),
-            );
-
+            write_asset_offers_by_asset(env, &buy_glyph_hash, &sell_asset_address, amount, &offers);
+                        
+            events::asset_offer_post(env, &sell_asset_address, &sell_asset_owner_address, &buy_glyph_hash, amount);
             Ok(())
         }
     }
@@ -536,50 +198,24 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
             // Selling a Glyph (delete Glyph or Asset buy offer)
             let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
             let glyph_owner = glyph_verify_ownership(env, &glyph_owner_key);
-
-            let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
-            let mut offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Offer>>(&glyph_hash_key)
-                .ok_or(Error::NotFound)?;
-
-            // env.storage().persistent().bump(
-            //     &glyph_hash_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
+            
+            let mut offers = read_offers_by_glyph(env, &glyph_hash);
+            
             match &buy {
                 Some(buy) => match offers.binary_search(buy) {
                     Ok(offer_index) => {
                         offers.remove(offer_index);
+                        write_offers_by_glyph(env, &glyph_hash, offers);
 
-                        env.storage().persistent().set(&glyph_hash_key, &offers);
-
-                        // env.storage().persistent().bump(
-                        //     &glyph_hash_key,
-                        //     MAX_ENTRY_LIFETIME,
-                        //     MAX_ENTRY_LIFETIME,
-                        // );
-
-                        env.events().publish(
-                            (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
-                            (buy.clone(), offer_index),
-                        );
-
+                        events::glyph_offer_delete(env, &glyph_hash, &glyph_owner, buy.clone(), offer_index);
                         Ok(())
                     }
                     _ => Err(Error::NotFound),
                 },
                 None => {
-                    env.storage().persistent().remove(&glyph_hash_key);
-
-                    env.events().publish(
-                        (Symbol::new(&env, "offer_delete"), glyph_hash, glyph_owner),
-                        buy.clone(),
-                    );
-
+                    remove_glyph_offer(env, &glyph_hash);
+                    
+                    events::glyph_offer_delete_all(env, &glyph_hash, &glyph_owner);
                     Ok(())
                 }
             }
@@ -589,67 +225,34 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
             asset_owner_address.require_auth();
 
             match buy {
-                Some(buy) => {
-                    match buy {
-                        Offer::Glyph(glyph_hash) => {
-                            let asset_offer_key = StorageKey::AssetOffer(
-                                glyph_hash.clone(),
-                                asset_address.clone(),
-                                amount,
+                Some(Offer::Glyph(glyph_hash)) => {
+                    let mut offers = read_asset_offers_by_asset(env, &glyph_hash, &asset_address, amount).ok_or(Error::NotFound)?;
+
+                    match offers.binary_search(asset_owner_address.clone()) {
+                        Ok(offer_index) => {
+                            let token = token::Client::new(env, &asset_address);
+
+                            token.transfer(
+                                &env.current_contract_address(),
+                                &asset_owner_address,
+                                &amount,
                             );
-                            let mut offers = env
-                                .storage()
-                                .persistent()
-                                .get::<StorageKey, Vec<Address>>(&asset_offer_key)
-                                .ok_or(Error::NotFound)?;
 
-                            // env.storage().persistent().bump(
-                            //     &asset_offer_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
+                            offers.remove(offer_index);
+                            events::asset_offer_delete(env, &asset_address, &asset_owner_address, &glyph_hash, amount, offer_index);
 
-                            match offers.binary_search(asset_owner_address.clone()) {
-                                Ok(offer_index) => {
-                                    let token = token::Client::new(env, &asset_address);
-
-                                    token.transfer(
-                                        &env.current_contract_address(),
-                                        &asset_owner_address,
-                                        &amount,
-                                    );
-
-                                    offers.remove(offer_index);
-
-                                    env.events().publish(
-                                        (
-                                            Symbol::new(&env, "offer_delete"),
-                                            asset_address,
-                                            asset_owner_address,
-                                        ),
-                                        (amount, glyph_hash, offer_index),
-                                    );
-
-                                    if offers.is_empty() {
-                                        env.storage().persistent().remove(&asset_offer_key);
-                                    } else {
-                                        env.storage().persistent().set(&asset_offer_key, &offers);
-
-                                        // env.storage().persistent().bump(
-                                        //     &asset_offer_key,
-                                        //     MAX_ENTRY_LIFETIME,
-                                        //     MAX_ENTRY_LIFETIME,
-                                        // );
-                                    }
-
-                                    Ok(())
-                                }
-                                _ => Err(Error::NotFound),
+                            if offers.is_empty() {
+                                remove_asset_offers_by_asset(env, &glyph_hash, &asset_address, amount);
+                            } else {
+                                write_asset_offers_by_asset(env, &glyph_hash, &asset_address, amount, &offers);
                             }
+
+                            Ok(())
                         }
-                        _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                        _ => Err(Error::NotFound),
                     }
                 }
+                Some(_) => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
                 None => Err(Error::MissingBuy), // When deleting a Glyph offer for an Asset you must specify the buy offer (and it must be for a Glyph)
             }
         }
@@ -661,91 +264,118 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
     match sell {
         Offer::Glyph(glyph_hash) => {
             // Selling a Glyph
-            let glyph_hash_key = StorageKey::GlyphOffer(glyph_hash.clone());
-            let offers = env
-                .storage()
-                .persistent()
-                .get::<StorageKey, Vec<Offer>>(&glyph_hash_key)
-                .ok_or(Error::NotFound)?;
-
-            // env.storage().persistent().bump(
-            //     &glyph_hash_key,
-            //     MAX_ENTRY_LIFETIME,
-            //     MAX_ENTRY_LIFETIME,
-            // );
-
-            match buy {
-                Some(buy) => match offers.binary_search(buy) {
-                    Ok(_) => Ok(()), // Found the buy offer
-                    _ => Err(Error::NotFound),
-                },
-                _ => Ok(()), // There are buy offers for this Glyph
+            let not_exists = buy.map_or(true, |buy| read_offers_by_glyph(env, &glyph_hash).binary_search(buy).is_err());
+            if !not_exists {
+                Ok(())
+            } else {
+                Err(Error::NotFound)
             }
         }
         Offer::Asset(asset_hash, amount) => {
             // Selling an Asset
             match buy {
-                Some(buy) => {
-                    match buy {
-                        Offer::Glyph(glyph_hash) => {
-                            let asset_offer_key = StorageKey::AssetOffer(
-                                glyph_hash.clone(),
-                                asset_hash.clone(),
-                                amount,
-                            );
-                            env.storage()
-                                .persistent()
-                                .get::<StorageKey, Vec<Address>>(&asset_offer_key)
-                                .ok_or(Error::NotFound)?;
-
-                            // env.storage().persistent().bump(
-                            //     &asset_offer_key,
-                            //     MAX_ENTRY_LIFETIME,
-                            //     MAX_ENTRY_LIFETIME,
-                            // );
-
-                            Ok(())
-                        }
-                        _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                Some(Offer::Glyph(glyph_hash)) => {
+                    if has_asset_offers_by_asset(env, &glyph_hash, &asset_hash, amount) {
+                        Ok(())
+                    } else {
+                        Err(Error::NotFound)
                     }
                 }
-                _ => Err(Error::MissingBuy), // When looking up a Glyph offer for an Asset you must specify the buy offer (and it must be for a Glyph
+                Some(_) => Err(Error::NotPermitted), // cannot sell asset for asset
+                None => Err(Error::MissingBuy)
             }
         }
         Offer::AssetSell(seller_address, asset_hash, amount) => {
             // Selling an Asset but check for a specific seller address
             match buy {
-                Some(buy) => {
-                    match buy {
-                        Offer::Glyph(glyph_hash) => {
-                            let asset_offer_key = StorageKey::AssetOffer(
-                                glyph_hash.clone(),
-                                asset_hash.clone(),
-                                amount,
-                            );
-                            let offers = env
-                                .storage()
-                                .persistent()
-                                .get::<StorageKey, Vec<Address>>(&asset_offer_key)
-                                .ok_or(Error::NotFound)?;
-
-                            if offers.contains(seller_address) {
-                                // env.storage().persistent().bump(
-                                //     &asset_offer_key,
-                                //     MAX_ENTRY_LIFETIME,
-                                //     MAX_ENTRY_LIFETIME,
-                                // );
-
-                                return Ok(());
-                            }
-
-                            Err(Error::NotFound)
-                        }
-                        _ => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                Some(Offer::Glyph(glyph_hash)) => {
+                    let offers = read_asset_offers_by_asset(env, &glyph_hash, &asset_hash, amount).ok_or(Error::NotFound)?;
+                    if offers.contains(seller_address) {
+                        return Ok(());
                     }
+
+                    Err(Error::NotFound)
                 }
-                _ => Err(Error::MissingBuy), // When looking up a Glyph offer for an Asset you must specify the buy offer (and it must be for a Glyph
+                Some(_) => Err(Error::NotPermitted), // You cannot sell an Asset for an Asset
+                None => Err(Error::MissingBuy), // When looking up a Glyph offer for an Asset you must specify the buy offer (and it must be for a Glyph
             }
+        }
+    }
+}
+
+fn transfer_ownership(env: &Env, hash: &BytesN<32>, new_owner: &Address) {    
+    let glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
+
+    let glyph_owner_key =
+        StorageKey::GlyphOwner(hash.clone());
+
+    env.storage()
+        .persistent()
+        .set(&glyph_owner_key, &new_owner);
+
+    env.storage().persistent().remove(&glyph_offer_key);
+}
+
+fn reward_minter_and_miners(env: &Env, glyph_owner: Address, hash: &BytesN<32>, amount: &i128, asset: &Address, asset_owner: Option<Address>) -> Result<(), Error> {
+    let mut leftover_amount = *amount;
+
+    // Get glyph
+    let glyph = read_glyph(env, hash)?;
+    let glyph_minter_address = read_glyph_minter(env, hash)
+        .ok_or(Error::NotFound)?;
+
+    // Pay the glyph minter their cut
+    let minter_royalty_rate = read_minter_royalty_rate(env);
+    let minter_amount =
+        minter_royalty_rate.fixed_mul_ceil(*amount, 100).unwrap();
+
+    let token = token::Client::new(env, asset);
+    make_transfer(env, Some(&mut leftover_amount), &token, &asset_owner, &glyph_minter_address, &minter_amount);
+
+    // Loop over miners
+    // NOTE currently can support 17 miners
+    for (miner_address, colors_indexes) in glyph.colors.iter() {
+        let mut color_count: u32 = 0;
+
+        // Count colors per miner
+        for (_, indexes) in colors_indexes.iter() {
+            color_count += indexes.len();
+        }
+
+        let miner_royalty_rate = read_miner_royalty_rate(env);
+        let miner_amount = miner_royalty_rate
+            .fixed_mul_ceil(*amount, 100)
+            .unwrap()
+            .fixed_mul_ceil(color_count as i128, glyph.length as i128)
+            .unwrap();
+
+        // Determine their percentage of whole
+        // Derive their share of the amount
+        // Make payment
+        make_transfer(env, Some(&mut leftover_amount), &token, &asset_owner, &miner_address, &miner_amount);
+    }
+
+    make_transfer(env, None, &token, &asset_owner, &glyph_owner, &leftover_amount);
+    Ok(())
+}
+
+fn make_transfer(env: &Env, leftover: Option<&mut i128>, token: &TokenClient, asset_owner: &Option<Address>, comp: &Address, amount: &i128) {
+    let (do_transfer, from_self) = asset_owner.clone().map_or((true, true), |owner| (&owner != comp, false));
+    if do_transfer {
+        // eliminate self payments
+        let curr_addr = env.current_contract_address();
+        token.transfer(
+            if from_self {
+                &curr_addr
+            } else {
+                &asset_owner.as_ref().unwrap()
+            },
+            &comp,
+            amount,
+        );
+
+        if let Some(leftover) = leftover {
+            *leftover -= amount;
         }
     }
 }
