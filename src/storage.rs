@@ -156,6 +156,19 @@ pub mod persistent {
             .remove(&key);
     }
 
+    pub fn has_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128) -> bool {
+        let key = StorageKey::AssetOffer(
+            hash.clone(),
+            address.clone(),
+            amount,
+        );
+        
+        env
+            .storage()
+            .persistent()
+            .has(&key)
+    }
+
     pub fn write_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128, offers: &Vec<Address>) {
         let key = StorageKey::AssetOffer(
             hash.clone(),
