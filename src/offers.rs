@@ -155,7 +155,7 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
             
             match offers.binary_search(&buy) {
                 Err(offer_index) => offers.insert(offer_index, buy.clone()), // Buy can be an Asset or a Glyph
-                _ => return Err(Error::NotEmpty), // Error on dupe offer
+                _ => return Err(Error::NotEmpty),                            // Error on dupe offer
             }
 
             write_offers_by_glyph(env, &sell_glyph_hash, offers);
