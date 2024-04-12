@@ -90,7 +90,13 @@ pub fn color_in_event(
     );
 }
 
-pub fn offer_match(env: &Env, sell_hash: &BytesN<32>, sell_owner: &Address, buy_hash: &BytesN<32>, buy_owner: &Address) {
+pub fn offer_match(
+    env: &Env,
+    sell_hash: &BytesN<32>,
+    sell_owner: &Address,
+    buy_hash: &BytesN<32>,
+    buy_owner: &Address,
+) {
     env.events().publish(
         (
             Symbol::new(&env, "offer_match"),
@@ -101,7 +107,13 @@ pub fn offer_match(env: &Env, sell_hash: &BytesN<32>, sell_owner: &Address, buy_
     );
 }
 
-pub fn offer_match_sell_asset(env: &Env, sell_asset: &Address, sell_owner: &Address, buy_hash: &BytesN<32>, offer_index: u32) {
+pub fn offer_match_sell_asset(
+    env: &Env,
+    sell_asset: &Address,
+    sell_owner: &Address,
+    buy_hash: &BytesN<32>,
+    offer_index: u32,
+) {
     env.events().publish(
         (
             Symbol::new(&env, "offer_match_sell_asset"),
@@ -112,7 +124,13 @@ pub fn offer_match_sell_asset(env: &Env, sell_asset: &Address, sell_owner: &Addr
     );
 }
 
-pub fn asset_offer_post(env: &Env, buy_asset: &Address, buy_asset_owner: &Address, hash: &BytesN<32>, amount: i128) {
+pub fn asset_offer_post(
+    env: &Env,
+    buy_asset: &Address,
+    buy_asset_owner: &Address,
+    hash: &BytesN<32>,
+    amount: i128,
+) {
     env.events().publish(
         (
             Symbol::new(&env, "asset_offer_post"),
@@ -130,17 +148,13 @@ pub fn glyph_offer_post(env: &Env, sell_hash: &BytesN<32>, sell_owner: &Address,
             sell_hash.clone(),
             sell_owner,
         ),
-        (offer, ),
+        (offer,),
     );
 }
 
 pub fn glyph_offer_delete(env: &Env, hash: &BytesN<32>, owner: &Address, offer: Offer, idx: u32) {
     env.events().publish(
-        (
-            Symbol::new(&env, "glyph_offer_delete"),
-            hash.clone(),
-            owner,
-        ),
+        (Symbol::new(&env, "glyph_offer_delete"), hash.clone(), owner),
         (offer, idx),
     );
 }
@@ -152,17 +166,20 @@ pub fn glyph_offer_delete_all(env: &Env, hash: &BytesN<32>, owner: &Address) {
             hash.clone(),
             owner,
         ),
-        ((), ),
+        ((),),
     );
 }
 
-pub fn asset_offer_delete(env: &Env, asset: &Address, asset_owner: &Address, hash: &BytesN<32>, amount: i128, idx: u32) {
+pub fn asset_offer_delete(
+    env: &Env,
+    asset: &Address,
+    asset_owner: &Address,
+    hash: &BytesN<32>,
+    amount: i128,
+    idx: u32,
+) {
     env.events().publish(
-        (
-            Symbol::new(&env, "asset_offer_delete"),
-            asset,
-            asset_owner,
-        ),
+        (Symbol::new(&env, "asset_offer_delete"), asset, asset_owner),
         (amount, hash.clone(), idx),
     );
 }

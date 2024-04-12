@@ -37,7 +37,7 @@ fn test_self_purchase() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -108,7 +108,7 @@ fn test_sell_scrape_buy() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -222,7 +222,7 @@ fn test_dupe() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -296,7 +296,7 @@ fn test_buy_glyph() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     let mut colors_indexes: Map<u32, Vec<u32>> = Map::new(&env);
@@ -402,7 +402,7 @@ fn test_sell_glyph() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     env.budget().reset_default();
@@ -493,7 +493,7 @@ fn test_swap_glyph() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     env.budget().reset_default();
@@ -600,7 +600,7 @@ fn test_rm_glyph_buy() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     env.budget().reset_default();
@@ -678,7 +678,7 @@ fn test_rm_glyph_sell() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     env.budget().reset_default();
@@ -752,7 +752,7 @@ fn test_rm_glyph_swap() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     env.budget().reset_default();

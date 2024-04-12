@@ -50,7 +50,7 @@ fn big_mint() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     let width: u64 = 40;
     let mut index = 0;
@@ -121,7 +121,7 @@ fn toolbox_test() {
 
     token_admin_client.mint(&u1_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     client.colors_mine(
         &u1_address,
@@ -167,7 +167,7 @@ fn test_dupe_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     client.colors_mine(
         &u1_address,
@@ -229,7 +229,7 @@ fn test_to_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     client.colors_mine(
         &u1_address,
@@ -324,7 +324,7 @@ fn test_partial_mint() {
     token_admin_client.mint(&u1_address, &10_000);
     token_admin_client.mint(&u2_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     client.colors_mine(
         &u1_address,

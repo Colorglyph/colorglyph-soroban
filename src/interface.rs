@@ -3,7 +3,7 @@ use soroban_sdk::{Address, BytesN, Env, Map, Vec};
 use crate::types::{Error, GlyphType, HashType, Offer};
 
 pub trait ColorGlyphTrait {
-    fn initialize(env: Env, owner_address: Address, token_address: Address, fee_address: Address);
+    fn initialize(env: Env, owner_address: Address, token_address: Address, fee_address: Address, mine_multiplier: i128);
     fn update(
         env: Env,
         owner_address: Option<Address>,
@@ -11,6 +11,7 @@ pub trait ColorGlyphTrait {
         fee_address: Option<Address>,
         max_entry_lifetime: Option<u32>,
         max_payment_count: Option<u32>,
+        mine_multiplier: Option<i128>,
         minter_royalty_rate: Option<i128>,
         miner_royalty_rate: Option<i128>,
     );

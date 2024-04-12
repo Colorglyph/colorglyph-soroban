@@ -1,3 +1,5 @@
+use core::ops::Mul;
+
 use soroban_sdk::{
     contract, contractimpl, panic_with_error, token, Address, BytesN, Env, Map, Vec,
 };
@@ -23,7 +25,7 @@ pub struct ColorGlyph;
 
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
-    fn initialize(env: Env, owner_address: Address, token_address: Address, fee_address: Address) {
+    fn initialize(env: Env, owner_address: Address, token_address: Address, fee_address: Address, mine_multiplier: i128) {
         owner_address.require_auth();
 
         if env.storage().instance().has(&StorageKey::OwnerAddress) {
@@ -40,6 +42,7 @@ impl ColorGlyphTrait for ColorGlyph {
         write_fee_address(&env, &fee_address);
         write_max_entry_lifetime(&env, &max_entry_lifetime);
         write_max_payment_count(&env, &max_payment_count);
+        write_mine_multiplier(&env, &mine_multiplier);
         write_minter_royalty_rate(&env, &minter_royalty_rate);
         write_miner_royalty_rate(&env, &miner_royalty_rate);
 
@@ -55,6 +58,7 @@ impl ColorGlyphTrait for ColorGlyph {
         fee_address: Option<Address>,
         max_entry_lifetime: Option<u32>,
         max_payment_count: Option<u32>,
+        mine_multiplier: Option<i128>,
         minter_royalty_rate: Option<i128>,
         miner_royalty_rate: Option<i128>,
     ) {
@@ -75,6 +79,9 @@ impl ColorGlyphTrait for ColorGlyph {
         }
         if let Some(count) = max_payment_count {
             write_max_payment_count(&env, &count);
+        }
+        if let Some(rate) = mine_multiplier {
+            write_mine_multiplier(&env, &rate);
         }
         if let Some(rate) = minter_royalty_rate {
             write_minter_royalty_rate(&env, &rate);
@@ -120,9 +127,13 @@ impl ColorsInterface for ColorGlyph {
         let fee_address = read_fee_address(&env);
 
         let token = token::Client::new(&env, &token_address);
+        let mine_multiplier = read_mine_multiplier(&env);
 
-        // TODO this is just a stroop fee so not sufficient. This will need to be adjusted before going live
-        token.transfer(&source, &fee_address, &(pay_amount as i128));
+        token.transfer(
+            &source,
+            &fee_address,
+            &(pay_amount as i128).mul(mine_multiplier),
+        );
     }
 
     fn colors_transfer(env: Env, from: Address, to: Address, colors: Vec<(Address, u32, u32)>) {
@@ -131,7 +142,7 @@ impl ColorsInterface for ColorGlyph {
         for (miner, color, amount) in colors.iter() {
             let current_from_amount = read_color(&env, &miner, &from, color);
             let current_to_amount = read_color(&env, &miner, &to, color);
-            
+
             if amount > current_from_amount {
                 panic_with_error!(env, Error::NotPermitted);
             }
@@ -145,7 +156,7 @@ impl ColorsInterface for ColorGlyph {
 
     fn color_balance(env: Env, owner: Address, color: u32, miner: Option<Address>) -> u32 {
         let miner = miner.unwrap_or(owner.clone());
-        
+
         read_color(&env, &miner, &owner, color)
     }
 }
@@ -167,7 +178,13 @@ impl GlyphInterface for ColorGlyph {
 
             for (color, indexes) in color_indexes.iter() {
                 let current_color_amount = read_color(&env, &miner, &minter, color);
-                write_color(&env, &miner, &minter, color, current_color_amount - indexes.len());
+                write_color(
+                    &env,
+                    &miner,
+                    &minter,
+                    color,
+                    current_color_amount - indexes.len(),
+                );
 
                 crate::events::colors_out(&env, &miner, &minter, color, indexes.len());
 
@@ -226,10 +243,10 @@ impl GlyphInterface for ColorGlyph {
 
                 let from_colors_key = StorageKey::Colors(from.clone());
                 let colors = read_colors_or_error(&env, &from);
-    
+
                 env.storage().persistent().remove(&from_colors_key);
                 write_colors(&env, &to, &colors);
-                
+
                 crate::events::transfer_colors_event(&env, &from, &to);
             }
             HashType::Glyph(glyph_hash) => {
@@ -267,7 +284,8 @@ impl GlyphInterface for ColorGlyph {
                     panic_with_error!(env, Error::NotEmpty);
                 }
 
-                let glyph = read_glyph(&env, glyph_hash).unwrap_or_else(|e| panic_with_error!(&env, e));
+                let glyph =
+                    read_glyph(&env, glyph_hash).unwrap_or_else(|e| panic_with_error!(&env, e));
 
                 // Remove glyph owner
                 remove_glyph_owner(&env, glyph_hash.clone());
@@ -300,7 +318,13 @@ impl GlyphInterface for ColorGlyph {
                 }
 
                 let current_amount = read_color(&env, &miner, &to_address, color);
-                write_color(&env, &miner, &to_address, color, current_amount + indexes.len());
+                write_color(
+                    &env,
+                    &miner,
+                    &to_address,
+                    color,
+                    current_amount + indexes.len(),
+                );
 
                 colors_indexes.remove(color);
                 payment_count += 1;
@@ -334,7 +358,7 @@ impl GlyphInterface for ColorGlyph {
                 if !env.storage().persistent().has(&glyph_owner_key) {
                     return Err(Error::NotFound);
                 }
-    
+
                 let glyph = read_glyph(&env, &hash)?;
                 Ok(GlyphType::Glyph(glyph))
             }

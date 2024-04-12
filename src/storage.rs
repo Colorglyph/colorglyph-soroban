@@ -72,10 +72,8 @@ pub mod persistent {
 
     pub fn write_glyph_owner(env: &Env, hash: &BytesN<32>, new_owner: &Address) {
         let key = StorageKey::GlyphOwner(hash.clone());
-        
-        env.storage()
-            .persistent()
-            .set(&key, &new_owner);
+
+        env.storage().persistent().set(&key, &new_owner);
     }
 
     pub fn remove_glyph_offer(env: &Env, hash: &BytesN<32>) {
@@ -96,81 +94,73 @@ pub mod persistent {
     pub fn read_glyph_minter(env: &Env, hash: &BytesN<32>) -> Option<Address> {
         let buy_glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
 
-        env
-            .storage()
+        env.storage()
             .persistent()
             .get::<StorageKey, Address>(&buy_glyph_minter_key)
     }
 
     // Offers-related storage utils
-    
+
     pub fn read_offers_by_glyph(env: &Env, hash: &BytesN<32>) -> Vec<Offer> {
         let buy_glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
-        env
-        .storage()
-        .persistent()
-        .get::<StorageKey, Vec<Offer>>(&buy_glyph_offer_key)
-        .unwrap_or(vec![&env])
+        env.storage()
+            .persistent()
+            .get::<StorageKey, Vec<Offer>>(&buy_glyph_offer_key)
+            .unwrap_or(vec![&env])
     }
 
     pub fn write_offers_by_glyph(env: &Env, hash: &BytesN<32>, offers: Vec<Offer>) {
         let buy_glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
-        env
-        .storage()
-        .persistent()
-        .set(&buy_glyph_offer_key, &offers);
+        env.storage()
+            .persistent()
+            .set(&buy_glyph_offer_key, &offers);
     }
 
-    pub fn read_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128) -> Option<Vec<Address>> {
-        let key = StorageKey::AssetOffer(
-            hash.clone(),
-            address.clone(),
-            amount,
-        );
-        
-        env
-            .storage()
+    pub fn read_asset_offers_by_asset(
+        env: &Env,
+        hash: &BytesN<32>,
+        address: &Address,
+        amount: i128,
+    ) -> Option<Vec<Address>> {
+        let key = StorageKey::AssetOffer(hash.clone(), address.clone(), amount);
+
+        env.storage()
             .persistent()
             .get::<StorageKey, Vec<Address>>(&key)
     }
 
-    pub fn remove_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128) {
-        let key = StorageKey::AssetOffer(
-            hash.clone(),
-            address.clone(),
-            amount,
-        );
-        
-        env
-            .storage()
-            .persistent()
-            .remove(&key);
+    pub fn remove_asset_offers_by_asset(
+        env: &Env,
+        hash: &BytesN<32>,
+        address: &Address,
+        amount: i128,
+    ) {
+        let key = StorageKey::AssetOffer(hash.clone(), address.clone(), amount);
+
+        env.storage().persistent().remove(&key);
     }
 
-    pub fn has_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128) -> bool {
-        let key = StorageKey::AssetOffer(
-            hash.clone(),
-            address.clone(),
-            amount,
-        );
-        
-        env
-            .storage()
-            .persistent()
-            .has(&key)
+    pub fn has_asset_offers_by_asset(
+        env: &Env,
+        hash: &BytesN<32>,
+        address: &Address,
+        amount: i128,
+    ) -> bool {
+        let key = StorageKey::AssetOffer(hash.clone(), address.clone(), amount);
+
+        env.storage().persistent().has(&key)
     }
 
-    pub fn write_asset_offers_by_asset(env: &Env, hash: &BytesN<32>, address: &Address, amount: i128, offers: &Vec<Address>) {
-        let key = StorageKey::AssetOffer(
-            hash.clone(),
-            address.clone(),
-            amount,
-        );
-        
-        env
-            .storage()
-            .persistent()
-            .set(&key, offers);
+    pub fn write_asset_offers_by_asset(
+        env: &Env,
+        hash: &BytesN<32>,
+        address: &Address,
+        amount: i128,
+        offers: &Vec<Address>,
+    ) {
+        let key = StorageKey::AssetOffer(hash.clone(), address.clone(), amount);
+
+        env.storage().persistent().set(&key, offers);
     }
 }
 
@@ -205,6 +195,12 @@ pub mod instance {
         env.storage()
             .instance()
             .set(&StorageKey::MaxPaymentCount, max_payment_count);
+    }
+
+    pub fn write_mine_multiplier(env: &Env, mine_multiplier: &i128) {
+        env.storage()
+            .instance()
+            .set(&StorageKey::MineMultiplier, mine_multiplier);
     }
 
     pub fn write_minter_royalty_rate(env: &Env, minter_royalty_rate: &i128) {
@@ -251,6 +247,13 @@ pub mod instance {
         env.storage()
             .instance()
             .get(&StorageKey::MaxPaymentCount)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotInitialized))
+    }
+
+    pub fn read_mine_multiplier(env: &Env) -> i128 {
+        env.storage()
+            .instance()
+            .get(&StorageKey::MineMultiplier)
             .unwrap_or_else(|| panic_with_error!(env, Error::NotInitialized))
     }
 

@@ -23,6 +23,7 @@ pub enum StorageKey {
     FeeAddress,
     MaxEntryLifetime,
     MaxPaymentCount,
+    MineMultiplier,
     MinterRoyaltyRate,
     MinerRoyaltyRate,
     Color(Address, Address, u32),

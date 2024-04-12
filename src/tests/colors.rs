@@ -33,7 +33,7 @@ fn test() {
     token_admin_client.mint(&u2_address, &10_000);
     token_admin_client.mint(&u3_address, &10_000);
 
-    client.initialize(&u1_address, &token_address, &fee_address);
+    client.initialize(&u1_address, &token_address, &fee_address, &1);
 
     // Tests
     let mut colors: Map<u32, u32> = Map::new(&env);
