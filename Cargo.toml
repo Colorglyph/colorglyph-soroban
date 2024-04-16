@@ -1,6 +1,6 @@
 [package]
 name = "colorglyph"
-version = "0.0.0"
+version = "0.0.1"
 license = "Apache-2.0"
 authors = ["Tyler van der Hoeven <tyler@tinyanvil.com>"]
 edition = "2021"
@@ -18,7 +18,7 @@ soroban-fixed-point-math = { version = "1.0.0" }
 
 [dev_dependencies]
 soroban-sdk = { version = "20.5.0", features = ["testutils"] }
-chrono = { version = "0.4.35" }
+chrono = { version = "0.4.38" }
 
 [profile.release]
 opt-level = "z"
