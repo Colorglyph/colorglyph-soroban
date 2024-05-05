@@ -17,7 +17,7 @@ mod contract;
 mod events;
 mod interface;
 mod storage;
-mod types;
+pub mod types;
 
 mod glyphs;
 mod offers;
