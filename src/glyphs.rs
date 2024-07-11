@@ -44,7 +44,7 @@ pub fn glyph_store(
 
     let bytes = Bytes::from_slice(&env, &bit24_data[..=(max_i + 1)]);
 
-    let hash = env.crypto().sha256(&bytes);
+    let hash = env.crypto().sha256(&bytes).to_bytes();
     let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
     // Glyph has already been minted and is currently owned (not scraped)

@@ -152,8 +152,6 @@ async function super_mint() {
         throw new Error('final mint failed')
     }
 
-    console.log('mint', result);
-
     const hash = result?.toString('hex');
 
     GLYPH = hash

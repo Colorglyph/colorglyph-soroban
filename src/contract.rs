@@ -121,7 +121,7 @@ impl ColorsInterface for ColorGlyph {
             pay_amount += amount;
         }
 
-        crate::events::colors_mine(&env, &miner, &to, colors);
+        // crate::events::colors_mine(&env, &miner, &to, colors);
 
         let token_address = read_token_address(&env);
         let fee_address = read_fee_address(&env);
@@ -151,7 +151,7 @@ impl ColorsInterface for ColorGlyph {
             write_color(&env, &miner, &to, color, current_to_amount + amount);
         }
 
-        crate::events::colors_transfer(&env, &from, &to, colors);
+        // crate::events::colors_transfer(&env, &from, &to, colors);
     }
 
     fn color_balance(env: Env, owner: Address, color: u32, miner: Option<Address>) -> u32 {
@@ -186,7 +186,7 @@ impl GlyphInterface for ColorGlyph {
                     current_color_amount - indexes.len(),
                 );
 
-                crate::events::colors_out(&env, &miner, &minter, color, indexes.len());
+                // crate::events::colors_out(&env, &miner, &minter, color, indexes.len());
 
                 if !skip {
                     match glyph_colors.get(miner.clone()) {
@@ -329,7 +329,7 @@ impl GlyphInterface for ColorGlyph {
                 colors_indexes.remove(color);
                 payment_count += 1;
 
-                crate::events::color_in_event(&env, &miner, &to_address, color, indexes.len());
+                // crate::events::color_in_event(&env, &miner, &to_address, color, indexes.len());
             }
 
             if colors_indexes.is_empty() {

@@ -12,11 +12,10 @@ const rpcUrl = 'https://soroban-testnet.stellar.org'
 const keypair = Keypair.fromSecret('SAE27A5S6U32MAQBEB6GD4YAJFGGSSFINKB5QO64ZW32NBBMBYESNKN2')
 const pubkey = keypair.publicKey()
 
-let GLYPH: string | undefined = '9eb925d1fe9970fc0e2e93ad1b4c8c1e92136600f9aac84b89dda44814d188cb';
+let GLYPH: string | undefined = 'f158fdc6c03f09523b05e7f4026d72f9bc5cdb6a53a28cc3719895d275383f31'
 
 let timeoutInSeconds = 30
 let width: number = 16
-let palette: number[] = []
 
 const ColorglyphSDK = new Client({
     publicKey: pubkey,
@@ -32,31 +31,67 @@ const ColorglyphSDK = new Client({
     }
 });
 
-let costs: string[] = []
+const maxMineSize = 17
+const maxMintSize = 18
+const mineSanitizedPaletteArray: [number, number][][] = []
+const mintSanitizedPaletteArray: [number, number[]][][] = []
+const costs: string[] = []
+
+let count = 0
+let mineMap = new Map()
+let mintMap = new Map()
+let palette = new Array(256).fill('#0000ff').map((hex: string) =>
+    parseInt(hex.replace('#', ''), 16)
+)
+
+for (const i in palette) {
+    const index = Number(i)
+    const color = palette[index]
+    const amount: number = mineMap.get(color) || 0
+    
+    mineMap.set(color, amount + 1)
+
+    if (
+        index === palette.length - 1
+        || mineMap.size >= maxMineSize
+    ) {
+        mineSanitizedPaletteArray.push([...mineMap.entries()])
+        mineMap = new Map()
+    }
+}
+
+for (const i in palette) {
+    const index = Number(i)
+    const color = palette[index]
+    const indexes: number[] = mintMap.get(color) || []
+
+    indexes.push(index)
+    mintMap.set(color, indexes)
+    count++
+
+    if (
+        index === palette.length - 1
+        || mintMap.size >= maxMintSize
+    ) {
+        mintSanitizedPaletteArray.push([...mintMap.entries()])
+        count = 0
+        mintMap = new Map()
+    }
+}
+
 await super_mint();
 // await glyph_get();
 
 async function super_mint() {
-    let max_mine = 18;
-    let max_mint = 19;
+    for (const mineMap of mineSanitizedPaletteArray) {
+        const map = new Map([...new Map(mineMap).entries()].sort((a, b) => a[0] - b[0]));
 
-    let mintIndexes = new Map<number, number[]>();
-    let mineColors = new Map(generateRGBSpectrum(width).map((color, index) => {
-        mintIndexes.set(color, [index])
-        return [color, 1]
-    }));
-
-    mineColors = new Map([...mineColors.entries()].sort((a, b) => a[0] - b[0]));
-    mintIndexes = new Map([...mintIndexes.entries()].sort((a, b) => a[0] - b[0]));
-
-    for (let index = 0; index < Math.ceil(width ** 2 / max_mine); index++) {
-        let map = Array.from(mineColors).slice(index * max_mine, index * max_mine + max_mine);
         let tx = await ColorglyphSDK.colors_mine(
             {
                 source: pubkey,
                 miner: undefined,
                 to: undefined,
-                colors: new Map(map)
+                colors: map
             },
             { timeoutInSeconds }
         );
@@ -66,22 +101,21 @@ async function super_mint() {
         if (getTransactionResponse?.status === 'SUCCESS') {
             const cost = getTransactionResponse.resultXdr.feeCharged().toString()
             costs.push(cost)
-            console.log(cost);
+            console.log('mine', cost);
+        } else {
+            throw new Error('mine failed')
         }
-
-        console.log(index, 'mine');
     }
 
-    for (let index = 0; index < Math.ceil(width ** 2 / max_mint); index++) {
-        let mintMap = new Map();
-        let map = Array.from(mintIndexes).slice(index * max_mint, index * max_mint + max_mint);
-        mintMap.set(pubkey, new Map(map));
+    for (const mintMap of mintSanitizedPaletteArray) {
+        const map = new Map()
+        map.set(pubkey, new Map([...new Map(mintMap).entries()].sort((a, b) => a[0] - b[0])))
 
         let tx = await ColorglyphSDK.glyph_mint(
             {
                 minter: pubkey,
                 to: undefined,
-                colors: mintMap,
+                colors: map,
                 width: undefined
             },
             { timeoutInSeconds }
@@ -92,10 +126,10 @@ async function super_mint() {
         if (getTransactionResponse?.status === 'SUCCESS') {
             const cost = getTransactionResponse.resultXdr.feeCharged().toString()
             costs.push(cost)
-            console.log(cost);
+            console.log('mint', cost);
+        } else {
+            throw new Error('mint failed')
         }
-
-        console.log(index, 'mint');
     }
 
     let tx = await ColorglyphSDK.glyph_mint(
@@ -114,6 +148,8 @@ async function super_mint() {
         const cost = getTransactionResponse.resultXdr.feeCharged().toString()
         costs.push(cost)
         console.log(cost);
+    } else {
+        throw new Error('final mint failed')
     }
 
     const hash = result?.toString('hex');
@@ -148,23 +184,4 @@ async function glyph_get() {
             }
         }
     }
-
-    palette = palette;
-}
-
-function generateRGBSpectrum(steps: number) {
-    const colorArray = [];
-
-    for (let i = 0; i < steps; i++) {
-        for (let j = 0; j < steps; j++) {
-            const red = 255 - Math.floor((i * 255) / steps);
-            const green = 255 - Math.floor((j * 255) / steps);
-            const blue = Math.floor((i * j * 255) / (steps * steps));
-
-            const colorValue = red * Math.pow(256, 2) + green * 256 + blue;
-            colorArray.push(colorValue);
-        }
-    }
-
-    return colorArray;
 }

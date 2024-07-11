@@ -9,7 +9,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^11.3.0",
+    "@stellar/stellar-sdk": "github:stellar/js-stellar-sdk#e1c9609c",
     "colorglyph-sdk": "link:colorglyph-sdk"
   }
 }
