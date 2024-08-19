@@ -27,7 +27,7 @@ pub enum StorageKey {
     MinterRoyaltyRate,
     MinerRoyaltyRate,
     Color(Address, Address, u32),
-    Colors(Address),
+    // Colors(Address),
     Glyph(BytesN<32>),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),
@@ -35,19 +35,19 @@ pub enum StorageKey {
     AssetOffer(BytesN<32>, Address, i128),
 }
 
-#[contracttype]
-#[derive(Clone, Debug, PartialEq)]
-pub enum HashType {
-    Colors(Address), // means you can only be building or scraping one glyph at a time
-    Glyph(BytesN<32>),
-}
+// #[contracttype]
+// #[derive(Clone, Debug, PartialEq)]
+// pub enum HashType {
+//     Colors(Address), // means you can only be building or scraping one glyph at a time
+//     Glyph(BytesN<32>),
+// }
 
-#[contracttype]
-#[derive(Clone, Debug, PartialEq)]
-pub enum GlyphType {
-    Colors(Map<Address, Map<u32, Vec<u32>>>),
-    Glyph(Glyph),
-}
+// #[contracttype]
+// #[derive(Clone, Debug, PartialEq)]
+// pub enum GlyphType {
+//     Colors(Map<Address, Map<u32, Vec<u32>>>),
+//     Glyph(Glyph),
+// }
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]

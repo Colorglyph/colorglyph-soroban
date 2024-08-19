@@ -22,11 +22,14 @@ pub mod types;
 mod glyphs;
 mod offers;
 
-#[path = "./tests/colors.rs"]
-mod colors_test;
-#[path = "./tests/glyphs.rs"]
-mod glyphs_test;
 // #[path = "./tests/misc.rs"]
 // mod misc_test;
+
+#[path = "./tests/colors.rs"]
+mod colors_test;
+
+#[path = "./tests/glyphs.rs"]
+mod glyphs_test;
+
 #[path = "./tests/offers.rs"]
 mod offers_test;

@@ -5,10 +5,14 @@ extern crate std;
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Error, GlyphType, HashType, StorageKey},
+    types::{Error, StorageKey},
 };
 use soroban_fixed_point_math::FixedPoint;
-use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env};
+use soroban_sdk::{
+    map,
+    testutils::{Address as _, BytesN as _},
+    token, vec, Address, BytesN, Env,
+};
 
 mod colorglyph {
     soroban_sdk::contractimport!(
@@ -73,7 +77,10 @@ fn big_mint() {
 
     client.colors_mine(&u1_address, &mine_colors, &None, &None);
 
+    let hash = BytesN::random(&env);
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![&env, (u1_address.clone(), mint_colors)],
@@ -84,9 +91,7 @@ fn big_mint() {
     let map = map![&env];
     env.budget().reset_unlimited();
 
-    let id = client
-        .glyph_mint(&u1_address, &None, &map, &Some(width as u32))
-        .unwrap();
+    client.glyph_mint(&hash, &u1_address, &None, &map, &Some(width as u32));
 
     // 40
     // "cost": {
@@ -99,7 +104,7 @@ fn big_mint() {
     env.budget().print();
 
     // 152, 164, 26, 184, 253, 26, 71, 41, 51, 51, 159, 80, 5, 169, 12, 46, 52, 115, 145, 177, 154, 10, 145, 60, 12, 71, 213, 166, 191, 42, 38, 205
-    println!("{:?}", id);
+    println!("{:?}", hash);
 }
 
 #[test]
@@ -130,7 +135,10 @@ fn toolbox_test() {
         &None,
     );
 
+    let hash = BytesN::random(&env);
+
     let id = client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -176,7 +184,16 @@ fn test_dupe_mint() {
         &None,
     );
 
-    let hash = client.glyph_mint(
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            146, 244, 196, 178, 69, 175, 195, 226, 252, 79, 5, 122, 242, 142, 128, 55, 167, 30,
+            183, 95, 130, 159, 120, 66, 91, 161, 26, 127, 31, 119, 35, 249,
+        ],
+    );
+
+    client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -193,6 +210,7 @@ fn test_dupe_mint() {
 
     assert_eq!(
         client.try_glyph_mint(
+            &hash,
             &u1_address,
             &None,
             &map![
@@ -248,7 +266,16 @@ fn test_to_mint() {
         &None,
     );
 
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            225, 229, 239, 100, 89, 99, 62, 200, 24, 206, 221, 76, 251, 184, 5, 232, 50, 233, 128,
+            82, 192, 51, 181, 139, 201, 132, 70, 58, 41, 111, 133, 31,
+        ],
+    );
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -267,30 +294,29 @@ fn test_to_mint() {
         &None,
     );
 
-    let hash = client
-        .glyph_mint(
-            &u1_address,
-            &Some(u2_address.clone()),
-            &map![
-                &env,
-                (
-                    u1_address.clone(),
-                    map![
-                        &env,
-                        (4, vec![&env, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]),
-                        (5, vec![&env, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]),
-                        (6, vec![&env, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]),
-                        (7, vec![&env, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]),
-                    ]
-                )
-            ],
-            &Some(8),
-        )
-        .unwrap();
+    client.glyph_mint(
+        &hash,
+        &u1_address,
+        &Some(u2_address.clone()),
+        &map![
+            &env,
+            (
+                u1_address.clone(),
+                map![
+                    &env,
+                    (4, vec![&env, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]),
+                    (5, vec![&env, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]),
+                    (6, vec![&env, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]),
+                    (7, vec![&env, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]),
+                ]
+            )
+        ],
+        &Some(8),
+    );
 
     println!("{:?}\n", hash);
 
-    println!("{:?}\n", client.glyph_get(&HashType::Glyph(hash.clone())));
+    println!("{:?}\n", client.glyph_get(&hash.clone()));
 
     env.as_contract(&contract_address, || {
         let res = env
@@ -363,7 +389,16 @@ fn test_partial_mint() {
         &Some(u1_address.clone()),
     );
 
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            69, 191, 101, 252, 28, 99, 99, 72, 39, 35, 148, 150, 55, 193, 229, 68, 18, 156, 212,
+            216, 130, 11, 240, 30, 152, 200, 217, 92, 175, 201, 2, 205,
+        ],
+    );
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -384,6 +419,7 @@ fn test_partial_mint() {
     );
 
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -403,6 +439,7 @@ fn test_partial_mint() {
         &None,
     );
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -437,6 +474,7 @@ fn test_partial_mint() {
         &None,
     );
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![
@@ -471,51 +509,19 @@ fn test_partial_mint() {
         &None,
     );
 
-    println!(
-        "{:?}\n",
-        client.glyph_get(&HashType::Colors(u1_address.clone()))
-    );
+    client.glyph_mint(&hash, &u1_address, &None, &map![&env], &Some(14));
 
-    let hash = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(14))
-        .unwrap();
+    let glyph = client.glyph_get(&hash.clone());
 
-    println!("{:?}", hash);
+    assert_eq!(glyph.length, 200);
 
-    match client.glyph_get(&HashType::Glyph(hash.clone())) {
-        GlyphType::Glyph(glyph) => {
-            assert_eq!(glyph.length, 200);
-        }
-        _ => panic!(),
-    }
+    client.glyph_scrape(&None, &hash.clone());
 
-    client.glyph_scrape(&None, &HashType::Glyph(hash.clone()));
+    assert_eq!(client.glyph_get(&hash.clone()).colors.len(), 1);
 
-    assert_eq!(
-        client.try_glyph_get(&HashType::Glyph(hash.clone())),
-        Err(Ok(Error::NotFound))
-    );
+    client.glyph_scrape(&None, &hash.clone());
 
-    assert_ne!(
-        // not equals (v important as the glyph shouldn't be fully scraped yet)
-        client.try_glyph_get(&HashType::Colors(u1_address.clone())),
-        Err(Ok(Error::NotFound))
-    );
-
-    assert_eq!(
-        client.glyph_scrape(&None, &HashType::Colors(u1_address.clone())),
-        ()
-    );
-
-    // assert_eq!(
-    //     client.try_glyph_get(&HashType::Dust(u1_address.clone())),
-    //     Err(Ok(Error::NotFound))
-    // );
-
-    assert_eq!(
-        client.try_glyph_get(&HashType::Colors(u1_address.clone())),
-        Err(Ok(Error::NotFound))
-    );
+    assert_eq!(client.glyph_get(&hash.clone()).colors.len(), 0);
 
     // println!("{:?}", env.budget().print());
 }

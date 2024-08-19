@@ -4,11 +4,11 @@ use std::println;
 extern crate std;
 
 use soroban_fixed_point_math::FixedPoint;
-use soroban_sdk::{map, testutils::Address as _, token, vec, Address, Env, Map, Vec};
+use soroban_sdk::{map, testutils::Address as _, token, vec, Address, BytesN, Env, Map, Vec};
 
 use crate::{
     contract::{ColorGlyph, ColorGlyphClient},
-    types::{Error, HashType, Offer, StorageKey},
+    types::{Error, Offer, StorageKey},
 };
 
 const ITERS: i128 = 10i128;
@@ -52,14 +52,21 @@ fn test_self_purchase() {
 
     client.colors_mine(&u1_address, &color_amount, &None, &None);
 
-    let hash = client
-        .glyph_mint(
-            &u1_address,
-            &None,
-            &map![&env, (u1_address.clone(), colors_indexes.clone())],
-            &Some(16),
-        )
-        .unwrap();
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            147, 216, 111, 191, 20, 118, 231, 24, 42, 53, 1, 119, 153, 40, 169, 202, 38, 174, 210,
+            72, 218, 226, 128, 47, 56, 0, 173, 193, 23, 53, 215, 104,
+        ],
+    );
+
+    client.glyph_mint(
+        &hash,
+        &u1_address,
+        &None,
+        &map![&env, (u1_address.clone(), colors_indexes.clone())],
+        &Some(16),
+    );
 
     // Real Tests
     let amount: i128 = 100;
@@ -123,14 +130,21 @@ fn test_sell_scrape_buy() {
 
     client.colors_mine(&u1_address, &color_amount, &None, &None);
 
-    let hash = client
-        .glyph_mint(
-            &u1_address,
-            &None,
-            &map![&env, (u1_address.clone(), colors_indexes.clone())],
-            &Some(16),
-        )
-        .unwrap();
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
+    client.glyph_mint(
+        &hash,
+        &u1_address,
+        &None,
+        &map![&env, (u1_address.clone(), colors_indexes.clone())],
+        &Some(16),
+    );
 
     // Real Tests
     let amount: i128 = 100;
@@ -140,22 +154,14 @@ fn test_sell_scrape_buy() {
 
     client.offer_post(&glyph, &asset);
 
-    client.glyph_scrape(&None, &HashType::Glyph(hash.clone()));
-
-    assert_eq!(
-        client.try_glyph_get(&HashType::Colors(u1_address.clone())),
-        Err(Ok(Error::NotFound))
-    );
+    client.glyph_scrape(&None, &hash.clone());
 
     // assert_eq!(
-    //     client.try_glyph_get(&HashType::Dust(u1_address.clone())),
+    //     client.try_glyph_get(&HashType::Colors(u1_address.clone())),
     //     Err(Ok(Error::NotFound))
     // );
 
-    assert_eq!(
-        client.try_glyph_get(&HashType::Glyph(hash.clone())),
-        Err(Ok(Error::NotFound))
-    );
+    assert_eq!(client.glyph_get(&hash.clone()).colors.len(), 0);
 
     assert_eq!(
         client.try_offers_get(&glyph, &None),
@@ -166,14 +172,13 @@ fn test_sell_scrape_buy() {
 
     client.offers_get(&asset, &Some(glyph.clone()));
 
-    client
-        .glyph_mint(
-            &u1_address,
-            &None,
-            &map![&env, (u1_address.clone(), colors_indexes)],
-            &Some(16),
-        )
-        .unwrap();
+    client.glyph_mint(
+        &hash,
+        &u1_address,
+        &None,
+        &map![&env, (u1_address.clone(), colors_indexes)],
+        &Some(16),
+    );
 
     client.offer_post(&glyph, &asset);
 
@@ -237,14 +242,21 @@ fn test_dupe() {
 
     client.colors_mine(&u1_address, &color_amount, &None, &None);
 
-    let hash = client
-        .glyph_mint(
-            &u1_address,
-            &None,
-            &map![&env, (u1_address.clone(), colors_indexes)],
-            &Some(16),
-        )
-        .unwrap();
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
+    client.glyph_mint(
+        &hash,
+        &u1_address,
+        &None,
+        &map![&env, (u1_address.clone(), colors_indexes)],
+        &Some(16),
+    );
 
     // Real Tests
     let amount: i128 = 100;
@@ -313,16 +325,23 @@ fn test_buy_glyph() {
 
     // println!("{:?}\n", colors_indexes);
 
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![&env, (u3_address.clone(), colors_indexes)],
         &None,
     );
 
-    let hash = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash, &u1_address, &None, &map![&env], &Some(16));
 
     println!("{:?}\n", hash);
 
@@ -419,16 +438,23 @@ fn test_sell_glyph() {
 
     client.colors_mine(&u3_address, &color_amount, &None, &Some(u1_address.clone()));
 
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![&env, (u3_address.clone(), colors_indexes)],
         &None,
     );
 
-    let hash = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash, &u1_address, &None, &map![&env], &Some(16));
 
     env.budget().reset_default();
 
@@ -515,29 +541,43 @@ fn test_swap_glyph() {
 
     client.colors_mine(&u1_address, &colors_a_amount, &None, &None);
 
+    let hash_a = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
     client.glyph_mint(
+        &hash_a,
         &u1_address,
         &None,
         &map![&env, (u1_address.clone(), colors_a_indexes)],
         &None,
     );
 
-    let hash_a = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash_a, &u1_address, &None, &map![&env], &Some(16));
 
     client.colors_mine(&u2_address, &colors_b_amount, &None, &None);
 
+    let hash_b = BytesN::from_array(
+        &env,
+        &[
+            92, 172, 213, 83, 168, 226, 88, 11, 244, 52, 99, 220, 152, 214, 120, 211, 120, 145, 52,
+            115, 46, 190, 128, 207, 131, 84, 153, 178, 171, 44, 105, 221,
+        ],
+    );
+
     client.glyph_mint(
+        &hash_b,
         &u2_address,
         &None,
         &map![&env, (u2_address.clone(), colors_b_indexes)],
         &None,
     );
 
-    let hash_b = client
-        .glyph_mint(&u2_address, &None, &map!(&env), &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash_b, &u2_address, &None, &map!(&env), &Some(16));
 
     env.budget().reset_default();
 
@@ -617,16 +657,23 @@ fn test_rm_glyph_buy() {
 
     client.colors_mine(&u1_address, &color_amount, &None, &None);
 
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![&env, (u1_address.clone(), colors_indexes)],
         &None,
     );
 
-    let hash = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash, &u1_address, &None, &map![&env], &Some(16));
 
     env.budget().reset_default();
 
@@ -695,16 +742,23 @@ fn test_rm_glyph_sell() {
 
     client.colors_mine(&u1_address, &color_amount, &None, &None);
 
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
     client.glyph_mint(
+        &hash,
         &u1_address,
         &None,
         &map![&env, (u1_address.clone(), colors_indexes)],
         &None,
     );
 
-    let hash = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash, &u1_address, &None, &map![&env], &Some(16));
 
     env.budget().reset_default();
 
@@ -774,16 +828,23 @@ fn test_rm_glyph_swap() {
 
     client.colors_mine(&u1_address, &colors_a_amount, &None, &None);
 
+    let hash_a = BytesN::from_array(
+        &env,
+        &[
+            224, 179, 165, 100, 67, 84, 141, 170, 240, 57, 16, 144, 197, 150, 233, 228, 182, 98,
+            154, 0, 158, 162, 216, 176, 66, 231, 63, 61, 145, 126, 165, 159,
+        ],
+    );
+
     client.glyph_mint(
+        &hash_a,
         &u1_address,
         &None,
         &map![&env, (u1_address.clone(), colors_a_indexes)],
         &None,
     );
 
-    let hash_a = client
-        .glyph_mint(&u1_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash_a, &u1_address, &None, &map![&env], &Some(16));
 
     client.colors_mine(
         &u1_address,
@@ -792,16 +853,23 @@ fn test_rm_glyph_swap() {
         &Some(u2_address.clone()),
     );
 
+    let hash_b = BytesN::from_array(
+        &env,
+        &[
+            92, 172, 213, 83, 168, 226, 88, 11, 244, 52, 99, 220, 152, 214, 120, 211, 120, 145, 52,
+            115, 46, 190, 128, 207, 131, 84, 153, 178, 171, 44, 105, 221,
+        ],
+    );
+
     client.glyph_mint(
+        &hash_b,
         &u2_address,
         &None,
         &map![&env, (u1_address.clone(), colors_b_indexes)],
         &None,
     );
 
-    let hash_b = client
-        .glyph_mint(&u2_address, &None, &map![&env], &Some(16))
-        .unwrap();
+    client.glyph_mint(&hash_b, &u2_address, &None, &map![&env], &Some(16));
 
     env.budget().reset_default();
 

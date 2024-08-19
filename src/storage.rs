@@ -16,14 +16,6 @@ pub mod persistent {
             .set::<StorageKey, u32>(&miner_owner_color, &amount);
     }
 
-    pub fn write_colors(env: &Env, minter: &Address, colors: &Map<Address, Map<u32, Vec<u32>>>) {
-        let glyph_colors_key = StorageKey::Colors(minter.clone());
-
-        env.storage()
-            .persistent()
-            .set::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&glyph_colors_key, colors);
-    }
-
     pub fn read_color(env: &Env, miner: &Address, to: &Address, color: u32) -> u32 {
         let miner_owner_color = StorageKey::Color(miner.clone(), to.clone(), color);
 
@@ -33,29 +25,24 @@ pub mod persistent {
             .unwrap_or(0)
     }
 
-    pub fn read_colors_or_map(env: &Env, minter: &Address) -> Map<Address, Map<u32, Vec<u32>>> {
-        read_colors(env, minter).unwrap_or(Map::new(&env))
+    pub fn read_glyph_or_default(env: &Env, hash: &BytesN<32>) -> Glyph {
+        read_glyph(env, hash).unwrap_or(Glyph {
+            width: 0,
+            length: 0,
+            colors: Map::new(env),
+        })
     }
 
-    pub fn read_colors_or_error(env: &Env, minter: &Address) -> Map<Address, Map<u32, Vec<u32>>> {
-        read_colors(env, minter).unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
+    pub fn read_glyph_or_error(env: &Env, hash: &BytesN<32>) -> Glyph {
+        read_glyph(env, hash).unwrap_or_else(|| panic_with_error!(env, Error::NotFound))
     }
 
-    fn read_colors(env: &Env, minter: &Address) -> Option<Map<Address, Map<u32, Vec<u32>>>> {
-        let glyph_colors_key = StorageKey::Colors(minter.clone());
-
-        env.storage()
-            .persistent()
-            .get::<StorageKey, Map<Address, Map<u32, Vec<u32>>>>(&glyph_colors_key)
-    }
-
-    pub fn read_glyph(env: &Env, hash: &BytesN<32>) -> Result<Glyph, Error> {
+    pub fn read_glyph(env: &Env, hash: &BytesN<32>) -> Option<Glyph> {
         let glyph_key = StorageKey::Glyph(hash.clone());
 
         env.storage()
             .persistent()
             .get::<StorageKey, Glyph>(&glyph_key)
-            .ok_or(Error::NotFound)
     }
 
     pub fn read_glyph_owner(env: &Env, hash: &BytesN<32>) -> Option<Address> {
@@ -64,11 +51,11 @@ pub mod persistent {
             .get(&StorageKey::GlyphOwner(hash.clone()))
     }
 
-    pub fn remove_glyph_owner(env: &Env, hash: BytesN<32>) {
-        env.storage()
-            .persistent()
-            .remove(&StorageKey::GlyphOwner(hash));
-    }
+    // pub fn remove_glyph_owner(env: &Env, hash: &BytesN<32>) {
+    //     env.storage()
+    //         .persistent()
+    //         .remove(&StorageKey::GlyphOwner(hash.clone()));
+    // }
 
     pub fn write_glyph_owner(env: &Env, hash: &BytesN<32>, new_owner: &Address) {
         let key = StorageKey::GlyphOwner(hash.clone());
@@ -80,15 +67,6 @@ pub mod persistent {
         env.storage()
             .persistent()
             .remove(&StorageKey::GlyphOffer(hash.clone()));
-    }
-
-    pub fn remove_colors(env: &Env, owner: Address) {
-        let colors_key = StorageKey::Colors(owner);
-        env.storage().persistent().remove(&colors_key);
-    }
-
-    pub fn has_colors(env: &Env, owner: Address) -> bool {
-        env.storage().persistent().has(&StorageKey::Colors(owner))
     }
 
     pub fn read_glyph_minter(env: &Env, hash: &BytesN<32>) -> Option<Address> {

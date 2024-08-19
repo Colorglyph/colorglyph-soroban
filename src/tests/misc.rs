@@ -122,5 +122,5 @@ fn test_1() {
         ]
     );
 
-    println!("{:?}", env.crypto().sha256(&bytes));
+    println!("{:?}", env.crypto().sha256(&bytes).to_bytes());
 }

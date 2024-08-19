@@ -1,9 +1,15 @@
 use soroban_sdk::{Address, BytesN, Env, Map, Vec};
 
-use crate::types::{Error, GlyphType, HashType, Offer};
+use crate::types::{Error, Glyph, Offer};
 
 pub trait ColorGlyphTrait {
-    fn initialize(env: Env, owner_address: Address, token_address: Address, fee_address: Address, mine_multiplier: i128);
+    fn initialize(
+        env: Env,
+        owner_address: Address,
+        token_address: Address,
+        fee_address: Address,
+        mine_multiplier: i128,
+    );
     fn update(
         env: Env,
         owner_address: Option<Address>,
@@ -33,14 +39,15 @@ pub trait ColorsInterface {
 pub trait GlyphInterface {
     fn glyph_mint(
         env: Env,
+        hash: BytesN<32>,
         minter: Address,
         to: Option<Address>,
         colors: Map<Address, Map<u32, Vec<u32>>>,
         width: Option<u32>,
-    ) -> Option<BytesN<32>>;
-    fn glyph_transfer(env: Env, to: Address, hash_type: HashType);
-    fn glyph_scrape(env: Env, to: Option<Address>, hash_type: HashType);
-    fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error>;
+    );
+    fn glyph_transfer(env: Env, to: Address, hash: BytesN<32>);
+    fn glyph_scrape(env: Env, to: Option<Address>, hash: BytesN<32>);
+    fn glyph_get(env: Env, hash: BytesN<32>) -> Result<Glyph, Error>;
 }
 
 pub trait Exchange {

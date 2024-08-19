@@ -1,6 +1,3 @@
-// use std::println;
-// extern crate std;
-
 use crate::{
     contract::MAX_BIT24_SIZE,
     types::{Error, Glyph, StorageKey},
@@ -10,7 +7,6 @@ use soroban_sdk::{panic_with_error, Address, Bytes, BytesN, Env, Map, Vec};
 pub fn glyph_store(
     env: &Env,
     minter: Address,
-    to: Option<Address>,
     colors: Map<Address, Map<u32, Vec<u32>>>,
     width: u8,
 ) -> BytesN<32> {
@@ -45,21 +41,8 @@ pub fn glyph_store(
     let bytes = Bytes::from_slice(&env, &bit24_data[..=(max_i + 1)]);
 
     let hash = env.crypto().sha256(&bytes).to_bytes();
-    let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
-    // Glyph has already been minted and is currently owned (not scraped)
-    if env.storage().persistent().has(&glyph_owner_key) {
-        panic_with_error!(env, Error::NotEmpty);
-    }
-
-    // Save the glyph owner to storage
-    env.storage().persistent().set(
-        &glyph_owner_key,
-        &match to {
-            Some(address) => address,
-            None => minter.clone(),
-        },
-    );
+    // println!("HASH: {:?}", hash);
 
     // Save the glyph minter to storage (if glyph hasn't already been minted)
     let glyph_minter_key = StorageKey::GlyphMinter(hash.clone());
@@ -71,22 +54,14 @@ pub fn glyph_store(
     // Save the glyph to storage
     let glyph_key = StorageKey::Glyph(hash.clone());
 
-    // Only save the glyph if it hasn't already been minted
-    if !env.storage().persistent().has(&glyph_key) {
-        env.storage().persistent().set(
-            &glyph_key,
-            &Glyph {
-                width: width as u32,
-                length: (bytes.len() - 1) / 3, // remove one byte for the length and divide by 3 for the RGB
-                colors,
-            },
-        );
-    }
-
-    // Remove any temp Colors
-    env.storage()
-        .persistent()
-        .remove(&StorageKey::Colors(minter));
+    env.storage().persistent().set::<StorageKey, Glyph>(
+        &glyph_key,
+        &Glyph {
+            width: width as u32,
+            length: (bytes.len() - 1) / 3, // remove one byte for the length and divide by 3 for the RGB
+            colors,
+        },
+    );
 
     hash
 }

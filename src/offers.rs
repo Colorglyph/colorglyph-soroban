@@ -13,10 +13,10 @@ use crate::{
     storage::{
         instance::{read_miner_royalty_rate, read_minter_royalty_rate},
         persistent::{
-            has_asset_offers_by_asset, read_asset_offers_by_asset, read_glyph, read_glyph_minter,
-            read_glyph_owner, read_offers_by_glyph, remove_asset_offers_by_asset,
-            remove_glyph_offer, write_asset_offers_by_asset, write_glyph_owner,
-            write_offers_by_glyph,
+            has_asset_offers_by_asset, read_asset_offers_by_asset, read_glyph_minter,
+            read_glyph_or_error, read_glyph_owner, read_offers_by_glyph,
+            remove_asset_offers_by_asset, remove_glyph_offer, write_asset_offers_by_asset,
+            write_glyph_owner, write_offers_by_glyph,
         },
     },
     types::{Error, Offer, OfferCreate, StorageKey},
@@ -426,7 +426,7 @@ fn reward_minter_and_miners(
     let mut leftover_amount = *amount;
 
     // Get glyph
-    let glyph = read_glyph(env, hash)?;
+    let glyph = read_glyph_or_error(env, hash);
     let glyph_minter_address = read_glyph_minter(env, hash).ok_or(Error::NotFound)?;
 
     // Pay the glyph minter their cut

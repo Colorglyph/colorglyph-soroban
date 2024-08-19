@@ -1,5 +1,7 @@
 use core::ops::Mul;
 
+// extern crate std;
+
 use soroban_sdk::{
     contract, contractimpl, panic_with_error, token, Address, BytesN, Env, Map, Vec,
 };
@@ -11,11 +13,10 @@ use crate::{
     storage::{
         instance::*,
         persistent::{
-            has_colors, read_color, read_colors_or_error, read_colors_or_map, read_glyph,
-            remove_colors, remove_glyph_offer, remove_glyph_owner, write_color, write_colors,
+            read_color, read_glyph_or_default, read_glyph_or_error, remove_glyph_offer, write_color,
         },
     },
-    types::{Error, GlyphType, HashType, Offer, StorageKey},
+    types::{Error, Glyph, Offer, StorageKey},
 };
 
 pub const MAX_BIT24_SIZE: usize = 40 * 40 * 3 + 1;
@@ -25,7 +26,13 @@ pub struct ColorGlyph;
 
 #[contractimpl]
 impl ColorGlyphTrait for ColorGlyph {
-    fn initialize(env: Env, owner_address: Address, token_address: Address, fee_address: Address, mine_multiplier: i128) {
+    fn initialize(
+        env: Env,
+        owner_address: Address,
+        token_address: Address,
+        fee_address: Address,
+        mine_multiplier: i128,
+    ) {
         owner_address.require_auth();
 
         if env.storage().instance().has(&StorageKey::OwnerAddress) {
@@ -165,12 +172,35 @@ impl ColorsInterface for ColorGlyph {
 impl GlyphInterface for ColorGlyph {
     fn glyph_mint(
         env: Env,
+        hash: BytesN<32>,
         minter: Address,
         to: Option<Address>,
         colors: Map<Address, Map<u32, Vec<u32>>>,
         width: Option<u32>,
-    ) -> Option<BytesN<32>> {
-        let mut glyph_colors = read_colors_or_map(&env, &minter);
+    ) {
+        let mut glyph = read_glyph_or_default(&env, &hash);
+
+        // Only mint if the glyph hasn't yet been minted
+        if glyph.width != 0 || glyph.length != 0 {
+            panic_with_error!(env, Error::NotEmpty);
+        }
+
+        let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
+        let new_owner = match to.clone() {
+            Some(address) => address,
+            None => minter.clone(),
+        };
+
+        // Starting the mint, assign an owner
+        if glyph.colors.is_empty() {
+            env.storage().persistent().set(&glyph_owner_key, &new_owner);
+        } else {
+            let existing_owner = glyph_verify_ownership(&env, &glyph_owner_key);
+
+            if existing_owner != new_owner {
+                env.storage().persistent().set(&glyph_owner_key, &new_owner);
+            }
+        }
 
         // spend colors
         for (miner, color_indexes) in colors.iter() {
@@ -189,7 +219,7 @@ impl GlyphInterface for ColorGlyph {
                 // crate::events::colors_out(&env, &miner, &minter, color, indexes.len());
 
                 if !skip {
-                    match glyph_colors.get(miner.clone()) {
+                    match glyph.colors.get(miner.clone()) {
                         Some(result) => match result {
                             mut color_indexes_ => match color_indexes_.get(color) {
                                 // Existing miner and color
@@ -197,19 +227,19 @@ impl GlyphInterface for ColorGlyph {
                                     mut indexes_ => {
                                         indexes_.append(&indexes);
                                         color_indexes_.set(color, indexes_);
-                                        glyph_colors.set(miner.clone(), color_indexes_);
+                                        glyph.colors.set(miner.clone(), color_indexes_);
                                     }
                                 },
                                 // Existing miner no color
                                 None => {
                                     color_indexes_.set(color, indexes);
-                                    glyph_colors.set(miner.clone(), color_indexes_);
+                                    glyph.colors.set(miner.clone(), color_indexes_);
                                 }
                             },
                         },
                         // No miner (or no exisiting Colors)
                         None => {
-                            glyph_colors.set(miner.clone(), color_indexes.clone());
+                            glyph.colors.set(miner.clone(), color_indexes.clone());
                             // We set a skip vs using break to ensure we continue to bill for the spent colors
                             skip = true; // we need to break here otherwise we continue looping inside this nested color loop which we've already fully added
                         }
@@ -221,84 +251,53 @@ impl GlyphInterface for ColorGlyph {
         match width {
             // We are storing the glyph
             Some(width) => {
-                let hash = glyph_store(&env, minter.clone(), to.clone(), glyph_colors, width as u8);
+                let computed_hash = glyph_store(&env, minter.clone(), glyph.colors, width as u8);
+
+                // println!("HASH: {:?}", computed_hash);
+
+                if hash != computed_hash {
+                    panic_with_error!(env, Error::NotPermitted);
+                }
 
                 crate::events::minted_event(&env, &minter, to, &hash);
-
-                Some(hash)
             }
             // We are building the glyph
             None => {
-                write_colors(&env, &minter, &glyph_colors);
+                let glyph_key = StorageKey::Glyph(hash.clone());
+
+                env.storage()
+                    .persistent()
+                    .set::<StorageKey, Glyph>(&glyph_key, &glyph);
+
                 crate::events::minting_event(&env, &minter);
-
-                None
             }
         }
     }
-    fn glyph_transfer(env: Env, to: Address, hash_type: HashType) {
-        match hash_type {
-            HashType::Colors(from) => {
-                from.require_auth();
+    fn glyph_transfer(env: Env, to: Address, hash: BytesN<32>) {
+        let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
 
-                let from_colors_key = StorageKey::Colors(from.clone());
-                let colors = read_colors_or_error(&env, &from);
+        glyph_verify_ownership(&env, &glyph_owner_key);
 
-                env.storage().persistent().remove(&from_colors_key);
-                write_colors(&env, &to, &colors);
+        env.storage().persistent().set(&glyph_owner_key, &to);
 
-                crate::events::transfer_colors_event(&env, &from, &to);
-            }
-            HashType::Glyph(glyph_hash) => {
-                let glyph_owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
-
-                glyph_verify_ownership(&env, &glyph_owner_key);
-
-                env.storage().persistent().set(&glyph_owner_key, &to);
-
-                crate::events::transfer_glyph_event(&env, &to, &glyph_hash);
-            }
-        }
+        crate::events::transfer_glyph_event(&env, &to, &hash);
     }
-    fn glyph_scrape(env: Env, to: Option<Address>, hash_type: HashType) {
-        let mut miners_colors_indexes: Map<Address, Map<u32, Vec<u32>>>;
+    fn glyph_scrape(env: Env, to: Option<Address>, hash: BytesN<32>) {
+        let owner_key = StorageKey::GlyphOwner(hash.clone());
+        let owner = glyph_verify_ownership(&env, &owner_key);
 
-        let owner: Address = match &hash_type {
-            HashType::Colors(colors_owner) => {
-                colors_owner.require_auth();
-                miners_colors_indexes = read_colors_or_error(&env, colors_owner);
+        // Ensure we don't start a scrape while there's a pending mint, otherwise we'll overwrite the pending with the new
+        // We use the Address vs the BytesN<32> as the key in order to maintain ownership of the Colors
+        // If we wanted to support scraping multiple glyphs at once we'd need to track ownership another way
 
-                crate::events::scrape_colors_event(&env, colors_owner, to.clone());
+        let mut glyph = read_glyph_or_error(&env, &hash);
 
-                colors_owner.clone()
-            }
-            HashType::Glyph(glyph_hash) => {
-                let owner_key = StorageKey::GlyphOwner(glyph_hash.clone());
-                let owner = glyph_verify_ownership(&env, &owner_key);
+        // Remove all glyph sell offers
+        if glyph.width != 0 || glyph.length != 0 {
+            remove_glyph_offer(&env, &hash);
+        }
 
-                // Ensure we don't start a scrape while there's a pending mint, otherwise we'll overwrite the pending with the new
-                // We use the Address vs the BytesN<32> as the key in order to maintain ownership of the Colors
-                // If we wanted to support scraping multiple glyphs at once we'd need to track ownership another way
-
-                if has_colors(&env, owner.clone()) {
-                    panic_with_error!(env, Error::NotEmpty);
-                }
-
-                let glyph =
-                    read_glyph(&env, glyph_hash).unwrap_or_else(|e| panic_with_error!(&env, e));
-
-                // Remove glyph owner
-                remove_glyph_owner(&env, glyph_hash.clone());
-
-                // Remove all glyph sell offers
-                remove_glyph_offer(&env, glyph_hash);
-
-                miners_colors_indexes = glyph.colors;
-                crate::events::scrape_glyph_event(&env, &owner, to.clone(), glyph_hash);
-
-                owner
-            }
-        };
+        crate::events::scrape_glyph_event(&env, &owner, to.clone(), &hash);
 
         // loop through the glyph colors and send them to `to`
         let mut payment_count: u8 = 0;
@@ -306,7 +305,7 @@ impl GlyphInterface for ColorGlyph {
 
         let max_payment_count = read_max_payment_count(&env) as u8;
 
-        for (miner, mut colors_indexes) in miners_colors_indexes.iter() {
+        for (miner, mut colors_indexes) in glyph.colors.iter() {
             if payment_count >= max_payment_count {
                 break;
             }
@@ -333,36 +332,30 @@ impl GlyphInterface for ColorGlyph {
             }
 
             if colors_indexes.is_empty() {
-                miners_colors_indexes.remove(miner);
+                glyph.colors.remove(miner);
             } else {
-                miners_colors_indexes.set(miner, colors_indexes);
+                glyph.colors.set(miner, colors_indexes);
             }
         }
 
-        if miners_colors_indexes.is_empty() {
-            remove_colors(&env, owner)
-            //env.storage().persistent().remove(&colors_key);
-        } else {
-            write_colors(&env, &owner, &miners_colors_indexes);
-        }
+        let glyph_key = StorageKey::Glyph(hash.clone());
+
+        env.storage().persistent().set::<StorageKey, Glyph>(
+            &glyph_key,
+            &Glyph {
+                width: 0,
+                length: 0,
+                colors: glyph.colors,
+            },
+        );
+
+        // NOTE Not sure we actually need to remove the glyph owner as we won't check for it when re-minting if the glyph.colors is empty
+        // if glyph.colors.is_empty() {
+        //     remove_glyph_owner(&env, &hash);
+        // }
     }
-    fn glyph_get(env: Env, hash_type: HashType) -> Result<GlyphType, Error> {
-        match hash_type {
-            HashType::Colors(address) => {
-                let colors = read_colors_or_error(&env, &address);
-                Ok(GlyphType::Colors(colors))
-            }
-            HashType::Glyph(hash) => {
-                let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
-
-                if !env.storage().persistent().has(&glyph_owner_key) {
-                    return Err(Error::NotFound);
-                }
-
-                let glyph = read_glyph(&env, &hash)?;
-                Ok(GlyphType::Glyph(glyph))
-            }
-        }
+    fn glyph_get(env: Env, hash: BytesN<32>) -> Result<Glyph, Error> {
+        Ok(read_glyph_or_error(&env, &hash))
     }
 }
 
