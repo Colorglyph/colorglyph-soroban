@@ -51,11 +51,13 @@ pub mod persistent {
             .get(&StorageKey::GlyphOwner(hash.clone()))
     }
 
-    // pub fn remove_glyph_owner(env: &Env, hash: &BytesN<32>) {
-    //     env.storage()
-    //         .persistent()
-    //         .remove(&StorageKey::GlyphOwner(hash.clone()));
-    // }
+    pub fn remove_glyph_owner(env: &Env, hash: &BytesN<32>) {
+        let key = StorageKey::GlyphOwner(hash.clone());
+
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().remove(&key);
+        }
+    }
 
     pub fn write_glyph_owner(env: &Env, hash: &BytesN<32>, new_owner: &Address) {
         let key = StorageKey::GlyphOwner(hash.clone());
@@ -64,9 +66,11 @@ pub mod persistent {
     }
 
     pub fn remove_glyph_offer(env: &Env, hash: &BytesN<32>) {
-        env.storage()
-            .persistent()
-            .remove(&StorageKey::GlyphOffer(hash.clone()));
+        let key = StorageKey::GlyphOffer(hash.clone());
+
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().remove(&key);
+        }
     }
 
     pub fn read_glyph_minter(env: &Env, hash: &BytesN<32>) -> Option<Address> {
@@ -115,7 +119,9 @@ pub mod persistent {
     ) {
         let key = StorageKey::AssetOffer(hash.clone(), address.clone(), amount);
 
-        env.storage().persistent().remove(&key);
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().remove(&key);
+        }
     }
 
     pub fn has_asset_offers_by_asset(

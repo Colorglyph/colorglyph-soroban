@@ -40,10 +40,9 @@ fn big_mint() {
     env.mock_all_auths();
     env.budget().reset_unlimited();
 
-    let contract_address = env.register_contract_wasm(None, colorglyph::WASM);
-    let client = colorglyph::Client::new(&env, &contract_address);
-    // let contract_address = env.register_contract(None, ColorGlyph);
-    // let client = ColorGlyphClient::new(&env, &contract_address);
+    // let contract_address = env.register_contract_wasm(None, colorglyph::WASM);
+    let contract_address = env.register_contract(None, ColorGlyph);
+    let client = ColorGlyphClient::new(&env, &contract_address);
 
     let token_admin = Address::generate(&env);
     let token_address = env.register_stellar_asset_contract(token_admin.clone());
@@ -56,7 +55,7 @@ fn big_mint() {
 
     client.initialize(&u1_address, &token_address, &fee_address, &1);
 
-    let width: u64 = 40;
+    let width: u64 = 16; // 40;
     let mut index = 0;
     let mut mine_colors = map![&env];
     let mut mint_colors = map![&env];
@@ -77,7 +76,14 @@ fn big_mint() {
 
     client.colors_mine(&u1_address, &mine_colors, &None, &None);
 
-    let hash = BytesN::random(&env);
+    let hash = BytesN::from_array(
+        &env,
+        &[
+            // 171, 144, 28, 55, 171, 87, 24, 54, 102, 181, 50, 141, 120, 172, 192, 50, 179, 102, 40,
+            // 61, 163, 28, 127, 243, 243, 34, 99, 105, 98, 143, 227, 46,
+            158, 185, 37, 209, 254, 153, 112, 252, 14, 46, 147, 173, 27, 76, 140, 30, 146, 19, 102, 0, 249, 170, 200, 75, 137, 221, 164, 72, 20, 209, 136, 203
+        ],
+    );
 
     client.glyph_mint(
         &hash,
@@ -93,6 +99,16 @@ fn big_mint() {
 
     client.glyph_mint(&hash, &u1_address, &None, &map, &Some(width as u32));
 
+    let glyph = client.glyph_get(&hash);
+
+    println!("{:?}", glyph.colors.get(u1_address.clone()).unwrap().len());
+
+    client.glyph_scrape(&None, &hash);
+
+    let glyph = client.glyph_get(&hash);
+
+    println!("{:?}", glyph.colors.get(u1_address.clone()).unwrap().len());
+
     // 40
     // "cost": {
     //     "cpuInsns": "77759603",
@@ -101,10 +117,13 @@ fn big_mint() {
     // Cpu limit: 18446744073709551615; used: 28017220
     // Mem limit: 18446744073709551615; used: 4439162
 
-    env.budget().print();
+    // env.budget().print();
 
-    // 152, 164, 26, 184, 253, 26, 71, 41, 51, 51, 159, 80, 5, 169, 12, 46, 52, 115, 145, 177, 154, 10, 145, 60, 12, 71, 213, 166, 191, 42, 38, 205
-    println!("{:?}", hash);
+    // 40
+    // 171, 144, 28, 55, 171, 87, 24, 54, 102, 181, 50, 141, 120, 172, 192, 50, 179, 102, 40, 61, 163, 28, 127, 243, 243, 34, 99, 105, 98, 143, 227, 46
+    // 16
+    // 158, 185, 37, 209, 254, 153, 112, 252, 14, 46, 147, 173, 27, 76, 140, 30, 146, 19, 102, 0, 249, 170, 200, 75, 137, 221, 164, 72, 20, 209, 136, 203
+    // println!("{:?}", hash);
 }
 
 #[test]

@@ -40,7 +40,7 @@ impl ColorGlyphTrait for ColorGlyph {
         }
 
         let max_entry_lifetime: u32 = 12 * 60 * 24 * 31 - 1; // A year's worth of ledgers - 12
-        let max_payment_count: u32 = 15;
+        let max_payment_count: u32 = 23; // 25 - the glyph and any potential offers
         let minter_royalty_rate: i128 = 3; // 3%
         let miner_royalty_rate: i128 = 2; // 2%
 
@@ -181,7 +181,7 @@ impl GlyphInterface for ColorGlyph {
         let mut glyph = read_glyph_or_default(&env, &hash);
 
         // Only mint if the glyph hasn't yet been minted
-        if glyph.width != 0 || glyph.length != 0 {
+        if glyph.length != 0 {
             panic_with_error!(env, Error::NotEmpty);
         }
 
@@ -286,6 +286,8 @@ impl GlyphInterface for ColorGlyph {
         let owner_key = StorageKey::GlyphOwner(hash.clone());
         let owner = glyph_verify_ownership(&env, &owner_key);
 
+        // TODO don't allow scraping a fully scraped glyph, either remove the owner or check for empty colors
+
         // Ensure we don't start a scrape while there's a pending mint, otherwise we'll overwrite the pending with the new
         // We use the Address vs the BytesN<32> as the key in order to maintain ownership of the Colors
         // If we wanted to support scraping multiple glyphs at once we'd need to track ownership another way
@@ -293,9 +295,7 @@ impl GlyphInterface for ColorGlyph {
         let mut glyph = read_glyph_or_error(&env, &hash);
 
         // Remove all glyph sell offers
-        if glyph.width != 0 || glyph.length != 0 {
-            remove_glyph_offer(&env, &hash);
-        }
+        remove_glyph_offer(&env, &hash);
 
         crate::events::scrape_glyph_event(&env, &owner, to.clone(), &hash);
 
@@ -306,17 +306,9 @@ impl GlyphInterface for ColorGlyph {
         let max_payment_count = read_max_payment_count(&env) as u8;
 
         for (miner, mut colors_indexes) in glyph.colors.iter() {
-            if payment_count >= max_payment_count {
-                break;
-            }
-
             for (color, indexes) in colors_indexes.iter() {
-                // TODO do we need to dupe this line with the above?
-                if payment_count >= max_payment_count {
-                    break;
-                }
-
                 let current_amount = read_color(&env, &miner, &to_address, color);
+
                 write_color(
                     &env,
                     &miner,
@@ -328,6 +320,10 @@ impl GlyphInterface for ColorGlyph {
                 colors_indexes.remove(color);
                 payment_count += 1;
 
+                if payment_count >= max_payment_count {
+                    break;
+                }
+
                 // crate::events::color_in_event(&env, &miner, &to_address, color, indexes.len());
             }
 
@@ -335,6 +331,10 @@ impl GlyphInterface for ColorGlyph {
                 glyph.colors.remove(miner);
             } else {
                 glyph.colors.set(miner, colors_indexes);
+            }
+
+            if payment_count >= max_payment_count {
+                break;
             }
         }
 
