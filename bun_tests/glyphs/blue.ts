@@ -1,9 +1,9 @@
 import { Client } from 'colorglyph-sdk'
-import type { Glyph } from 'colorglyph-sdk'
 import { Keypair, Networks, Transaction } from '@stellar/stellar-sdk'
+import { getGlyphHash, paletteToBase64 } from '../utils'
 
 // const contractId = "CAMCM4WTWRM2UZBI7CEQE4HI2PZEAE3ZBDDNJTI3RB6CIZRJKRGXEHWK"
-const contractId = "CAUEYBG456425X627TP7JGLZTJOGYSH3XBDKNBTPUXOFIVVYYQ3UTHFR"
+const contractId = "CARZSHD6BLSLB5ENFR76QI4VNJ2XUHXEDCRG77VMLOAICRG7MZTIZPA7"
 // const networkPassphrase = Networks.PUBLIC
 const networkPassphrase = Networks.TESTNET
 // const rpcUrl = Bun.env.PUBLIC_RPC!
@@ -31,8 +31,8 @@ const ColorglyphSDK = new Client({
     }
 });
 
-const maxMineSize = 17
-const maxMintSize = 18
+const maxMineSize = 23
+const maxMintSize = 23
 const mineSanitizedPaletteArray: [number, number][][] = []
 const mintSanitizedPaletteArray: [number, number[]][][] = []
 const costs: string[] = []
@@ -43,6 +43,7 @@ let mintMap = new Map()
 let palette = new Array(256).fill('#0000ff').map((hex: string) =>
     parseInt(hex.replace('#', ''), 16)
 )
+let hash = await getGlyphHash(palette, width);
 
 for (const i in palette) {
     const index = Number(i)
@@ -113,6 +114,7 @@ async function super_mint() {
 
         let tx = await ColorglyphSDK.glyph_mint(
             {
+                hash,
                 minter: pubkey,
                 to: undefined,
                 colors: map,
@@ -134,6 +136,7 @@ async function super_mint() {
 
     let tx = await ColorglyphSDK.glyph_mint(
         {
+            hash,
             minter: pubkey,
             to: undefined,
             colors: new Map(),
@@ -142,7 +145,7 @@ async function super_mint() {
         { timeoutInSeconds }
     );
 
-    let { result, getTransactionResponse } = await tx.signAndSend()
+    let { getTransactionResponse } = await tx.signAndSend()
 
     if (getTransactionResponse?.status === 'SUCCESS') {
         const cost = getTransactionResponse.resultXdr.feeCharged().toString()
@@ -152,12 +155,11 @@ async function super_mint() {
         throw new Error('final mint failed')
     }
 
-    const hash = result?.toString('hex');
-
-    GLYPH = hash
+    GLYPH = hash.toString('hex');
     console.log(hash);
 
     glyph_get();
+
     console.log( 
         costs.reduce((a, b) => Number(a) + Number(b), 0),
     );
@@ -165,13 +167,10 @@ async function super_mint() {
 
 async function glyph_get() {
     let { result: res } = await ColorglyphSDK.glyph_get({
-        hash_type: {
-            tag: 'Glyph',
-            values: [Buffer.from(GLYPH!, 'hex')]
-        }
+        hash: Buffer.from(GLYPH!, 'hex')
     })
 
-    const glyph = res.unwrap().values[0] as Glyph;
+    const glyph = res.unwrap();
 
     width = glyph.width
 
@@ -184,4 +183,8 @@ async function glyph_get() {
             }
         }
     }
+
+    console.log(
+        Buffer.from(await paletteToBase64(palette, width)).toString('base64')
+    );
 }

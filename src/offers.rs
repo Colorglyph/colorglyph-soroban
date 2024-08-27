@@ -13,10 +13,10 @@ use crate::{
     storage::{
         instance::{read_miner_royalty_rate, read_minter_royalty_rate},
         persistent::{
-            has_asset_offers_by_asset, read_asset_offers_by_asset, read_glyph, read_glyph_minter,
-            read_glyph_owner, read_offers_by_glyph, remove_asset_offers_by_asset,
-            remove_glyph_offer, write_asset_offers_by_asset, write_glyph_owner,
-            write_offers_by_glyph,
+            has_asset_offers_by_asset, read_asset_offers_by_asset, read_glyph_minter,
+            read_glyph_or_error, read_glyph_owner, read_offers_by_glyph,
+            remove_asset_offers_by_asset, remove_glyph_offer, write_asset_offers_by_asset,
+            write_glyph_owner, write_offers_by_glyph,
         },
     },
     types::{Error, Offer, OfferCreate, StorageKey},
@@ -34,6 +34,9 @@ Tweak MINTER_ROYALTY_RATE and MINER_ROYALTY_RATE values
 Place caps on the number of GlyphOffer and AssetOffer Vec lengths
     how many sell offers can a Glyph owner open?
     how many identical glyph:asset:amount offers can be open?
+
+!! Ensure we can't sell a partially minted glyph
+    Or at the very least ensure we can't sell a glyph with a color length of zero
 */
 
 pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
@@ -361,12 +364,11 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
     match sell {
         Offer::Glyph(glyph_hash) => {
             // Selling a Glyph
-            let not_exists = buy.map_or(true, |buy| {
-                read_offers_by_glyph(env, &glyph_hash)
-                    .binary_search(buy)
-                    .is_err()
-            });
-            if !not_exists {
+            let offers = read_offers_by_glyph(env, &glyph_hash);
+            let not_exists = buy
+                .clone()
+                .map_or(true, |buy| offers.binary_search(buy).is_err());
+            if (!offers.is_empty() && buy.is_none()) || !not_exists {
                 Ok(())
             } else {
                 Err(Error::NotFound)
@@ -406,13 +408,14 @@ pub fn offers_get(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Erro
 }
 
 fn transfer_ownership(env: &Env, hash: &BytesN<32>, new_owner: &Address) {
-    let glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
-
     let glyph_owner_key = StorageKey::GlyphOwner(hash.clone());
+    let glyph_offer_key = StorageKey::GlyphOffer(hash.clone());
 
     env.storage().persistent().set(&glyph_owner_key, &new_owner);
 
-    env.storage().persistent().remove(&glyph_offer_key);
+    if env.storage().persistent().has(&glyph_offer_key) {
+        env.storage().persistent().remove(&glyph_offer_key);
+    }
 }
 
 fn reward_minter_and_miners(
@@ -426,7 +429,7 @@ fn reward_minter_and_miners(
     let mut leftover_amount = *amount;
 
     // Get glyph
-    let glyph = read_glyph(env, hash)?;
+    let glyph = read_glyph_or_error(env, hash);
     let glyph_minter_address = read_glyph_minter(env, hash).ok_or(Error::NotFound)?;
 
     // Pay the glyph minter their cut

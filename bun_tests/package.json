@@ -9,7 +9,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "github:stellar/js-stellar-sdk#e1c9609c",
+    "@lunapaint/png-codec": "^0.2.0",
+    "@stellar/stellar-sdk": "^12.2.0",
     "colorglyph-sdk": "link:colorglyph-sdk"
   }
 }
