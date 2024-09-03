@@ -8,6 +8,7 @@
 * Consider slimming up the StorageKey::Color in cases where the miner and owner are the same address
 * Check if we can increase any limits post phase 2 launch
     * I do wonder if it'd be better to submit more smaller transactions to avoid any inclusion fee bid wars 
+* Can you accept lower asset amount offers? Probably fine but curious to know
 
 # DONE
 * Add upgrade function during a beta period

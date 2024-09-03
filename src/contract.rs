@@ -259,7 +259,7 @@ impl GlyphInterface for ColorGlyph {
                     panic_with_error!(env, Error::NotPermitted);
                 }
 
-                crate::events::minted_event(&env, &minter, to, &hash);
+                // crate::events::minted_event(&env, &minter, to, &hash);
             }
             // We are building the glyph
             None => {
@@ -269,7 +269,7 @@ impl GlyphInterface for ColorGlyph {
                     .persistent()
                     .set::<StorageKey, Glyph>(&glyph_key, &glyph);
 
-                crate::events::minting_event(&env, &minter);
+                // crate::events::minting_event(&env, &minter);
             }
         }
     }
@@ -280,7 +280,7 @@ impl GlyphInterface for ColorGlyph {
 
         env.storage().persistent().set(&glyph_owner_key, &to);
 
-        crate::events::transfer_glyph_event(&env, &to, &hash);
+        // crate::events::transfer_glyph_event(&env, &to, &hash);
     }
     fn glyph_scrape(env: Env, to: Option<Address>, hash: BytesN<32>) {
         let owner_key = StorageKey::GlyphOwner(hash.clone());
@@ -297,7 +297,7 @@ impl GlyphInterface for ColorGlyph {
         // Remove all glyph sell offers
         remove_glyph_offer(&env, &hash);
 
-        crate::events::scrape_glyph_event(&env, &owner, to.clone(), &hash);
+        // crate::events::scrape_glyph_event(&env, &owner, to.clone(), &hash);
 
         // loop through the glyph colors and send them to `to`
         let mut payment_count: u8 = 0;

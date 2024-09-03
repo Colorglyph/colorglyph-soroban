@@ -27,27 +27,12 @@ pub enum StorageKey {
     MinterRoyaltyRate,
     MinerRoyaltyRate,
     Color(Address, Address, u32),
-    // Colors(Address),
     Glyph(BytesN<32>),
     GlyphOwner(BytesN<32>),
     GlyphMinter(BytesN<32>),
     GlyphOffer(BytesN<32>),
     AssetOffer(BytesN<32>, Address, i128),
 }
-
-// #[contracttype]
-// #[derive(Clone, Debug, PartialEq)]
-// pub enum HashType {
-//     Colors(Address), // means you can only be building or scraping one glyph at a time
-//     Glyph(BytesN<32>),
-// }
-
-// #[contracttype]
-// #[derive(Clone, Debug, PartialEq)]
-// pub enum GlyphType {
-//     Colors(Map<Address, Map<u32, Vec<u32>>>),
-//     Glyph(Glyph),
-// }
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -69,5 +54,5 @@ pub enum OfferCreate {
 pub enum Offer {
     Glyph(BytesN<32>),
     Asset(Address, i128), // BLOCKED once tuples support Option use that instead of AssetSell
-    AssetSell(Address, Address, i128), // asset owner, sac, amount
+    AssetSell(Address, Address, i128), // asset owner, sac, amount (NOTE currently this offer type is never stored)
 }

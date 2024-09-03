@@ -1,6 +1,3 @@
-// use std::println;
-// extern crate std;
-
 use soroban_fixed_point_math::FixedPoint;
 use soroban_sdk::{
     token::{self, TokenClient},
@@ -8,7 +5,7 @@ use soroban_sdk::{
 };
 
 use crate::{
-    events,
+    // events,
     glyphs::glyph_verify_ownership,
     storage::{
         instance::{read_miner_royalty_rate, read_minter_royalty_rate},
@@ -37,6 +34,8 @@ Place caps on the number of GlyphOffer and AssetOffer Vec lengths
 
 !! Ensure we can't sell a partially minted glyph
     Or at the very least ensure we can't sell a glyph with a color length of zero
+
+!! The way the indexer is written atm we should ensure no two offers are identical
 */
 
 pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
@@ -77,13 +76,14 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
 
                             transfer_ownership(env, buy_glyph_hash, &sell_glyph_owner_address);
 
-                            events::offer_match(
-                                env,
-                                sell_glyph_hash,
-                                &sell_glyph_owner_address,
-                                buy_glyph_hash,
-                                &buy_glyph_owner_address,
-                            );
+                            // events::offer_match(
+                            //     env,
+                            //     sell_glyph_hash,
+                            //     &sell_glyph_owner_address,
+                            //     buy_glyph_hash,
+                            //     &buy_glyph_owner_address,
+                            // );
+
                             Ok(())
                         }
                         Offer::AssetSell(sell_asset_owner_address, sell_asset_address, amount) => {
@@ -104,13 +104,13 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                             // remove all other sell offers for this glyph
                             remove_glyph_offer(env, buy_glyph_hash);
 
-                            events::offer_match_sell_asset(
-                                env,
-                                sell_asset_address,
-                                sell_asset_owner_address,
-                                buy_glyph_hash,
-                                offer_index,
-                            );
+                            // events::offer_match_sell_asset(
+                            //     env,
+                            //     sell_asset_address,
+                            //     sell_asset_owner_address,
+                            //     buy_glyph_hash,
+                            //     offer_index,
+                            // );
 
                             Ok(())
                         }
@@ -194,13 +194,14 @@ pub fn offer_post(env: &Env, sell: Offer, buy: Offer) -> Result<(), Error> {
                     // Remove all other sell offers for this glyph
                     remove_glyph_offer(env, sell_glyph_hash);
 
-                    events::asset_offer_post(
-                        env,
-                        &buy_asset_address,
-                        &buy_asset_owner,
-                        sell_glyph_hash,
-                        *amount,
-                    );
+                    // events::asset_offer_post(
+                    //     env,
+                    //     &buy_asset_address,
+                    //     &buy_asset_owner,
+                    //     sell_glyph_hash,
+                    //     *amount,
+                    // );
+
                     Ok(())
                 }
                 _ => Err(Error::NotPermitted),
@@ -226,7 +227,8 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
 
             write_offers_by_glyph(env, &sell_glyph_hash, offers);
 
-            events::glyph_offer_post(env, &sell_glyph_hash, &sell_glyph_owner_address, buy);
+            // events::glyph_offer_post(env, &sell_glyph_hash, &sell_glyph_owner_address, buy);
+            
             Ok(())
         }
         OfferCreate::Asset(
@@ -254,13 +256,14 @@ fn offer_post_create(env: &Env, offer: OfferCreate) -> Result<(), Error> {
 
             write_asset_offers_by_asset(env, &buy_glyph_hash, &sell_asset_address, amount, &offers);
 
-            events::asset_offer_post(
-                env,
-                &sell_asset_address,
-                &sell_asset_owner_address,
-                &buy_glyph_hash,
-                amount,
-            );
+            // events::asset_offer_post(
+            //     env,
+            //     &sell_asset_address,
+            //     &sell_asset_owner_address,
+            //     &buy_glyph_hash,
+            //     amount,
+            // );
+
             Ok(())
         }
     }
@@ -281,13 +284,14 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                         offers.remove(offer_index);
                         write_offers_by_glyph(env, &glyph_hash, offers);
 
-                        events::glyph_offer_delete(
-                            env,
-                            &glyph_hash,
-                            &glyph_owner,
-                            buy.clone(),
-                            offer_index,
-                        );
+                        // events::glyph_offer_delete(
+                        //     env,
+                        //     &glyph_hash,
+                        //     &glyph_owner,
+                        //     buy.clone(),
+                        //     offer_index,
+                        // );
+
                         Ok(())
                     }
                     _ => Err(Error::NotFound),
@@ -295,7 +299,8 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                 None => {
                     remove_glyph_offer(env, &glyph_hash);
 
-                    events::glyph_offer_delete_all(env, &glyph_hash, &glyph_owner);
+                    // events::glyph_offer_delete_all(env, &glyph_hash, &glyph_owner);
+
                     Ok(())
                 }
             }
@@ -321,14 +326,15 @@ pub fn offer_delete(env: &Env, sell: Offer, buy: Option<Offer>) -> Result<(), Er
                             );
 
                             offers.remove(offer_index);
-                            events::asset_offer_delete(
-                                env,
-                                &asset_address,
-                                &asset_owner_address,
-                                &glyph_hash,
-                                amount,
-                                offer_index,
-                            );
+
+                            // events::asset_offer_delete(
+                            //     env,
+                            //     &asset_address,
+                            //     &asset_owner_address,
+                            //     &glyph_hash,
+                            //     amount,
+                            //     offer_index,
+                            // );
 
                             if offers.is_empty() {
                                 remove_asset_offers_by_asset(
@@ -414,6 +420,7 @@ fn transfer_ownership(env: &Env, hash: &BytesN<32>, new_owner: &Address) {
     env.storage().persistent().set(&glyph_owner_key, &new_owner);
 
     if env.storage().persistent().has(&glyph_offer_key) {
+        // TODO emit offer remove event?
         env.storage().persistent().remove(&glyph_offer_key);
     }
 }

@@ -69,6 +69,7 @@ pub mod persistent {
         let key = StorageKey::GlyphOffer(hash.clone());
 
         if env.storage().persistent().has(&key) {
+            // TODO should we emit an offer remove event here?
             env.storage().persistent().remove(&key);
         }
     }
@@ -120,6 +121,7 @@ pub mod persistent {
         let key = StorageKey::AssetOffer(hash.clone(), address.clone(), amount);
 
         if env.storage().persistent().has(&key) {
+            // TODO should we emit an offer remove event here?
             env.storage().persistent().remove(&key);
         }
     }
