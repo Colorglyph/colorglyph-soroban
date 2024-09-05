@@ -343,8 +343,8 @@ impl GlyphInterface for ColorGlyph {
         env.storage().persistent().set::<StorageKey, Glyph>(
             &glyph_key,
             &Glyph {
-                width: 0,
-                length: 0,
+                width: glyph.width,
+                length: 0, // NOTE <- this is how we know the glyph has been scraped
                 colors: glyph.colors,
             },
         );
